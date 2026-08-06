@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import backgroundImage from './assets/background.jpg';
 
 function App() {
-  const [activeTab, setActiveTab] = useState('Projects');
+  const [activeTab, setActiveTab] = useState('Dashboard');
   const [currentDateTime, setCurrentDateTime] = useState('');
 
   useEffect(() => {
@@ -12,9 +12,11 @@ function App() {
     const path = window.location.pathname.replace('/', '');
     if (path) {
       const capitalized = path.charAt(0).toUpperCase() + path.slice(1);
-      if (['Home', 'Schedule', 'Projects', 'Settings'].includes(capitalized)) {
+      if (['Dashboard', 'Schedule', 'Projects', 'Settings'].includes(capitalized)) {
         setActiveTab(capitalized);
       }
+    } else {
+      setActiveTab('Dashboard');
     }
 
     // Update Date and Time
@@ -184,7 +186,7 @@ function App() {
     margin: 0,
   };
 
-  const tabs = ['Home', 'Schedule', 'Projects', 'Settings'];
+  const tabs = ['Dashboard', 'Schedule', 'Projects', 'Settings'];
 
   return (
     <div style={containerStyle}>
@@ -232,7 +234,10 @@ function App() {
           
           {/* Top Bar */}
           <div style={topBarStyle}>
-            <div style={{ flex: 1 }}></div> {/* Spacer */}
+            {/* Tab Title */}
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+              <h1 style={tabTitleStyle}>{activeTab}</h1>
+            </div>
             
             {/* Date and Time */}
             <div style={dateContainerStyle}>
@@ -260,11 +265,6 @@ function App() {
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* Tab Title */}
-          <div>
-            <h1 style={tabTitleStyle}>{activeTab}</h1>
           </div>
 
         </div>
