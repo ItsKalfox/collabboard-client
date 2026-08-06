@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react';
 import backgroundBL from './assets/background-BL.jpg';
 import backgroundWH from './assets/background-WH.jpg';
+import logoWH from './assets/logo-WH.png';
+import logoBL from './assets/logo-BL.png';
 
 function App() {
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [currentDateTime, setCurrentDateTime] = useState('');
-  const [theme, setTheme] = useState('dark');
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('theme') || 'dark';
+  });
 
   const isDark = theme === 'dark';
 
@@ -42,7 +46,11 @@ function App() {
   };
 
   const toggleTheme = () => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+    setTheme((prev) => {
+      const newTheme = prev === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('theme', newTheme);
+      return newTheme;
+    });
   };
 
   const containerStyle = {
@@ -213,7 +221,7 @@ function App() {
           {/* Logo */}
           <div style={logoContainerStyle}>
             <img 
-              src="/src/assets/logo.png" 
+              src={isDark ? logoWH : logoBL} 
               alt="Logo" 
               style={logoStyle} 
               onError={(e) => { e.target.style.display = 'none'; }} 
