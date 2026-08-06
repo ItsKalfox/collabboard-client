@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import backgroundImage from './assets/background.jpg';
 
 function App() {
   useEffect(() => {
@@ -11,6 +12,9 @@ function App() {
     left: 0,
     width: '100vw',
     height: '100vh',
+    backgroundImage: `url(${backgroundImage})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
     backgroundColor: '#000000',
     display: 'flex',
     alignItems: 'center',
@@ -20,15 +24,14 @@ function App() {
   };
 
   const windowStyle = {
-    width: '80%',
-    maxWidth: '800px',
-    height: '60vh',
-    borderRadius: '16px',
-    background: 'rgba(255, 255, 255, 0.1)',
-    backdropFilter: 'blur(10px)',
-    WebkitBackdropFilter: 'blur(10px)',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)',
+    width: '70vw',
+    height: '85vh',
+    borderRadius: '24px',
+    background: 'rgba(30, 30, 30, 0.5)',
+    backdropFilter: 'blur(25px)',
+    WebkitBackdropFilter: 'blur(25px)',
+    border: 'none',
+    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
   };
 
   return (
