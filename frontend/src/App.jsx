@@ -3,10 +3,20 @@ import backgroundBL from './assets/background-BL.jpg';
 import backgroundWH from './assets/background-WH.jpg';
 import logoWH from './assets/logo-WH.png';
 import logoBL from './assets/logo-BL.png';
+import Dashboard from './pages/Dashboard';
 import './App.css';
 
 function App() {
-  const [activeTab, setActiveTab] = useState('Dashboard');
+  const [activeTab, setActiveTab] = useState(() => {
+    const path = window.location.pathname.replace('/', '');
+    if (path) {
+      const capitalized = path.charAt(0).toUpperCase() + path.slice(1);
+      if (['Dashboard', 'Schedule', 'Projects', 'Settings'].includes(capitalized)) {
+        return capitalized;
+      }
+    }
+    return 'Dashboard';
+  });
   const [currentDateTime, setCurrentDateTime] = useState('');
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('theme') || 'dark';
@@ -17,16 +27,6 @@ function App() {
 
   useEffect(() => {
     document.title = 'CollabBoard';
-
-    const path = window.location.pathname.replace('/', '');
-    if (path) {
-      const capitalized = path.charAt(0).toUpperCase() + path.slice(1);
-      if (['Dashboard', 'Schedule', 'Projects', 'Settings'].includes(capitalized)) {
-        setActiveTab(capitalized);
-      }
-    } else {
-      setActiveTab('Dashboard');
-    }
 
     const updateDateTime = () => {
       const now = new Date();
@@ -181,6 +181,15 @@ function App() {
               </div>
             </div>
           </div>
+
+          {/* Page Content */}
+          {activeTab === 'Dashboard' ? (
+            <Dashboard />
+          ) : (
+            <div style={{ color: 'var(--text-secondary)', padding: '20px' }}>
+              {activeTab} content view...
+            </div>
+          )}
 
         </div>
 
