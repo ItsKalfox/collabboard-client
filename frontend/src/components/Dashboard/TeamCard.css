@@ -1,15 +1,20 @@
 .team-card {
   width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
   background: var(--menu-bg, rgba(255, 255, 255, 0.2));
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
   border: var(--menu-border, 1px solid rgba(255, 255, 255, 0.3));
-  border-radius: 24px;
-  padding: 20px;
+  border-radius: 20px;
+  padding: 18px 20px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  justify-content: space-between;
+  gap: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
   transition: all 0.3s ease;
 }
 
@@ -19,17 +24,17 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 12px;
 }
 
 .team-header-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .team-title {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 600;
   color: var(--text-primary, #111);
   margin: 0;
@@ -40,27 +45,27 @@
   color: #ffffff;
   font-size: 11px;
   font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 12px;
+  padding: 2px 7px;
+  border-radius: 10px;
 }
 
 /* Header Stats */
 .team-stats-group {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
 .team-stat-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .stat-icon-circle {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: #0d0d0d;
   color: #ffffff;
@@ -69,8 +74,13 @@
   justify-content: center;
 }
 
+.stat-icon-circle svg {
+  width: 14px;
+  height: 14px;
+}
+
 .stat-number {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--text-primary, #111);
 }
@@ -79,7 +89,7 @@
   display: flex;
   align-items: center;
   gap: 2px;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
 }
 
@@ -96,24 +106,34 @@
 /* Inner Dark Panel */
 .team-dark-panel {
   width: 100%;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
   background: #090a0f;
   color: #ffffff;
-  border-radius: 20px;
-  padding: 24px;
+  border-radius: 18px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1), 0 10px 25px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
 }
 
 .team-columns-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1.2fr;
-  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 18px;
+  height: 100%;
+  align-items: stretch;
 }
 
 .team-dept-col {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 16px;
+  gap: 10px;
+  min-width: 0;
 }
 
 .dept-info {
@@ -123,14 +143,14 @@
 }
 
 .dept-name {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: #ffffff;
   margin: 0;
 }
 
 .dept-sub {
-  font-size: 12px;
+  font-size: 11px;
   color: rgba(255, 255, 255, 0.5);
 }
 
@@ -140,12 +160,12 @@
 }
 
 .dept-avatar {
-  width: 30px;
-  height: 30px;
+  width: 25px;
+  height: 25px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #090a0f;
-  margin-left: -8px;
+  border: 1.5px solid #090a0f;
+  margin-left: -7px;
 }
 
 .dept-avatar:first-child {
@@ -156,13 +176,13 @@
 .dept-progress-block {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .progress-labels {
   display: flex;
   justify-content: space-between;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.5px;
   color: rgba(255, 255, 255, 0.5);
@@ -170,7 +190,7 @@
 
 .progress-bar-track {
   width: 100%;
-  height: 4px;
+  height: 3.5px;
   background: rgba(255, 255, 255, 0.15);
   border-radius: 2px;
   overflow: hidden;
@@ -186,15 +206,15 @@
 .dept-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .dept-action-btn {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.7);
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -211,16 +231,17 @@
 /* Development Chart */
 .chart-col {
   border-left: 1px solid rgba(255, 255, 255, 0.08);
-  padding-left: 20px;
+  padding-left: 16px;
 }
 
 .dev-chart-container {
-  height: 110px;
+  height: 100%;
+  min-height: 60px;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 8px;
-  padding-top: 10px;
+  gap: 7px;
+  padding-top: 6px;
 }
 
 .dev-chart-bar-wrapper {
@@ -229,14 +250,14 @@
   display: flex;
   align-items: flex-end;
   background: rgba(255, 255, 255, 0.04);
-  border-radius: 4px;
+  border-radius: 3px;
   overflow: hidden;
 }
 
 .dev-chart-bar {
   width: 100%;
   background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.4) 100%);
-  border-radius: 4px 4px 0 0;
+  border-radius: 3px 3px 0 0;
   transition: height 0.4s ease;
 }
 
@@ -250,6 +271,6 @@
     border-left: none;
     padding-left: 0;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
-    padding-top: 16px;
+    padding-top: 14px;
   }
 }
