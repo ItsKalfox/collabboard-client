@@ -30,9 +30,23 @@
   flex: 1;
 }
 
+.dashboard-bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 1.8fr;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.dashboard-quicklinks-col,
+.dashboard-team-col {
+  width: 100%;
+  display: flex;
+}
+
 /* Responsiveness */
 @media (max-width: 1400px) {
-  .dashboard-top-row {
+  .dashboard-top-row,
+  .dashboard-bottom-row {
     grid-template-columns: 1fr;
   }
 }
