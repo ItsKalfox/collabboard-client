@@ -5,3 +5,40 @@
   width: 100%;
   padding-bottom: 20px;
 }
+
+.dashboard-top-row {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.dashboard-timeline-col {
+  width: 100%;
+  display: flex;
+}
+
+.dashboard-cards-col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+
+.dashboard-card-wrapper {
+  display: flex;
+  flex: 1;
+}
+
+/* Responsiveness */
+@media (max-width: 1400px) {
+  .dashboard-top-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .dashboard-cards-col {
+    grid-template-columns: 1fr;
+  }
+}
