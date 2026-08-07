@@ -108,6 +108,36 @@
   flex-direction: column;
   justify-content: space-evenly;
   overflow-x: auto;
+  overflow-y: auto;
+}
+
+/* Slim Modern Custom Scrollbars */
+.timeline-body::-webkit-scrollbar,
+.timeline-container::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.timeline-body::-webkit-scrollbar-track,
+.timeline-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.timeline-body::-webkit-scrollbar-thumb,
+.timeline-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+}
+
+.timeline-body::-webkit-scrollbar-thumb:hover,
+.timeline-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.timeline-body,
+.timeline-container {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.25) transparent;
 }
 
 .timeline-grid-wrapper {
