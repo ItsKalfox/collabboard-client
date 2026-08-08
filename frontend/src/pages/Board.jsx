@@ -1,6 +1,19 @@
 import { useState } from 'react';
 import ProjectsSidebar from '../components/Board/ProjectsSidebar';
+import BoardHeader from '../components/Board/BoardHeader';
 import './Board.css';
+
+const PROJECTS_MAP = {
+  '1': 'Finance apps',
+  '2': 'Travel apps',
+  '3': 'E-Commerce apps',
+  '4': 'Education',
+  '5': 'Village Tourism',
+  '6': 'Real Estate',
+  '7': 'Job Finder',
+  '8': 'Rent a Car',
+  '9': 'Portfolio',
+};
 
 export default function Board() {
   const [selectedProjectId, setSelectedProjectId] = useState('2');
@@ -8,6 +21,8 @@ export default function Board() {
   const handleSelectProject = (projectId) => {
     setSelectedProjectId(projectId);
   };
+
+  const currentProjectName = PROJECTS_MAP[selectedProjectId] || 'Travel apps';
 
   return (
     <div className="board-page-container">
@@ -19,10 +34,16 @@ export default function Board() {
 
       {/* Right side: Main Board Workspace */}
       <div className="board-main-view">
-        <div className="board-workspace-placeholder">
-          <div className="board-placeholder-header">
-            <h2>Board Workspace</h2>
-            <p>Select a project from the left preview sidebar to manage its boards.</p>
+        {/* Top Header & Navigation */}
+        <BoardHeader projectName={currentProjectName} />
+
+        {/* Board Columns Placeholder */}
+        <div className="board-content-area">
+          <div className="board-workspace-placeholder">
+            <div className="board-placeholder-header">
+              <h2>Kanban Board</h2>
+              <p>Kanban columns and tasks view for <strong>{currentProjectName}</strong>.</p>
+            </div>
           </div>
         </div>
       </div>
