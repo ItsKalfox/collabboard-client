@@ -6,108 +6,6 @@
   padding: 8px 4px 0 4px;
 }
 
-/* Top Bar: Breadcrumb & Right Actions */
-.board-header-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.board-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: var(--text-secondary, #666);
-}
-
-.breadcrumb-root {
-  color: var(--text-secondary, #777);
-}
-
-.breadcrumb-separator {
-  color: var(--text-secondary, #aaa);
-}
-
-.breadcrumb-current {
-  color: var(--text-primary, #111);
-  font-weight: 600;
-}
-
-.board-top-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.icon-action-btn {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: var(--menu-bg, rgba(255, 255, 255, 0.15));
-  border: var(--menu-border, 1px solid rgba(255, 255, 255, 0.3));
-  color: var(--text-tertiary, #555);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.icon-action-btn:hover {
-  color: var(--text-primary, #111);
-  background: rgba(255, 255, 255, 0.25);
-}
-
-.user-profile-badge {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 12px 4px 4px;
-  border-radius: 20px;
-  background: var(--menu-bg, rgba(255, 255, 255, 0.15));
-  border: var(--menu-border, 1px solid rgba(255, 255, 255, 0.3));
-}
-
-.user-avatar-sm {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background-color: var(--avatar-bg, #333);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--avatar-icon, #fff);
-}
-
-.user-name {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-primary, #111);
-}
-
-.top-share-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #2563eb, #3b82f6);
-  border: none;
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
-  transition: all 0.2s ease;
-}
-
-.top-share-btn:hover {
-  opacity: 0.92;
-  transform: translateY(-1px);
-}
-
 /* Main Title Row & Team Avatars */
 .board-title-row {
   display: flex;
@@ -203,36 +101,23 @@
   background: var(--menu-bg, rgba(255, 255, 255, 0.15));
 }
 
-.header-share-btn {
+/* Metadata Row & Singular Add Task Button */
+.board-metadata-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #2563eb, #3b82f6);
-  border: none;
-  color: #ffffff;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
   font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
-  transition: all 0.2s ease;
+  color: var(--text-secondary, #666);
+  margin-top: 2px;
 }
 
-.header-share-btn:hover {
-  opacity: 0.92;
-  transform: translateY(-1px);
-}
-
-/* Metadata Row: Priority, Deadline, Tags */
-.board-metadata-row {
+.metadata-left-items {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 24px;
-  font-size: 13px;
-  color: var(--text-secondary, #666);
-  margin-top: 2px;
 }
 
 .meta-item {
@@ -298,6 +183,33 @@
   color: var(--text-primary, #111);
 }
 
+/* Singular Add Task Button below team chips */
+.add-task-header-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  border: none;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+  transition: all 0.2s ease;
+}
+
+.add-task-header-btn:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.4);
+}
+
+.add-task-header-btn:active {
+  transform: translateY(0);
+}
+
 /* Sub-Tabs Bar */
 .board-subtabs-bar {
   display: flex;
@@ -346,10 +258,6 @@
 }
 
 @media (max-width: 768px) {
-  .board-header-top {
-    flex-wrap: wrap;
-  }
-  
   .board-title-row {
     flex-direction: column;
     align-items: flex-start;
@@ -358,6 +266,6 @@
   .board-metadata-row {
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
+    gap: 12px;
   }
 }
