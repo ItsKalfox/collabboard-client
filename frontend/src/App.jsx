@@ -4,6 +4,7 @@ import backgroundWH from './assets/background-WH.jpg';
 import logoWH from './assets/logo-WH.png';
 import logoBL from './assets/logo-BL.png';
 import Dashboard from './pages/Dashboard';
+import Board from './pages/Board';
 import './App.css';
 
 function App() {
@@ -183,9 +184,9 @@ function App() {
           </div>
 
           {/* Page Content */}
-          {activeTab === 'Dashboard' ? (
-            <Dashboard />
-          ) : (
+          {activeTab === 'Dashboard' && <Dashboard />}
+          {activeTab === 'Board' && <Board />}
+          {activeTab !== 'Dashboard' && activeTab !== 'Board' && (
             <div style={{ color: 'var(--text-secondary)', padding: '20px' }}>
               {activeTab} content view...
             </div>
