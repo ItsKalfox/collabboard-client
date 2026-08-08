@@ -3,6 +3,7 @@ import backgroundBL from './assets/background-BL.jpg';
 import backgroundWH from './assets/background-WH.jpg';
 import logoWH from './assets/logo-WH.png';
 import logoBL from './assets/logo-BL.png';
+import ProjectsPage from './components/projects/ProjectsPage'; // added
 
 function App() {
   const [activeTab, setActiveTab] = useState('Dashboard');
@@ -308,6 +309,7 @@ function App() {
             </div>
           </div>
 
+          {activeTab === "Projects" && <ProjectsPage theme={theme} toggleTheme={toggleTheme} />}
         </div>
 
       </div>
