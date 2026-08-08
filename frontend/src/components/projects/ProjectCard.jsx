@@ -35,13 +35,15 @@ export default function ProjectCard({
   const membersList = Array.isArray(project.members) ? project.members : [project.members];
   const dotColor = COLOR_HEX[project.color] || COLOR_HEX.blue;
 
-  const handleCardClick = () => {
-    if (onOpenBoard) {
-      onOpenBoard(project);
-    } else {
-      onViewDetails(project);
-    }
-  };
+const handleCardClick = () => {
+  // this up to navigate to the Kanban board for this project.
+
+  if (onOpenBoard) {
+    onOpenBoard(project);
+  } else {
+    onViewDetails(project);
+  }
+};
 
   return (
     <div
