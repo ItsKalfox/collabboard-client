@@ -4,6 +4,7 @@ import backgroundWH from './assets/background-WH.jpg';
 import logoWH from './assets/logo-WH.png';
 import logoBL from './assets/logo-BL.png';
 import Dashboard from './pages/Dashboard';
+import Projects from './pages/Projects';
 import './App.css';
 
 function App() {
@@ -76,9 +77,9 @@ function App() {
   return (
     <div className="app-container" style={themeVars}>
       <div className="app-window">
-        
+
         {/* Mobile Overlay */}
-        <div 
+        <div
           className={`mobile-overlay ${isMenuOpen ? 'open' : ''}`}
           onClick={() => setIsMenuOpen(false)}
         ></div>
@@ -87,18 +88,18 @@ function App() {
         <div className={`menu-bar ${isMenuOpen ? 'open' : ''}`}>
           {/* Logo */}
           <div className="logo-container">
-            <img 
-              src={isDark ? logoWH : logoBL} 
-              alt="Logo" 
-              onError={(e) => { e.target.style.display = 'none'; }} 
+            <img
+              src={isDark ? logoWH : logoBL}
+              alt="Logo"
+              onError={(e) => { e.target.style.display = 'none'; }}
             />
           </div>
 
           {/* Menu Items */}
           <div className="menu-items">
             {tabs.map(tab => (
-              <div 
-                key={tab} 
+              <div
+                key={tab}
                 className={`menu-item ${activeTab === tab ? 'active' : ''} ${!isDark && activeTab === tab ? 'light-shadow' : ''}`}
                 onClick={() => handleTabClick(tab)}
               >
@@ -121,13 +122,13 @@ function App() {
 
         {/* Main Content Area */}
         <div className="main-content">
-          
+
           {/* Top Bar */}
           <div className="top-bar">
             {/* Tab Title */}
             <div className="tab-title-container">
-              <button 
-                className="burger-btn" 
+              <button
+                className="burger-btn"
                 onClick={() => setIsMenuOpen(true)}
               >
                 <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
@@ -138,7 +139,7 @@ function App() {
               </button>
               <h1 className="tab-title">{activeTab}</h1>
             </div>
-            
+
             {/* Date and Time */}
             <div className="date-container">
               <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
@@ -150,7 +151,7 @@ function App() {
 
             {/* Actions: Theme Toggle and Email */}
             <div className="top-bar-actions">
-              
+
               {/* Theme Toggle Button */}
               <div className="icon-btn" onClick={toggleTheme}>
                 {isDark ? (
@@ -185,6 +186,8 @@ function App() {
           {/* Page Content */}
           {activeTab === 'Dashboard' ? (
             <Dashboard />
+          ) : activeTab === 'Projects' ? (
+            <Projects />
           ) : (
             <div style={{ color: 'var(--text-secondary)', padding: '20px' }}>
               {activeTab} content view...
