@@ -1,6 +1,6 @@
 import TaskCard from './TaskCard';
 
-export default function KanbanColumn({ column }) {
+export default function KanbanColumn({ column, onTaskOptionClick }) {
   const { title, count = 0, tasks = [] } = column;
 
   return (
@@ -23,7 +23,7 @@ export default function KanbanColumn({ column }) {
       {/* Task List */}
       <div className="kanban-tasks-list">
         {tasks.map((task) => (
-          <TaskCard key={task.id} task={task} />
+          <TaskCard key={task.id} task={task} onOptionClick={() => onTaskOptionClick && onTaskOptionClick(task, title)} />
         ))}
       </div>
     </div>
