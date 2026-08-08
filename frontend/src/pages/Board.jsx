@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import ProjectsSidebar from '../components/Board/ProjectsSidebar';
 import BoardHeader from '../components/Board/BoardHeader';
+import KanbanBoard from '../components/Board/KanbanBoard';
 import './Board.css';
 
 const PROJECTS_MAP = {
@@ -37,14 +38,9 @@ export default function Board() {
         {/* Top Header & Navigation */}
         <BoardHeader projectName={currentProjectName} />
 
-        {/* Board Columns Placeholder */}
+        {/* Kanban Board Columns */}
         <div className="board-content-area">
-          <div className="board-workspace-placeholder">
-            <div className="board-placeholder-header">
-              <h2>Kanban Board</h2>
-              <p>Kanban columns and tasks view for <strong>{currentProjectName}</strong>.</p>
-            </div>
-          </div>
+          <KanbanBoard />
         </div>
       </div>
     </div>
