@@ -1,0 +1,123 @@
+.ongoing-projects-card {
+  width: 100%;
+  height: 100%;
+  background: var(--menu-bg, rgba(255, 255, 255, 0.2));
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border: var(--menu-border, 1px solid rgba(255, 255, 255, 0.3));
+  border-radius: 20px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.ongoing-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ongoing-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary, #111);
+  margin: 0;
+}
+
+.ongoing-grid-icon {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: color 0.2s ease;
+}
+
+.ongoing-grid-icon:hover {
+  color: var(--text-primary, #111);
+}
+
+.ongoing-stat-section {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 6px;
+}
+
+.ongoing-subtitle {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary, #777);
+}
+
+.ongoing-percentage {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-primary, #111);
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+
+.ongoing-compare {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-secondary, #888);
+}
+
+.ongoing-chart-container {
+  width: 100%;
+  height: 58px;
+  margin: 8px 0;
+  display: flex;
+  align-items: center;
+}
+
+.ongoing-sparkline {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.ongoing-categories-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.ongoing-category-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.ongoing-cat-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ongoing-cat-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.ongoing-cat-label {
+  font-weight: 500;
+  color: var(--text-secondary, #555);
+}
+
+.ongoing-cat-value {
+  font-weight: 600;
+  color: var(--text-primary, #111);
+}
