@@ -42,8 +42,8 @@
 }
 
 .app-window {
-  width: 70vw;
-  height: 85vh;
+  width: 90vw;
+  height: 90vh;
   border-radius: 24px;
   background: var(--window-bg);
   backdrop-filter: blur(25px);
