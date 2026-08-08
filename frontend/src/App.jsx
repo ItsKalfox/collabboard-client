@@ -3,6 +3,7 @@ import backgroundBL from './assets/background-BL.jpg';
 import backgroundWH from './assets/background-WH.jpg';
 import logoWH from './assets/logo-WH.png';
 import logoBL from './assets/logo-BL.png';
+import ProjectsPage from './components/projects/ProjectsPage'; // added
 import Dashboard from './pages/Dashboard';
 import './App.css';
 
@@ -17,6 +18,7 @@ function App() {
     }
     return 'Dashboard';
   });
+
   const [currentDateTime, setCurrentDateTime] = useState('');
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('theme') || 'dark';
@@ -185,6 +187,8 @@ function App() {
           {/* Page Content */}
           {activeTab === 'Dashboard' ? (
             <Dashboard />
+          ) : activeTab === 'Projects' ? (
+            <ProjectsPage theme={theme} toggleTheme={toggleTheme} />
           ) : (
             <div style={{ color: 'var(--text-secondary)', padding: '20px' }}>
               {activeTab} content view...
