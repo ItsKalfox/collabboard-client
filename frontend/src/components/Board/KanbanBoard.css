@@ -1,0 +1,310 @@
+.kanban-board-container {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(250px, 1fr));
+  gap: 16px;
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  padding: 4px 2px 10px 2px;
+}
+
+/* Kanban Column */
+.kanban-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 250px;
+  height: 100%;
+  overflow: hidden;
+}
+
+.kanban-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px;
+}
+
+.column-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.column-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary, #111);
+  margin: 0;
+}
+
+.column-count-badge {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--text-primary, #ffffff);
+  color: var(--bg-color, #000000);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.column-options-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #888);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.2s ease;
+}
+
+.column-options-btn:hover {
+  color: var(--text-primary, #111);
+}
+
+.add-task-btn {
+  width: 100%;
+  height: 36px;
+  border-radius: 12px;
+  border: 1px dashed var(--menu-border, rgba(255, 255, 255, 0.3));
+  background: var(--menu-bg, rgba(255, 255, 255, 0.1));
+  color: var(--text-secondary, #666);
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-task-btn:hover {
+  border-style: solid;
+  color: var(--text-primary, #111);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Tasks List Container */
+.kanban-tasks-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  padding-right: 4px;
+  margin-right: -4px;
+}
+
+/* Individual Task Card */
+.task-card {
+  background: var(--menu-bg, rgba(255, 255, 255, 0.2));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: var(--menu-border, 1px solid rgba(255, 255, 255, 0.3));
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
+}
+
+.task-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+/* Card Header */
+.task-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.task-tag-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+
+.tag-cyan { background: rgba(6, 182, 212, 0.18); color: #0891b2; }
+.tag-amber { background: rgba(245, 158, 11, 0.18); color: #d97706; }
+.tag-pink { background: rgba(236, 72, 153, 0.18); color: #db2777; }
+.tag-purple { background: rgba(139, 92, 246, 0.18); color: #7c3aed; }
+.tag-green { background: rgba(16, 185, 129, 0.18); color: #059669; }
+
+.task-card-header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.task-card-date {
+  font-size: 11px;
+  color: var(--text-secondary, #777);
+}
+
+.task-card-more-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #888);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+
+.task-card-more-btn:hover {
+  color: var(--text-primary, #111);
+}
+
+/* Card Body */
+.task-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.task-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #111);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.task-card-desc {
+  font-size: 12px;
+  color: var(--text-secondary, #666);
+  margin: 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Image Preview */
+.task-card-image-preview {
+  width: 100%;
+  height: 110px;
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 4px 0;
+}
+
+.task-card-image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Progress Section */
+.task-card-progress-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.progress-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-secondary, #777);
+  font-weight: 500;
+}
+
+.progress-bar-track {
+  width: 100%;
+  height: 6px;
+  border-radius: 4px;
+  background: var(--menu-bg, rgba(0, 0, 0, 0.08));
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--text-primary, #ffffff);
+  transition: width 0.3s ease;
+}
+
+/* Footer */
+.task-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 6px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  margin-top: 2px;
+}
+
+.footer-members-stack {
+  display: flex;
+  align-items: center;
+}
+
+.footer-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--menu-bg, #ffffff);
+  margin-left: -6px;
+}
+
+.footer-avatar:first-child {
+  margin-left: 0;
+}
+
+.footer-avatar-more {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary, #666);
+  margin-left: 4px;
+}
+
+.footer-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--text-secondary, #777);
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+@media (max-width: 1024px) {
+  .kanban-board-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .kanban-board-container {
+    grid-template-columns: 1fr;
+  }
+}

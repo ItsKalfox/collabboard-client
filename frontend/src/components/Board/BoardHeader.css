@@ -1,0 +1,271 @@
+.board-header-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  padding: 8px 4px 0 4px;
+}
+
+/* Main Title Row & Team Avatars */
+.board-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.board-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.board-main-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-primary, #111);
+  margin: 0;
+  letter-spacing: -0.5px;
+  transition: color 0.3s ease;
+}
+
+.info-icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #888);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 50%;
+  transition: color 0.2s ease;
+}
+
+.info-icon-btn:hover {
+  color: var(--text-primary, #111);
+}
+
+.board-team-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.team-avatars-stack {
+  display: flex;
+  align-items: center;
+}
+
+.avatar-circle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  border: 2px solid var(--bg-color, #ffffff);
+  margin-left: -8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.avatar-circle:first-child {
+  margin-left: 0;
+}
+
+.av-1 { background: #ef4444; }
+.av-2 { background: #3b82f6; }
+.av-3 { background: #10b981; }
+
+.invite-member-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px dashed var(--text-secondary, #aaa);
+  background: transparent;
+  color: var(--text-secondary, #666);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.invite-member-btn:hover {
+  border-style: solid;
+  color: var(--text-primary, #111);
+  background: var(--menu-bg, rgba(255, 255, 255, 0.15));
+}
+
+/* Metadata Row & Singular Add Task Button */
+.board-metadata-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--text-secondary, #666);
+  margin-top: 2px;
+}
+
+.metadata-left-items {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.meta-label {
+  font-weight: 500;
+  color: var(--text-secondary, #777);
+}
+
+.meta-value {
+  font-weight: 600;
+  color: var(--text-primary, #111);
+}
+
+.priority-badge {
+  background: rgba(59, 130, 246, 0.15);
+  color: #2563eb;
+  padding: 3px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tags-list {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tag-pill {
+  padding: 3px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tag-blue {
+  background: rgba(59, 130, 246, 0.15);
+  color: #2563eb;
+}
+
+.tag-purple {
+  background: rgba(168, 85, 247, 0.15);
+  color: #9333ea;
+}
+
+.add-tag-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #888);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 2px 6px;
+  transition: color 0.2s ease;
+}
+
+.add-tag-btn:hover {
+  color: var(--text-primary, #111);
+}
+
+/* Singular Add Task Button below team chips */
+.add-task-header-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: 20px;
+  background: var(--text-primary, #ffffff);
+  border: none;
+  color: var(--bg-color, #000000);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+}
+
+.add-task-header-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+
+.add-task-header-btn:active {
+  transform: translateY(0);
+}
+
+/* Sub-Tabs Bar */
+.board-subtabs-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--menu-border, rgba(255, 255, 255, 0.15));
+  margin-top: 8px;
+  padding-bottom: 2px;
+}
+
+.subtabs-list {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.subtab-btn {
+  background: transparent;
+  border: none;
+  padding: 8px 4px 12px 4px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary, #777);
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s ease;
+}
+
+.subtab-btn:hover {
+  color: var(--text-primary, #111);
+}
+
+.subtab-btn.active {
+  color: var(--text-primary, #111);
+  font-weight: 600;
+}
+
+.subtab-active-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #2563eb;
+  border-radius: 3px 3px 0 0;
+}
+
+@media (max-width: 768px) {
+  .board-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .board-metadata-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}

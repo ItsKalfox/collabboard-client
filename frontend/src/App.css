@@ -42,8 +42,8 @@
 }
 
 .app-window {
-  width: 70vw;
-  height: 85vh;
+  width: 90vw;
+  height: 90vh;
   border-radius: 24px;
   background: var(--window-bg);
   backdrop-filter: blur(25px);
@@ -252,7 +252,7 @@
     border: none;
     padding: 10px;
   }
-  
+
   .menu-bar {
     position: absolute;
     left: -260px;
@@ -263,7 +263,7 @@
     backdrop-filter: blur(30px);
     -webkit-backdrop-filter: blur(30px);
   }
-  
+
   .menu-bar.open {
     left: 0;
   }
@@ -275,20 +275,20 @@
   .mobile-overlay {
     display: block;
   }
-  
+
   .main-content {
     padding: 10px 15px;
   }
-  
+
   .tab-title {
     font-size: 24px;
   }
-  
+
   .top-bar {
     flex-wrap: wrap;
     margin-bottom: 20px;
   }
-  
+
   .date-container {
     order: 3;
     width: 100%;
