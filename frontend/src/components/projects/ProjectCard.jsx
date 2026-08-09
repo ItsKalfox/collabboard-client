@@ -17,30 +17,14 @@ export default function ProjectCard({
   onViewDetails,
   onOpenBoard,
 }) {
-  const [showMenu, setShowMenu] = useState(false);
-  const menuRef = useRef(null);
   const isDark = theme !== 'light';
   const lightCls = isDark ? '' : ' light';
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setShowMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const membersList = Array.isArray(project.members) ? project.members : [];
   const progressPercent = project.progress || 0;
 
   const handleCardClick = () => {
-    if (onOpenBoard) {
-      onOpenBoard(project);
-    } else {
-      onViewDetails(project);
-    }
+    onViewDetails(project);
   };
 
   return (
@@ -115,41 +99,7 @@ export default function ProjectCard({
         )}
       </div>
 
-      {/* 7. Actions */}
-      <div className="pc-list-actions" ref={menuRef} onClick={(e) => e.stopPropagation()}>
-        <button
-          onClick={() => setShowMenu(!showMenu)}
-          className={`pc-list-menu-btn${lightCls}`}
-          title="Options"
-          id={`options-btn-${project.id}`}
-        >
-          <MoreVertical size={18} />
-        </button>
-
-        {showMenu && (
-          <div className={`${isDark ? 'glass-menu' : 'glass-menu-light'} pc-list-menu animate-modal`}>
-            <button
-              onClick={() => { setShowMenu(false); onEdit(project); }}
-              className={`pc-menu-item${lightCls}`}
-            >
-              <Edit2 size={14} /> Edit Project
-            </button>
-            <button
-              onClick={() => { setShowMenu(false); onViewDetails(project); }}
-              className={`pc-menu-item${lightCls}`}
-            >
-              <Info size={14} /> Project Details
-            </button>
-            <div className={`pc-menu-divider${lightCls}`} />
-            <button
-              onClick={() => { setShowMenu(false); onDelete(project); }}
-              className={`pc-menu-item pc-menu-item-danger${lightCls}`}
-            >
-              <Trash2 size={14} /> Delete Project
-            </button>
-          </div>
-        )}
-      </div>
+      {/* Action removed as per requirement */}
     </div>
   );
 }
