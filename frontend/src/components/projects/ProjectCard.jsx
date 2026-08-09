@@ -71,10 +71,10 @@ export default function ProjectCard({
         </div>
         <div className={`pc-list-progress-track${lightCls}`}>
           <div 
-            className="pc-list-progress-fill" 
+            className="pc-list-progress-fill"
             style={{ 
               width: `${progressPercent}%`,
-              backgroundColor: COLOR_HEX[project.color] || COLOR_HEX.blue 
+              backgroundColor: isDark ? '#ffffff' : '#000000' 
             }} 
           />
         </div>

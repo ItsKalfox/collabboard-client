@@ -167,23 +167,17 @@ export default function ProjectsPage({ theme = 'dark', toggleTheme, onOpenBoard 
   return (
     <div className={`projects-page${lightCls}`}>
       <div className={`projects-header${lightCls}`}>
-        <div>
-          <h2 className={`projects-title${lightCls}`}>Active Projects</h2>
-          <p className={`projects-subtitle${lightCls}`}>
-            Select a project board to view or create a new project
-          </p>
+        <div className={`projects-search-bar${lightCls}`}>
+          <Search size={16} />
+          <input 
+            type="text" 
+            placeholder="Search projects..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
 
         <div className="projects-header-actions">
-          <div className={`projects-search-bar${lightCls}`}>
-            <Search size={16} />
-            <input 
-              type="text" 
-              placeholder="Search projects..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
           <button onClick={() => setIsCreateOpen(true)} className="btn-primary" id="create-project-btn">
             <Plus size={16} strokeWidth={3} />
             <span>New Project</span>

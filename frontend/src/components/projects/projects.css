@@ -153,6 +153,12 @@
 .btn-primary:hover { background: #e5e7eb; transform: translateY(-1px); }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
+.projects-page.light .btn-primary {
+  background: #000000;
+  color: #ffffff;
+}
+.projects-page.light .btn-primary:hover { background: #333333; }
+
 /* ============================================
    Category Sections
    ============================================ */
