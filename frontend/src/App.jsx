@@ -3,14 +3,20 @@ import backgroundBL from './assets/background-BL.jpg';
 import backgroundWH from './assets/background-WH.jpg';
 import logoWH from './assets/logo-WH.png';
 import logoBL from './assets/logo-BL.png';
-import ProjectsPage from './components/projects/ProjectsPage'; // added
+import ProjectsPage from './components/projects/ProjectsPage';
 import Dashboard from './pages/Dashboard';
 import Board from './pages/Board';
+import AuthModule from './components/auth/AuthModule';
 import './App.css';
 
 function App() {
+  const authRoutes = ['login', 'register', 'forgot-password', 'reset-password', 'verify-email'];
+
   const [activeTab, setActiveTab] = useState(() => {
     const path = window.location.pathname.replace('/', '');
+    if (authRoutes.includes(path)) {
+      return path;
+    }
     if (path) {
       const capitalized = path.charAt(0).toUpperCase() + path.slice(1);
       if (['Dashboard', 'Board', 'Projects', 'Settings'].includes(capitalized)) {
@@ -26,7 +32,8 @@ function App() {
   });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const isDark = theme === 'dark';
+  const isAuthRoute = authRoutes.includes(activeTab);
+  const isDark = isAuthRoute || theme === 'dark';
 
   useEffect(() => {
     document.title = 'CollabBoard';
@@ -47,6 +54,10 @@ function App() {
     setActiveTab(tab);
     window.history.pushState({}, '', '/' + tab.toLowerCase());
     setIsMenuOpen(false); // Close menu on mobile after selection
+  };
+
+  const handleLoginSuccess = () => {
+    handleTabClick('Dashboard');
   };
 
   const toggleTheme = () => {
@@ -75,6 +86,19 @@ function App() {
   };
 
   const tabs = ['Dashboard', 'Board', 'Projects', 'Settings'];
+
+  if (authRoutes.includes(activeTab)) {
+    return (
+      <div className="app-container" style={themeVars}>
+        <AuthModule 
+          theme={theme} 
+          toggleTheme={toggleTheme} 
+          initialPage={activeTab} 
+          onLoginSuccess={handleLoginSuccess}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="app-container" style={themeVars}>
