@@ -76,13 +76,6 @@ export default function LoginPage({ onNavigate = () => {}, onLoginSuccess = () =
         <div className="auth-input-group">
           <div className="auth-label">
             <span>Password</span>
-            <button
-              type="button"
-              className="auth-link"
-              onClick={() => onNavigate('forgot-password')}
-            >
-              Forgot Password?
-            </button>
           </div>
           <div className="auth-input-wrapper">
             <div className="auth-input-icon">
@@ -116,6 +109,13 @@ export default function LoginPage({ onNavigate = () => {}, onLoginSuccess = () =
             />
             <span>Remember this device</span>
           </label>
+          <button
+            type="button"
+            className="auth-link auth-link-forgot"
+            onClick={() => onNavigate('forgot-password')}
+          >
+            Forgot Password?
+          </button>
         </div>
 
         <button type="submit" className="auth-submit-btn" disabled={loading}>
