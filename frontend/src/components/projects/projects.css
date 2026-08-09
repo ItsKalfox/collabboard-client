@@ -118,6 +118,37 @@
 .btn-primary:hover { background: #e5e7eb; transform: translateY(-1px); }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
+/* ============================================
+   Category Sections
+   ============================================ */
+
+.projects-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.projects-category-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.projects-category-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+  letter-spacing: -0.2px;
+  padding-left: 4px;
+}
+
+.projects-category-divider {
+  height: 1px;
+  background: var(--border);
+  width: 100%;
+}
+
 .projects-grid {
   display: flex;
   flex-direction: column;

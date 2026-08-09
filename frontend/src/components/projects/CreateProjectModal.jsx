@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Search } from 'lucide-react';
-import { REGISTERED_USERS } from './mockData';
+const REGISTERED_USERS = ['Alex Johnson', 'Sara Smith', 'John Doe', 'David W', 'Elena V', 'Maria', 'Chris', 'Sam'];
 import './projects.css';
 
 const COLOR_OPTIONS = [
