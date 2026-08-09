@@ -4,7 +4,7 @@ import CreateProjectModal from './CreateProjectModal';
 import EditProjectModal from './EditProjectModal';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import ProjectDetailsModal from './ProjectDetailsModal';
-import { Plus } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import './projects.css';
 
 const initialProjects = [
@@ -137,7 +137,7 @@ export default function ProjectsPage({ theme = 'dark', toggleTheme, onOpenBoard 
   const lightCls = isDark ? '' : ' light';
 
   const [projects, setProjects] = useState(initialProjects);
-  const [activeTab, setActiveTab] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
   const [deletingProject, setDeletingProject] = useState(null);
@@ -157,8 +157,12 @@ export default function ProjectsPage({ theme = 'dark', toggleTheme, onOpenBoard 
     setProjects(projects.filter((p) => p.id !== projectId));
   };
 
-  const ownedProjects = projects.filter(p => p.owner === currentUser);
-  const partOfProjects = projects.filter(p => p.owner !== currentUser && p.members.some(m => m.name === currentUser));
+  const filteredBySearch = projects.filter(p => 
+    p.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const ownedProjects = filteredBySearch.filter(p => p.owner === currentUser);
+  const partOfProjects = filteredBySearch.filter(p => p.owner !== currentUser && p.members.some(m => m.name === currentUser));
 
   return (
     <div className="projects-page">
@@ -170,10 +174,21 @@ export default function ProjectsPage({ theme = 'dark', toggleTheme, onOpenBoard 
           </p>
         </div>
 
-        <button onClick={() => setIsCreateOpen(true)} className="btn-primary" id="create-project-btn">
-          <Plus size={16} strokeWidth={3} />
-          <span>New Project</span>
-        </button>
+        <div className="projects-header-actions">
+          <div className={`projects-search-bar${lightCls}`}>
+            <Search size={16} />
+            <input 
+              type="text" 
+              placeholder="Search projects..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <button onClick={() => setIsCreateOpen(true)} className="btn-primary" id="create-project-btn">
+            <Plus size={16} strokeWidth={3} />
+            <span>New Project</span>
+          </button>
+        </div>
       </div>
 
       {projects.length === 0 ? (
