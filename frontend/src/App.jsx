@@ -32,7 +32,8 @@ function App() {
   });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const isDark = theme === 'dark';
+  const isAuthRoute = authRoutes.includes(activeTab);
+  const isDark = isAuthRoute || theme === 'dark';
 
   useEffect(() => {
     document.title = 'CollabBoard';
