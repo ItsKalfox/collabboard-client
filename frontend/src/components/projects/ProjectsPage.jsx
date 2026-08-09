@@ -165,7 +165,7 @@ export default function ProjectsPage({ theme = 'dark', toggleTheme, onOpenBoard 
   const partOfProjects = filteredBySearch.filter(p => p.owner !== currentUser && p.members.some(m => m.name === currentUser));
 
   return (
-    <div className="projects-page">
+    <div className={`projects-page${lightCls}`}>
       <div className={`projects-header${lightCls}`}>
         <div>
           <h2 className={`projects-title${lightCls}`}>Active Projects</h2>
