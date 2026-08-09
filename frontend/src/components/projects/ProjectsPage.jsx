@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { initialProjects } from './mockData';
 import ProjectCard from './ProjectCard';
 import CreateProjectModal from './CreateProjectModal';
 import EditProjectModal from './EditProjectModal';
@@ -7,6 +6,73 @@ import DeleteConfirmModal from './DeleteConfirmModal';
 import ProjectDetailsModal from './ProjectDetailsModal';
 import { Plus } from 'lucide-react';
 import './projects.css';
+
+const initialProjects = [
+  {
+    id: 'proj-1',
+    name: 'Website Redesign',
+    description: 'Company Website overhaul with new branding and improved user experience.',
+    color: 'blue',
+    coverImage: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=500&auto=format&fit=crop&q=80',
+    owner: 'John Doe',
+    members: [
+      { name: 'John Doe', initials: 'JD', bg: '#3b82f6', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80' },
+      { name: 'Sara Smith', initials: 'SS', bg: '#10b981', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80' },
+      { name: 'Alex K', initials: 'AK', bg: '#f59e0b', avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=150&q=80' },
+      { name: 'Elena V', initials: 'EV', bg: '#f43f5e', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80' },
+    ],
+    createdDate: '06 Aug 2026',
+    status: 'In Progress',
+    progress: 75
+  },
+  {
+    id: 'proj-2',
+    name: 'Inventory System',
+    description: 'Warehouse Management application for tracking real-time stock levels.',
+    color: 'green',
+    coverImage: 'https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?w=500&auto=format&fit=crop&q=80',
+    owner: 'Sara Smith',
+    members: [
+      { name: 'Sara Smith', initials: 'SS', bg: '#10b981', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80' },
+      { name: 'John Doe', initials: 'JD', bg: '#3b82f6', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80' },
+      { name: 'Alex K', initials: 'AK', bg: '#f59e0b', avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=150&q=80' }
+    ],
+    createdDate: '04 Aug 2026',
+    status: 'In Progress',
+    progress: 40
+  },
+  {
+    id: 'proj-3',
+    name: 'Mobile App Launch',
+    description: 'Field Service Mobile App for technicians to report on-site issues.',
+    color: 'purple',
+    coverImage: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500&auto=format&fit=crop&q=80',
+    owner: 'Alex K',
+    members: [
+      { name: 'Alex K', initials: 'AK', bg: '#f59e0b', avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=150&q=80' },
+      { name: 'John Doe', initials: 'JD', bg: '#3b82f6', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80' },
+      { name: 'Sara Smith', initials: 'SS', bg: '#10b981', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80' }
+    ],
+    createdDate: '01 Aug 2026',
+    status: 'Planning',
+    progress: 15
+  },
+  {
+    id: 'proj-4',
+    name: 'Customer Portal',
+    description: 'Self-Service Support Hub for clients to manage their subscriptions.',
+    color: 'yellow',
+    coverImage: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=500&auto=format&fit=crop&q=80',
+    owner: 'John Doe',
+    members: [
+      { name: 'John Doe', initials: 'JD', bg: '#3b82f6', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80' },
+      { name: 'David W', initials: 'DW', bg: '#8b5cf6', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80' },
+    ],
+    createdDate: '28 Jul 2026',
+    status: 'Completed',
+    progress: 100
+  }
+];
 
 export default function ProjectsPage({ theme = 'dark', toggleTheme, onOpenBoard = () => {} }) {
   const isDark = theme !== 'light';
