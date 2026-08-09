@@ -36,6 +36,10 @@ function App() {
   const isDark = isAuthRoute || theme === 'dark';
 
   useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
     document.title = 'CollabBoard';
 
     const updateDateTime = () => {

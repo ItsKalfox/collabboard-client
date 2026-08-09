@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import KanbanColumn from './KanbanColumn';
+import TaskPopup from '../TaskPopup/TaskPopup';
 import './KanbanBoard.css';
 
 const KANBAN_DATA = [
@@ -169,12 +171,54 @@ const KANBAN_DATA = [
   },
 ];
 
+function normalizeTaskForPopup(task, columnTitle) {
+  return {
+    ...task,
+    status: task.status || columnTitle || 'To Do',
+    priority: task.priority || 7,
+    createdDate: task.createdDate || task.date || 'Mon, 20 Nov 2023',
+    dueDate: task.dueDate || 'Fri, 01 Dec 2023',
+    progress: task.progress !== undefined ? task.progress : (task.progressTotal ? Math.round((task.progressCurrent / task.progressTotal) * 100) : 50),
+    assignees: task.assignees || (task.members || []).map(m => ({ name: m.name, initials: m.initials })),
+    subtasks: task.subtasks || [
+      { label: 'Initial moodboard & design concept', done: true, comments: [] },
+      { label: 'Review UI specs with project team', done: false, comments: [] },
+    ],
+    attachments: task.attachments || [
+      { id: 'a1', name: 'Design Brief', ext: 'PDF', size: '2.45 MB', url: null },
+    ],
+    generalComments: task.generalComments || [],
+    activities: task.activities || [
+      { text: `Task "${task.title}" was created`, timestamp: task.date || 'Mon, 20 Nov 2023' },
+    ],
+  };
+}
+
 export default function KanbanBoard() {
+  const [activeTask, setActiveTask] = useState(null);
+
+  const handleOpenTaskPopup = (rawTask, columnTitle) => {
+    setActiveTask(normalizeTaskForPopup(rawTask, columnTitle));
+  };
+
   return (
-    <div className="kanban-board-container">
-      {KANBAN_DATA.map((column) => (
-        <KanbanColumn key={column.id} column={column} />
-      ))}
-    </div>
+    <>
+      <div className="kanban-board-container">
+        {KANBAN_DATA.map((column) => (
+          <KanbanColumn
+            key={column.id}
+            column={column}
+            onTaskOptionClick={handleOpenTaskPopup}
+          />
+        ))}
+      </div>
+
+      {activeTask && (
+        <TaskPopup
+          task={activeTask}
+          onClose={() => setActiveTask(null)}
+        />
+      )}
+    </>
   );
 }
