@@ -19,26 +19,15 @@ export default function TaskCard({ task, onOptionClick }) {
   const progressPercent = Math.min(100, Math.max(0, (progressCurrent / progressTotal) * 100));
 
   return (
-    <div className="task-card">
-      {/* Card Header: Tag & Date & Options */}
+    <div 
+      className="task-card"
+      onClick={() => onOptionClick && onOptionClick(task)}
+    >
+      {/* Card Header: Tag & Date */}
       <div className="task-card-header">
         <span className={`task-tag-pill tag-${tagColor}`}>{tag}</span>
         <div className="task-card-header-right">
           <span className="task-card-date">{date}</span>
-          <button
-            className="task-card-more-btn"
-            title="Options"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onOptionClick) onOptionClick(task);
-            }}
-          >
-            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
-              <circle cx="12" cy="12" r="1.5"></circle>
-              <circle cx="6" cy="12" r="1.5"></circle>
-              <circle cx="18" cy="18" r="1.5"></circle>
-            </svg>
-          </button>
         </div>
       </div>
 
