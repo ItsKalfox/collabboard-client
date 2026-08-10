@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -7,6 +8,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const mockDataPath = path.join(__dirname, '../data/mockData.json');
+const mockOtpsPath = path.join(__dirname, '../data/mockOtps.json');
 
 const getMockData = () => {
     if (!fs.existsSync(mockDataPath)) {
@@ -18,6 +20,15 @@ const getMockData = () => {
 
 const saveMockData = (data) => {
     fs.writeFileSync(mockDataPath, JSON.stringify(data, null, 2));
+};
+
+const getMockOtps = () => {
+    if (!fs.existsSync(mockOtpsPath)) return [];
+    return JSON.parse(fs.readFileSync(mockOtpsPath, 'utf8'));
+};
+
+const saveMockOtps = (data) => {
+    fs.writeFileSync(mockOtpsPath, JSON.stringify(data, null, 2));
 };
 
 export const registerUser = async (req, res) => {
@@ -130,4 +141,101 @@ export const getCurrentUser = (req, res) => {
             user: req.user
         }
     });
+};
+
+export const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) {
+            return res.status(400).json({ status: 'error', message: 'Email is required' });
+        }
+
+        const users = getMockData();
+        const userIndex = users.findIndex(u => u.email === email);
+        if (userIndex === -1) {
+            return res.status(404).json({ status: 'error', message: 'User not found' });
+        }
+
+        // Generate 6-digit OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        // Expiration time: 15 minutes from now
+        const otpExpires = Date.now() + 15 * 60 * 1000; 
+
+        // Update OTP in mockOtps
+        const otps = getMockOtps();
+        const filteredOtps = otps.filter(o => o.id !== users[userIndex].id);
+        filteredOtps.push({
+            id: users[userIndex].id,
+            otp,
+            otpExpires
+        });
+        saveMockOtps(filteredOtps);
+
+        // Send Email
+        const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: process.env.SMTP_PORT,
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS
+            }
+        });
+
+        await transporter.sendMail({
+            from: process.env.EMAIL_FROM,
+            to: email,
+            subject: 'Password Reset OTP',
+            text: `Your password reset OTP is: ${otp}. It will expire in 15 minutes.`
+        });
+
+        res.status(200).json({ status: 'success', message: 'OTP sent to email' });
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        res.status(500).json({ status: 'error', message: 'Server error while sending OTP' });
+    }
+};
+
+export const resetPassword = async (req, res) => {
+    try {
+        const { email, otp, newPassword } = req.body;
+        if (!email || !otp || !newPassword) {
+            return res.status(400).json({ status: 'error', message: 'Email, OTP, and new password are required' });
+        }
+
+        const users = getMockData();
+        const userIndex = users.findIndex(u => u.email === email);
+        if (userIndex === -1) {
+            return res.status(404).json({ status: 'error', message: 'User not found' });
+        }
+
+        const user = users[userIndex];
+        const otps = getMockOtps();
+        const userOtpRecord = otps.find(o => o.id === user.id);
+
+        // Validate OTP
+        if (!userOtpRecord || userOtpRecord.otp !== otp) {
+            return res.status(400).json({ status: 'error', message: 'Invalid OTP' });
+        }
+
+        if (Date.now() > userOtpRecord.otpExpires) {
+            return res.status(400).json({ status: 'error', message: 'OTP has expired' });
+        }
+
+        // Hash new password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        // Update password and clear OTP
+        users[userIndex].password = hashedPassword;
+        saveMockData(users);
+
+        const newOtps = otps.filter(o => o.id !== user.id);
+        saveMockOtps(newOtps);
+
+        res.status(200).json({ status: 'success', message: 'Password reset successfully' });
+    } catch (error) {
+        console.error('Reset password error:', error);
+        res.status(500).json({ status: 'error', message: 'Server error' });
+    }
 };

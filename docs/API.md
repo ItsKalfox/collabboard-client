@@ -457,6 +457,92 @@ Example:
 
 ---
 
+# 4. Forgot Password
+
+Initiates the password reset flow by generating an OTP and sending it to the user's email.
+
+### Endpoint
+
+```http
+POST /api/auth/forgot-password
+```
+
+### Request Body
+
+```json
+{
+  "email": "test@test.com"
+}
+```
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "OTP sent to email"
+}
+```
+
+### Error — User Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "User not found"
+}
+```
+
+---
+
+# 5. Reset Password
+
+Completes the password reset flow using the OTP sent to the user's email.
+
+### Endpoint
+
+```http
+POST /api/auth/reset-password
+```
+
+### Request Body
+
+```json
+{
+  "email": "test@test.com",
+  "otp": "123456",
+  "newPassword": "newpassword123"
+}
+```
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Password reset successfully"
+}
+```
+
+### Error — Invalid OTP
+
+**Status:** `400 Bad Request`
+
+```json
+{
+  "status": "error",
+  "message": "Invalid OTP"
+}
+```
+
+---
+
 # Testing with Bruno
 
 The CollabBoard repository includes a Bruno API collection.
