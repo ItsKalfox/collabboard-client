@@ -122,3 +122,12 @@ export const loginUser = async (req, res) => {
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
+
+export const getCurrentUser = (req, res) => {
+    res.status(200).json({
+        status: 'success',
+        data: {
+            user: req.user
+        }
+    });
+};

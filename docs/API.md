@@ -367,7 +367,7 @@ Returns information about the currently authenticated user.
 ### Endpoint
 
 ```http
-GET /auth/me
+GET /api/auth/me
 ```
 
 ### Full URL
@@ -392,10 +392,13 @@ Authorization: Bearer <JWT_TOKEN>
 
 ```json
 {
-  "user": {
-    "id": "1",
-    "name": "John Doe",
-    "email": "john@example.com"
+  "status": "success",
+  "data": {
+    "user": {
+      "id": "1786340518154",
+      "name": "Test",
+      "email": "test@test.com"
+    }
   }
 }
 ```
@@ -406,6 +409,7 @@ Authorization: Bearer <JWT_TOKEN>
 
 ```json
 {
+  "status": "error",
   "message": "Authentication token is required"
 }
 ```
@@ -416,6 +420,7 @@ Authorization: Bearer <JWT_TOKEN>
 
 ```json
 {
+  "status": "error",
   "message": "Invalid or expired token"
 }
 ```
