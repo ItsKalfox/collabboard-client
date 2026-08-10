@@ -29,7 +29,7 @@ export default function RegisterPage({ onNavigate = () => {} }) {
 
   const strength = getPasswordStrength(password);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
@@ -51,24 +51,47 @@ export default function RegisterPage({ onNavigate = () => {} }) {
 
     setLoading(true);
 
-    setTimeout(() => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${apiUrl}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name: fullName, email, password })
+      });
+      
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 409) {
+          setError('User is already exist');
+        } else {
+          setError(data.message || 'Something went wrong');
+        }
+        setLoading(false);
+        return;
+      }
+
       setLoading(false);
-      setSuccess('Account registered! Redirecting to email verification...');
-      setTimeout(() => {
-        onNavigate('verify-email');
-      }, 1200);
-    }, 1000);
+      setSuccess('Account created!');
+    } catch (err) {
+      setError('Something went wrong');
+      setLoading(false);
+    }
   };
 
   return (
     <div className="auth-fade-in">
-      <div className="auth-header">
-        <div className="auth-logo-badge">
-          <UserPlus size={26} />
+      {!success && (
+        <div className="auth-header">
+          <div className="auth-logo-badge">
+            <UserPlus size={26} />
+          </div>
+          <h2 className="auth-title">Create Account</h2>
+          <p className="auth-subtitle">Join CollabBoard and start collaborating today</p>
         </div>
-        <h2 className="auth-title">Create Account</h2>
-        <p className="auth-subtitle">Join CollabBoard and start collaborating today</p>
-      </div>
+      )}
 
       {error && (
         <div className="auth-alert auth-alert-error">
@@ -78,13 +101,28 @@ export default function RegisterPage({ onNavigate = () => {} }) {
       )}
 
       {success && (
-        <div className="auth-alert auth-alert-success">
-          <CheckCircle2 size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
-          <span>{success}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem 1rem', textAlign: 'center', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+            <CheckCircle2 size={48} style={{ color: 'var(--text-primary)', opacity: 0.9 }} />
+            <h2 className="auth-title" style={{ margin: 0 }}>Account Created</h2>
+            <p className="auth-subtitle" style={{ maxWidth: '280px', margin: '0 auto' }}>
+              Your account has been set up successfully. You can now log in and start collaborating.
+            </p>
+          </div>
+          <button 
+            type="button" 
+            className="auth-submit-btn" 
+            onClick={() => onNavigate('login')}
+            style={{ marginTop: '0.5rem', width: '100%' }}
+          >
+            Back to Login
+          </button>
         </div>
       )}
 
-      <form className="auth-form" onSubmit={handleSubmit}>
+      {!success && (
+        <>
+        <form className="auth-form" onSubmit={handleSubmit}>
         <div className="auth-input-group">
           <label className="auth-label">Full Name</label>
           <div className="auth-input-wrapper">
@@ -204,6 +242,8 @@ export default function RegisterPage({ onNavigate = () => {} }) {
           Sign In
         </button>
       </p>
+      </>
+      )}
     </div>
   );
 }

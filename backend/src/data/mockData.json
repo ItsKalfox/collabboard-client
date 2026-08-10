@@ -5,5 +5,12 @@
     "email": "test@test.com",
     "password": "$2b$10$XXsPUtrar6pDm16xFps9Lu56IyUEITN8AgqS3hpTsvyVBzxws2JVm",
     "date": "2026-08-10T05:41:58.154Z"
+  },
+  {
+    "id": "1786356291453",
+    "name": "Nipun Manusha",
+    "email": "nipunmanusha2003@gmail.com",
+    "password": "$2b$10$j252tl5ySkyAvjs1ctg1fup0E89WZBIcAoVUEJ9LlJRlPD.jez9uq",
+    "date": "2026-08-10T10:04:51.453Z"
   }
 ]
