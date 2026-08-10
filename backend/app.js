@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import authRoutes from './src/routes/authRoutes.js';
 
 dotenv.config();
 
@@ -14,5 +15,8 @@ app.use(express.json());
 app.get('/api/health', (req, res) => {
     res.status(200).json({ status: 'success', message: 'Server is running' });
 });
+
+// Routes
+app.use('/api/auth', authRoutes);
 
 export default app;

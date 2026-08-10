@@ -1,0 +1,14 @@
+opencollection: 1.0.0
+info:
+  name: "collabboard-client"
+  type: workspace
+
+collections:
+  - name: "other"
+    path: "collections/other"
+  - name: "auth"
+    path: "collections/auth"
+
+specs:
+
+docs: ''
