@@ -3,7 +3,6 @@ import AuthContainer from './AuthContainer';
 import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
 import ForgotPasswordPage from './ForgotPasswordPage';
-import ResetPasswordPage from './ResetPasswordPage';
 import VerifyEmailPage from './VerifyEmailPage';
 
 export default function AuthModule({
@@ -46,11 +45,6 @@ export default function AuthModule({
       )}
       {currentPage === 'forgot-password' && (
         <ForgotPasswordPage
-          onNavigate={handleNavigate}
-        />
-      )}
-      {currentPage === 'reset-password' && (
-        <ResetPasswordPage
           onNavigate={handleNavigate}
         />
       )}

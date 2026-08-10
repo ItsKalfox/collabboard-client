@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import logoWH from '../../assets/logo-WH.png';
-import loginBg from '../../assets/login-bg.png';
+import logoBL from '../../assets/logo-BL.png';
+import backgroundBL from '../../assets/background-BL.jpg';
+import backgroundWH from '../../assets/background-WH.jpg';
 import './auth.css';
 
 export default function AuthContainer({
   activePage = 'login',
   onNavigate = () => {},
+  theme = 'dark',
   children
 }) {
   const isSignUp = activePage === 'register';
@@ -38,11 +41,11 @@ export default function AuthContainer({
   }, [activePage, children, displayState.page]);
 
   return (
-    <div className="auth-page-container dark">
+    <div className={`auth-page-container ${theme}`}>
       <div 
         className={`auth-split-window ${isSignUp ? 'is-signup' : ''} ${displayState.isSignUpContent ? 'is-signup-content' : ''}`}
         style={{ 
-          backgroundImage: `url(${loginBg})`, 
+          backgroundImage: theme === 'dark' ? `url(${backgroundBL})` : `url(${backgroundWH})`, 
           backgroundSize: 'cover', 
           backgroundPosition: 'center' 
         }}
@@ -52,9 +55,9 @@ export default function AuthContainer({
           {/* Logo at Top Left */}
           <div className="auth-left-logo">
             <img 
-              src={logoWH} 
+              src={theme === 'dark' ? logoWH : logoBL} 
               alt="CollabBoard Logo" 
-              style={{ height: '36px', objectFit: 'contain' }}
+              style={{ height: '48px', objectFit: 'contain' }}
               onError={(e) => { e.target.style.display = 'none'; }}
             />
           </div>
@@ -66,7 +69,7 @@ export default function AuthContainer({
         </div>
 
         {/* Right Side: Glassmorphism Login Form */}
-        <div className="auth-right-pane auth-card auth-fade-in">
+        <div className={`auth-right-pane auth-card ${theme === 'light' ? 'light' : ''} auth-fade-in`}>
           <div className="auth-right-content">
             {/* Page Content Container */}
             {displayState.children}
