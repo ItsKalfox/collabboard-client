@@ -543,6 +543,64 @@ POST /api/auth/reset-password
 
 ---
 
+# 6. Get Cloudinary Info
+
+Retrieves Cloudinary account usage details (bandwidth, storage, requests, plan limits).
+
+### Endpoint
+
+```http
+GET /api/cloudinary/info
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "plan": "Free",
+    "last_updated": "2023-10-27T00:00:00Z",
+    "bandwidth": {
+      "usage": 1024,
+      "limit": 26214400,
+      "used_percent": 0.0
+    },
+    "storage": {
+      "usage": 512,
+      "limit": 26214400,
+      "used_percent": 0.0
+    },
+    ...
+  }
+}
+```
+
+### Error — Unauthorized
+
+**Status:** `401 Unauthorized`
+
+```json
+{
+  "status": "error",
+  "message": "Authentication token is required"
+}
+```
+
+---
+
 # Testing with Bruno
 
 The CollabBoard repository includes a Bruno API collection.
