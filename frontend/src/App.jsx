@@ -10,7 +10,7 @@ import AuthModule from './components/auth/AuthModule';
 import './App.css';
 
 function App() {
-  const authRoutes = ['login', 'register', 'forgot-password', 'reset-password', 'verify-email'];
+  const authRoutes = ['login', 'register', 'forgot-password', 'verify-email'];
 
   const [activeTab, setActiveTab] = useState(() => {
     const path = window.location.pathname.replace('/', '');
