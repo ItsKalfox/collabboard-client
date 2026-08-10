@@ -33,6 +33,7 @@ function App() {
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   const isAuthRoute = authRoutes.includes(activeTab);
   const isDark = theme === 'dark';
@@ -52,9 +53,17 @@ function App() {
           setCurrentUser(data.data.user);
         } else {
           localStorage.removeItem('token');
+          if (!authRoutes.includes(activeTab)) setSessionExpired(true);
         }
       })
-      .catch(err => console.error('Failed to fetch user:', err));
+      .catch(err => {
+        console.error('Failed to fetch user:', err);
+        if (!authRoutes.includes(activeTab)) setSessionExpired(true);
+      });
+    } else {
+      if (!authRoutes.includes(activeTab)) {
+        setSessionExpired(true);
+      }
     }
   }, []);
 
@@ -130,6 +139,60 @@ function App() {
 
   return (
     <div className="app-container" style={themeVars}>
+      {sessionExpired && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backdropFilter: 'blur(10px)',
+          backgroundColor: isDark ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.4)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            background: isDark ? '#1f2937' : '#ffffff',
+            border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)',
+            padding: '32px 40px',
+            borderRadius: '16px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+            textAlign: 'center',
+            color: isDark ? '#ffffff' : '#111827',
+            maxWidth: '400px',
+            width: '90%'
+          }}>
+            <svg viewBox="0 0 24 24" width="48" height="48" stroke={isDark ? '#fca5a5' : '#ef4444'} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 16px auto', display: 'block' }}>
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <h2 style={{ margin: '0 0 10px 0', fontSize: '22px', fontWeight: '700' }}>Session Expired</h2>
+            <p style={{ margin: '0 0 24px 0', color: isDark ? '#9ca3af' : '#4b5563', fontSize: '14px', lineHeight: '1.5' }}>Your session is invalid or has expired. Please sign in again to continue.</p>
+            <button 
+              onClick={() => {
+                setSessionExpired(false);
+                handleTabClick('login');
+              }}
+              style={{
+                background: isDark ? '#ffffff' : '#111827',
+                color: isDark ? '#000000' : '#ffffff',
+                border: 'none',
+                padding: '12px 20px',
+                borderRadius: '8px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                width: '100%',
+                fontSize: '14px',
+                transition: 'opacity 0.2s ease'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.opacity = '0.9'}
+              onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
+            >
+              Go back to Login
+            </button>
+          </div>
+        </div>
+      )}
       <div className="app-window">
 
         {/* Mobile Overlay */}
