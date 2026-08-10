@@ -28,12 +28,14 @@ function App() {
 
   const [currentDateTime, setCurrentDateTime] = useState('');
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('theme') || 'dark';
+    const saved = localStorage.getItem('theme');
+    if (saved) return saved;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const isAuthRoute = authRoutes.includes(activeTab);
-  const isDark = isAuthRoute || theme === 'dark';
+  const isDark = theme === 'dark';
 
   const [currentUser, setCurrentUser] = useState(null);
 
@@ -115,7 +117,7 @@ function App() {
 
   if (authRoutes.includes(activeTab)) {
     return (
-      <div className="app-container" style={themeVars}>
+      <div className="app-container auth-bg-blur" style={themeVars}>
         <AuthModule 
           theme={theme} 
           toggleTheme={toggleTheme} 

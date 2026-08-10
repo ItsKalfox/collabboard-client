@@ -41,6 +41,21 @@
   transition: background-image 0.3s ease, background-color 0.3s ease;
 }
 
+.app-container.auth-bg-blur::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  background: rgba(0, 0, 0, 0.5); /* fade effect */
+  z-index: 0;
+}
+
+.app-container.auth-bg-blur > * {
+  position: relative;
+  z-index: 1;
+}
+
 .app-window {
   width: 90vw;
   height: 90vh;
