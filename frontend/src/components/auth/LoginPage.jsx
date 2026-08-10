@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, LogIn, CheckCircle2, AlertCircle } from 'lucide-react';
-import { mockLogin } from '../../mock/mockAuthData';
 import './auth.css';
 
 export default function LoginPage({ onNavigate = () => {}, onLoginSuccess = () => {} }) {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => localStorage.getItem('rememberedEmail') || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => !!localStorage.getItem('rememberedEmail'));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -19,14 +18,34 @@ export default function LoginPage({ onNavigate = () => {}, onLoginSuccess = () =
     setLoading(true);
 
     try {
-      const res = await mockLogin(email, password);
-      setSuccess(res.message);
-      setTimeout(() => {
-        onLoginSuccess(res.user);
-      }, 1000);
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${apiUrl}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || 'Login failed.');
+        setLoading(false);
+        return;
+      }
+
+      // Handle remembered email
+      if (rememberMe) {
+        localStorage.setItem('rememberedEmail', email);
+      } else {
+        localStorage.removeItem('rememberedEmail');
+      }
+
+      // Save token
+      localStorage.setItem('token', data.token);
+
+      onLoginSuccess(data.user);
     } catch (err) {
-      setError(err.message || 'Login failed.');
-    } finally {
+      setError('Something went wrong during login.');
       setLoading(false);
     }
   };
@@ -45,13 +64,6 @@ export default function LoginPage({ onNavigate = () => {}, onLoginSuccess = () =
         <div className="auth-alert auth-alert-error">
           <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
           <span>{error}</span>
-        </div>
-      )}
-
-      {success && (
-        <div className="auth-alert auth-alert-success">
-          <CheckCircle2 size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
-          <span>{success}</span>
         </div>
       )}
 
@@ -107,7 +119,7 @@ export default function LoginPage({ onNavigate = () => {}, onLoginSuccess = () =
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
             />
-            <span>Remember this device</span>
+            <span>Remember this email</span>
           </label>
           <button
             type="button"
