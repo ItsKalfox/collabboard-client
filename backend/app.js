@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import authRoutes from './src/routes/authRoutes.js';
+import cloudinaryRoutes from './src/routes/cloudinaryRoutes.js';
 
 dotenv.config();
 
@@ -14,5 +16,9 @@ app.use(express.json());
 app.get('/api/health', (req, res) => {
     res.status(200).json({ status: 'success', message: 'Server is running' });
 });
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/cloudinary', cloudinaryRoutes);
 
 export default app;

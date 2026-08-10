@@ -1,0 +1,17 @@
+info:
+  name: Cloudinary Info
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: http://localhost:5000/api/cloudinary/info
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE3ODYzNDA1MTgxNTQiLCJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJpYXQiOjE3ODYzNDY0NTksImV4cCI6MTc4NjQzMjg1OX0.Lx0dCmUU7PFGrf4kDG8U6UMLugFnMlBo6hztAbAZRj0
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
