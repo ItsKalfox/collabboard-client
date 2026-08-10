@@ -35,6 +35,27 @@ function App() {
   const isAuthRoute = authRoutes.includes(activeTab);
   const isDark = isAuthRoute || theme === 'dark';
 
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      fetch(`${apiUrl}/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'success' && data.data && data.data.user) {
+          setCurrentUser(data.data.user);
+        } else {
+          localStorage.removeItem('token');
+        }
+      })
+      .catch(err => console.error('Failed to fetch user:', err));
+    }
+  }, []);
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
@@ -60,7 +81,8 @@ function App() {
     setIsMenuOpen(false); // Close menu on mobile after selection
   };
 
-  const handleLoginSuccess = () => {
+  const handleLoginSuccess = (user) => {
+    setCurrentUser(user);
     handleTabClick('Dashboard');
   };
 
@@ -139,14 +161,73 @@ function App() {
           </div>
 
           {/* Profile */}
-          <div className="profile-container">
-            <div className="profile-pic">
-              <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--avatar-icon)' }}>
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
+          <div className="profile-container" style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' }}>
+            <div className="profile-pic" style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              fontSize: '22px',
+              fontWeight: '600',
+              color: 'var(--text-primary)',
+              width: '56px',
+              height: '56px',
+              marginBottom: '4px'
+            }}>
+              {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
             </div>
-            <div className="profile-name">Name</div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', alignItems: 'center', marginBottom: '8px' }}>
+              <div className="profile-name" style={{ 
+                whiteSpace: 'nowrap', 
+                overflow: 'hidden', 
+                textOverflow: 'ellipsis',
+                textAlign: 'center',
+                fontSize: '15px',
+                fontWeight: '600'
+              }}>{currentUser?.name || 'Loading...'}</div>
+              <div style={{ 
+                fontSize: '12px', 
+                color: 'var(--text-secondary)',
+                whiteSpace: 'nowrap', 
+                overflow: 'hidden', 
+                textOverflow: 'ellipsis',
+                textAlign: 'center',
+                marginTop: '2px'
+              }}>{currentUser?.email || '...'}</div>
+            </div>
+            
+            <button 
+              onClick={() => {
+                localStorage.removeItem('token');
+                setCurrentUser(null);
+                handleTabClick('login');
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                background: 'transparent',
+                border: '1px solid var(--menu-border)',
+                color: 'var(--text-secondary)',
+                padding: '8px',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: '500',
+                transition: 'all 0.2s ease',
+                width: '100%'
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)'; }}
+              onMouseOut={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.borderColor = 'var(--menu-border)'; }}
+            >
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+              Logout
+            </button>
           </div>
         </div>
 

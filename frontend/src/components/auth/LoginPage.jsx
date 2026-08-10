@@ -41,9 +41,9 @@ export default function LoginPage({ onNavigate = () => {}, onLoginSuccess = () =
       }
 
       // Save token
-      localStorage.setItem('token', data.token);
+      localStorage.setItem('token', data.data.token);
 
-      onLoginSuccess(data.user);
+      onLoginSuccess(data.data.user);
     } catch (err) {
       setError('Something went wrong during login.');
       setLoading(false);
