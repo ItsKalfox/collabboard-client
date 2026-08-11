@@ -25,6 +25,8 @@ The API is built using **Node.js** and **Express.js** and provides authenticatio
 
   * [Get All Projects](#1-get-all-projects)
   * [Get Project by ID](#2-get-project-by-id)
+  * [Create Project](#3-create-project)
+  * [Update Project](#4-update-project)
 * [Error Handling](#error-handling)
 * [Testing with Bruno](#testing-with-bruno)
 * [API Development Status](#api-development-status)
@@ -588,6 +590,187 @@ Authorization: Bearer <JWT_TOKEN>
 
 ---
 
+## 3. Create Project
+
+Creates a new project. The authenticated user becomes the project owner.
+
+### Endpoint
+
+```http
+POST /api/projects
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+Content-Type: application/json
+```
+
+### Request Body
+
+```json
+{
+  "name": "New Project",
+  "description": "A brand new project",
+  "status": "active"
+}
+```
+
+### Request Parameters
+
+| Field         | Type   | Required | Description                                       |
+| ------------- | ------ | -------- | ------------------------------------------------- |
+| `name`        | String | Yes      | Project name                                      |
+| `description` | String | No       | Project description (defaults to empty string)    |
+| `status`      | String | No       | Project status — `active` or `archived` (default: `active`) |
+
+### Successful Response
+
+**Status:** `201 Created`
+
+```json
+{
+  "status": "success",
+  "message": "Project created successfully",
+  "data": {
+    "project": {
+      "id": "proj_1786340518154",
+      "name": "New Project",
+      "description": "A brand new project",
+      "status": "active",
+      "ownerId": "1786340518154",
+      "coverImage": null,
+      "createdAt": "2026-08-11T15:00:00.000Z",
+      "updatedAt": "2026-08-11T15:00:00.000Z"
+    }
+  }
+}
+```
+
+### Error — Missing Name
+
+**Status:** `400 Bad Request`
+
+```json
+{
+  "status": "error",
+  "message": "Project name is required"
+}
+```
+
+---
+
+## 4. Update Project
+
+Updates an existing project. Only the project owner can perform this action.
+
+### Endpoint
+
+```http
+PUT /api/projects/:id
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+Content-Type: application/json
+```
+
+### URL Parameters
+
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| `id`      | String | Yes      | Project ID  |
+
+### Request Body
+
+All fields are optional. Only provided fields will be updated.
+
+```json
+{
+  "name": "Updated Project Name",
+  "description": "Updated description",
+  "status": "archived"
+}
+```
+
+### Request Parameters
+
+| Field         | Type   | Required | Description                              |
+| ------------- | ------ | -------- | ---------------------------------------- |
+| `name`        | String | No       | New project name                         |
+| `description` | String | No       | New project description                  |
+| `status`      | String | No       | New project status (`active`/`archived`) |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Project updated successfully",
+  "data": {
+    "project": {
+      "id": "proj_001",
+      "name": "Updated Project Name",
+      "description": "Updated description",
+      "status": "archived",
+      "ownerId": "1786340518154",
+      "coverImage": null,
+      "createdAt": "2026-08-10T05:41:58.154Z",
+      "updatedAt": "2026-08-11T15:00:00.000Z"
+    }
+  }
+}
+```
+
+### Error — Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Project not found"
+}
+```
+
+### Error — Forbidden
+
+**Status:** `403 Forbidden`
+
+```json
+{
+  "status": "error",
+  "message": "You are not authorized to update this project"
+}
+```
+
+---
+
 # Error Handling
 
 The API should return consistent error responses.
@@ -872,8 +1055,8 @@ The API is being implemented incrementally according to the project milestones.
 
 * [x] Get projects
 * [x] Get project by ID
-* [ ] Create project
-* [ ] Update project
+* [x] Create project
+* [x] Update project
 * [ ] Delete project
 * [ ] Upload project cover image
 * [ ] Get project attachments
