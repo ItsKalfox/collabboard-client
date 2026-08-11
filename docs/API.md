@@ -28,6 +28,10 @@ The API is built using **Node.js** and **Express.js** and provides authenticatio
   * [Get Task](#1-get-task)
   * [Update Task](#2-update-task)
   * [Delete Task](#3-delete-task)
+  * [Update Task Status](#4-update-task-status)
+  * [Review Task](#5-review-task)
+  * [Reject Task](#6-reject-task)
+  * [Get Task Reviews](#7-get-task-reviews)
 * [Error Handling](#error-handling)
 * [Testing with Bruno](#testing-with-bruno)
 * [API Development Status](#api-development-status)
@@ -777,6 +781,192 @@ DELETE /api/tasks/:taskId
   "message": "Task deleted successfully"
 }
 ```
+
+---
+
+## 4. Update Task Status
+
+Updates the status of a specific task.
+
+**Endpoint:**
+
+```http
+PATCH /api/tasks/:taskId/status
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Request Body:**
+
+```json
+{
+  "status": "in_review"
+}
+```
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "task": {
+      "id": "101",
+      "projectId": "1",
+      "title": "Design Database Schema",
+      "description": "Updated database schema description",
+      "status": "in_review",
+      "assignee": "1786340518154",
+      "reviews": [],
+      "createdAt": "2026-08-11T16:00:00.000Z"
+    }
+  }
+}
+```
+
+---
+
+## 5. Review Task
+
+Approves and adds a review comment to a task.
+
+**Endpoint:**
+
+```http
+POST /api/tasks/:taskId/review
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Request Body:**
+
+```json
+{
+  "comment": "Looks good, approved."
+}
+```
+
+**Response:**
+
+`201 Created`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "review": {
+      "id": "1691763123456",
+      "reviewerId": "1786340518154",
+      "comment": "Looks good, approved.",
+      "decision": "approved",
+      "createdAt": "2026-08-11T16:05:00.000Z"
+    },
+    "task": {
+      "id": "101",
+      "status": "reviewed"
+    }
+  }
+}
+```
+
+---
+
+## 6. Reject Task
+
+Rejects and adds a rejection comment to a task.
+
+**Endpoint:**
+
+```http
+POST /api/tasks/:taskId/reject
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Request Body:**
+
+```json
+{
+  "comment": "Needs more work."
+}
+```
+
+**Response:**
+
+`201 Created`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "review": {
+      "id": "1691763123456",
+      "reviewerId": "1786340518154",
+      "comment": "Needs more work.",
+      "decision": "rejected",
+      "createdAt": "2026-08-11T16:05:00.000Z"
+    },
+    "task": {
+      "id": "101",
+      "status": "rejected"
+    }
+  }
+}
+```
+
+---
+
+## 7. Get Task Reviews
+
+Retrieves all reviews for a specific task.
+
+**Endpoint:**
+
+```http
+GET /api/tasks/:taskId/reviews
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "reviews": [
+      {
+        "id": "1691763123456",
+        "reviewerId": "1786340518154",
+        "comment": "Looks good, approved.",
+        "decision": "approved",
+        "createdAt": "2026-08-11T16:05:00.000Z"
+      }
+    ]
+  }
+}
+```
+
 
 
 

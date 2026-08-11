@@ -139,3 +139,125 @@ export const deleteTask = async (req, res) => {
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
+
+export const updateTaskStatus = async (req, res) => {
+    try {
+        const { taskId } = req.params;
+        const { status } = req.body;
+        
+        if (!status) {
+            return res.status(400).json({ status: 'error', message: 'Status is required' });
+        }
+        
+        const tasks = getMockTasks();
+        const taskIndex = tasks.findIndex(t => t.id === taskId);
+        
+        if (taskIndex === -1) {
+            return res.status(404).json({ status: 'error', message: 'Task not found' });
+        }
+        
+        tasks[taskIndex].status = status;
+        saveMockTasks(tasks);
+        
+        res.status(200).json({
+            status: 'success',
+            data: { task: tasks[taskIndex] }
+        });
+    } catch (error) {
+        console.error('Error updating task status:', error);
+        res.status(500).json({ status: 'error', message: 'Server error' });
+    }
+};
+
+export const reviewTask = async (req, res) => {
+    try {
+        const { taskId } = req.params;
+        const { comment } = req.body;
+        
+        const tasks = getMockTasks();
+        const taskIndex = tasks.findIndex(t => t.id === taskId);
+        
+        if (taskIndex === -1) {
+            return res.status(404).json({ status: 'error', message: 'Task not found' });
+        }
+        
+        const newReview = {
+            id: Date.now().toString(),
+            reviewerId: req.user ? req.user.id : 'anonymous',
+            comment: comment || '',
+            decision: 'approved',
+            createdAt: new Date().toISOString()
+        };
+        
+        if (!tasks[taskIndex].reviews) tasks[taskIndex].reviews = [];
+        tasks[taskIndex].reviews.push(newReview);
+        tasks[taskIndex].status = 'reviewed';
+        
+        saveMockTasks(tasks);
+        
+        res.status(201).json({
+            status: 'success',
+            data: { review: newReview, task: tasks[taskIndex] }
+        });
+    } catch (error) {
+        console.error('Error reviewing task:', error);
+        res.status(500).json({ status: 'error', message: 'Server error' });
+    }
+};
+
+export const rejectTask = async (req, res) => {
+    try {
+        const { taskId } = req.params;
+        const { comment } = req.body;
+        
+        const tasks = getMockTasks();
+        const taskIndex = tasks.findIndex(t => t.id === taskId);
+        
+        if (taskIndex === -1) {
+            return res.status(404).json({ status: 'error', message: 'Task not found' });
+        }
+        
+        const newReview = {
+            id: Date.now().toString(),
+            reviewerId: req.user ? req.user.id : 'anonymous',
+            comment: comment || 'Task rejected',
+            decision: 'rejected',
+            createdAt: new Date().toISOString()
+        };
+        
+        if (!tasks[taskIndex].reviews) tasks[taskIndex].reviews = [];
+        tasks[taskIndex].reviews.push(newReview);
+        tasks[taskIndex].status = 'rejected';
+        
+        saveMockTasks(tasks);
+        
+        res.status(201).json({
+            status: 'success',
+            data: { review: newReview, task: tasks[taskIndex] }
+        });
+    } catch (error) {
+        console.error('Error rejecting task:', error);
+        res.status(500).json({ status: 'error', message: 'Server error' });
+    }
+};
+
+export const getTaskReviews = async (req, res) => {
+    try {
+        const { taskId } = req.params;
+        const tasks = getMockTasks();
+        const task = tasks.find(t => t.id === taskId);
+        
+        if (!task) {
+            return res.status(404).json({ status: 'error', message: 'Task not found' });
+        }
+        
+        res.status(200).json({
+            status: 'success',
+            data: { reviews: task.reviews || [] }
+        });
+    } catch (error) {
+        console.error('Error fetching task reviews:', error);
+        res.status(500).json({ status: 'error', message: 'Server error' });
+    }
+};
+
