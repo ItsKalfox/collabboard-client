@@ -8,6 +8,8 @@ collections:
     path: "collections/other"
   - name: "auth"
     path: "collections/auth"
+  - name: "project"
+    path: "collections/project"
 
 specs:
 
