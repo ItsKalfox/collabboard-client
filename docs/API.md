@@ -24,6 +24,10 @@ The API is built using **Node.js** and **Express.js** and provides authenticatio
   * [Get Project By ID](#2-get-project-by-id)
   * [Get Project Tasks](#3-get-project-tasks)
   * [Create Project Task](#4-create-project-task)
+* [Tasks Endpoints](#tasks-endpoints)
+  * [Get Task](#1-get-task)
+  * [Update Task](#2-update-task)
+  * [Delete Task](#3-delete-task)
 * [Error Handling](#error-handling)
 * [Testing with Bruno](#testing-with-bruno)
 * [API Development Status](#api-development-status)
@@ -644,6 +648,136 @@ POST /api/projects/:projectId/tasks
   "message": "Title is required"
 }
 ```
+
+---
+
+# Tasks Endpoints
+
+## 1. Get Task
+
+Retrieves details of a specific task.
+
+**Endpoint:**
+
+```http
+GET /api/tasks/:taskId
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "task": {
+      "id": "101",
+      "projectId": "1",
+      "title": "Design Database Schema",
+      "description": "Create the initial database schema",
+      "status": "todo",
+      "assignee": "1786340518154",
+      "reviews": [],
+      "createdAt": "2026-08-11T16:00:00.000Z"
+    }
+  }
+}
+```
+
+`404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Task not found"
+}
+```
+
+---
+
+## 2. Update Task
+
+Updates an existing task.
+
+**Endpoint:**
+
+```http
+PATCH /api/tasks/:taskId
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Request Body (Partial):**
+
+```json
+{
+  "status": "in_progress",
+  "description": "Updated database schema description"
+}
+```
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "task": {
+      "id": "101",
+      "projectId": "1",
+      "title": "Design Database Schema",
+      "description": "Updated database schema description",
+      "status": "in_progress",
+      "assignee": "1786340518154",
+      "reviews": [],
+      "createdAt": "2026-08-11T16:00:00.000Z"
+    }
+  }
+}
+```
+
+---
+
+## 3. Delete Task
+
+Deletes a specific task.
+
+**Endpoint:**
+
+```http
+DELETE /api/tasks/:taskId
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Task deleted successfully"
+}
+```
+
 
 
 

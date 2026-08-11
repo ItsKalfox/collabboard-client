@@ -67,3 +67,75 @@ export const createTask = async (req, res) => {
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
+
+export const getTaskById = async (req, res) => {
+    try {
+        const { taskId } = req.params;
+        const tasks = getMockTasks();
+        const task = tasks.find(t => t.id === taskId);
+        
+        if (!task) {
+            return res.status(404).json({ status: 'error', message: 'Task not found' });
+        }
+        
+        res.status(200).json({
+            status: 'success',
+            data: { task }
+        });
+    } catch (error) {
+        console.error('Error fetching task:', error);
+        res.status(500).json({ status: 'error', message: 'Server error' });
+    }
+};
+
+export const updateTask = async (req, res) => {
+    try {
+        const { taskId } = req.params;
+        const { title, description, status, assignee } = req.body;
+        
+        const tasks = getMockTasks();
+        const taskIndex = tasks.findIndex(t => t.id === taskId);
+        
+        if (taskIndex === -1) {
+            return res.status(404).json({ status: 'error', message: 'Task not found' });
+        }
+        
+        if (title !== undefined) tasks[taskIndex].title = title;
+        if (description !== undefined) tasks[taskIndex].description = description;
+        if (status !== undefined) tasks[taskIndex].status = status;
+        if (assignee !== undefined) tasks[taskIndex].assignee = assignee;
+        
+        saveMockTasks(tasks);
+        
+        res.status(200).json({
+            status: 'success',
+            data: { task: tasks[taskIndex] }
+        });
+    } catch (error) {
+        console.error('Error updating task:', error);
+        res.status(500).json({ status: 'error', message: 'Server error' });
+    }
+};
+
+export const deleteTask = async (req, res) => {
+    try {
+        const { taskId } = req.params;
+        const tasks = getMockTasks();
+        const taskIndex = tasks.findIndex(t => t.id === taskId);
+        
+        if (taskIndex === -1) {
+            return res.status(404).json({ status: 'error', message: 'Task not found' });
+        }
+        
+        tasks.splice(taskIndex, 1);
+        saveMockTasks(tasks);
+        
+        res.status(200).json({
+            status: 'success',
+            message: 'Task deleted successfully'
+        });
+    } catch (error) {
+        console.error('Error deleting task:', error);
+        res.status(500).json({ status: 'error', message: 'Server error' });
+    }
+};
