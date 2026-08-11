@@ -1,0 +1,26 @@
+info:
+  name: Create Project Task
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: http://localhost:5000/api/projects/1/tasks
+  body:
+    type: json
+    data: |-
+      {
+        "title": "Design Database Schema",
+        "description": "Create the initial database schema",
+        "status": "todo",
+        "assignee": "1786340518154"
+      }
+  auth:
+    type: bearer
+    token: "{{token}}"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

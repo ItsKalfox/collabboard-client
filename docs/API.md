@@ -22,6 +22,8 @@ The API is built using **Node.js** and **Express.js** and provides authenticatio
 * [Projects Endpoints](#projects-endpoints)
   * [Get Projects](#1-get-projects)
   * [Get Project By ID](#2-get-project-by-id)
+  * [Get Project Tasks](#3-get-project-tasks)
+  * [Create Project Task](#4-create-project-task)
 * [Error Handling](#error-handling)
 * [Testing with Bruno](#testing-with-bruno)
 * [API Development Status](#api-development-status)
@@ -540,6 +542,109 @@ GET /api/projects/:projectId
   "message": "Project not found"
 }
 ```
+
+---
+
+## 3. Get Project Tasks
+
+Retrieves all tasks for a specific project.
+
+**Endpoint:**
+
+```http
+GET /api/projects/:projectId/tasks
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `projectId` (URL Parameter): The unique ID of the project.
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "tasks": [
+      {
+        "id": "101",
+        "projectId": "1",
+        "title": "Design Database Schema",
+        "description": "Create the initial database schema",
+        "status": "todo",
+        "assignee": "1786340518154",
+        "reviews": [],
+        "createdAt": "2026-08-11T16:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 4. Create Project Task
+
+Creates a new task within a specific project.
+
+**Endpoint:**
+
+```http
+POST /api/projects/:projectId/tasks
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `projectId` (URL Parameter): The unique ID of the project.
+
+**Request Body:**
+
+```json
+{
+  "title": "Design Database Schema",
+  "description": "Create the initial database schema",
+  "status": "todo",
+  "assignee": "1786340518154"
+}
+```
+
+**Response:**
+
+`201 Created`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "task": {
+      "id": "101",
+      "projectId": "1",
+      "title": "Design Database Schema",
+      "description": "Create the initial database schema",
+      "status": "todo",
+      "assignee": "1786340518154",
+      "reviews": [],
+      "createdAt": "2026-08-11T16:00:00.000Z"
+    }
+  }
+}
+```
+
+`400 Bad Request`
+
+```json
+{
+  "status": "error",
+  "message": "Title is required"
+}
+```
+
 
 
 ---
