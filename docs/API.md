@@ -442,6 +442,77 @@ Authorization: Bearer <JWT_TOKEN>
 
 ---
 
+# User Endpoints
+
+All user endpoints require authentication via a JWT Bearer token.
+
+---
+
+## 1. Search Users
+
+Searches users by name or email query string (`q`). Returns matching users (excluding passwords).
+
+### Endpoint
+
+```http
+GET /api/users/search
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/users/search?q=test
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### Query Parameters
+
+| Parameter | Type   | Required | Description                                                    |
+| --------- | ------ | -------- | -------------------------------------------------------------- |
+| `q`       | String | No       | Search term to filter users by name or email (case-insensitive) |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "users": [
+      {
+        "id": "1786340518154",
+        "name": "Test",
+        "email": "test@test.com",
+        "date": "2026-08-10T05:41:58.154Z"
+      }
+    ]
+  }
+}
+```
+
+### Error — Unauthorized
+
+**Status:** `401 Unauthorized`
+
+```json
+{
+  "status": "error",
+  "message": "Authentication token is required"
+}
+```
+
+---
+
 # Project Endpoints
 
 All project endpoints require authentication via a JWT Bearer token.
