@@ -1560,6 +1560,167 @@ Authorization: Bearer <JWT_TOKEN>
 
 ---
 
+## 14. Get Project Timeline
+
+Retrieves the activity history/timeline for a project.
+
+### Endpoint
+
+```http
+GET /api/projects/:id/timeline
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001/timeline
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### URL Parameters
+
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| `id`      | String | Yes      | Project ID  |
+
+### Query Parameters
+
+| Parameter | Type    | Required | Description                                          |
+| --------- | ------- | -------- | ---------------------------------------------------- |
+| `limit`   | Integer | No       | Optional limit on the number of activities returned   |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "timeline": [
+      {
+        "id": "act_005",
+        "projectId": "proj_001",
+        "type": "attachment_uploaded",
+        "title": "Attachment Uploaded",
+        "description": "Uploaded design brief file.",
+        "userId": "1786340518154",
+        "userName": "Test",
+        "timestamp": "2026-08-11T15:00:00.000Z"
+      },
+      {
+        "id": "act_004",
+        "projectId": "proj_001",
+        "type": "task_updated",
+        "title": "Subtask Completed",
+        "description": "Desktop navbar layout subtask completed.",
+        "userId": "1786340518154",
+        "userName": "Test",
+        "timestamp": "2026-08-11T10:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+### Error — Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Project not found"
+}
+```
+
+---
+
+## 15. Refresh Project Timeline
+
+Fetches new project activities logged since a specified timestamp (`since`).
+
+### Endpoint
+
+```http
+GET /api/projects/:id/timeline/refresh
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001/timeline/refresh?since=2026-08-11T00:00:00.000Z
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### URL Parameters
+
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| `id`      | String | Yes      | Project ID  |
+
+### Query Parameters
+
+| Parameter | Type   | Required | Description                                                    |
+| --------- | ------ | -------- | -------------------------------------------------------------- |
+| `since`   | String | No       | ISO timestamp or epoch timestamp to filter newer activity items |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "newActivities": [
+      {
+        "id": "act_005",
+        "projectId": "proj_001",
+        "type": "attachment_uploaded",
+        "title": "Attachment Uploaded",
+        "description": "Uploaded design brief file.",
+        "userId": "1786340518154",
+        "userName": "Test",
+        "timestamp": "2026-08-11T15:00:00.000Z"
+      }
+    ],
+    "lastRefreshedAt": "2026-08-11T18:15:00.000Z"
+  }
+}
+```
+
+### Error — Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Project not found"
+}
+```
+
+---
+
 # Error Handling
 
 The API should return consistent error responses.

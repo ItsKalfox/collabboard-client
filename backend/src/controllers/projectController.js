@@ -10,8 +10,17 @@ const mockProjectsPath = path.join(__dirname, '../data/mockProjects.json');
 const mockAttachmentsPath = path.join(__dirname, '../data/mockAttachments.json');
 const mockUsersPath = path.join(__dirname, '../data/mockData.json');
 const mockTasksPath = path.join(__dirname, '../data/mockTasks.json');
+const mockTimelinePath = path.join(__dirname, '../data/mockTimeline.json');
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
+
+const getMockTimeline = () => {
+    if (!fs.existsSync(mockTimelinePath)) {
+        return [];
+    }
+    const data = fs.readFileSync(mockTimelinePath, 'utf8');
+    return JSON.parse(data);
+};
 
 const getMockTasks = () => {
     if (!fs.existsSync(mockTasksPath)) {
@@ -704,4 +713,92 @@ export const getProjectTasks = (req, res) => {
         });
     }
 };
+
+// GET /api/projects/:id/timeline
+export const getProjectTimeline = (req, res) => {
+    try {
+        const { id } = req.params;
+        const { limit } = req.query;
+
+        const projects = getMockProjects();
+        const project = projects.find(p => p.id === id);
+
+        if (!project) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Project not found'
+            });
+        }
+
+        const allTimeline = getMockTimeline();
+        let projectTimeline = allTimeline.filter(t => t.projectId === id);
+
+        // Sort by timestamp descending
+        projectTimeline.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        if (limit) {
+            projectTimeline = projectTimeline.slice(0, parseInt(limit, 10));
+        }
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                timeline: projectTimeline
+            }
+        });
+    } catch (error) {
+        console.error('Get project timeline error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Server error'
+        });
+    }
+};
+
+// GET /api/projects/:id/timeline/refresh
+export const refreshProjectTimeline = (req, res) => {
+    try {
+        const { id } = req.params;
+        const { since } = req.query;
+
+        const projects = getMockProjects();
+        const project = projects.find(p => p.id === id);
+
+        if (!project) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Project not found'
+            });
+        }
+
+        const allTimeline = getMockTimeline();
+        let projectTimeline = allTimeline.filter(t => t.projectId === id);
+
+        let newActivities = projectTimeline;
+
+        if (since) {
+            const sinceDate = isNaN(since) ? new Date(since) : new Date(parseInt(since, 10));
+            if (!isNaN(sinceDate.getTime())) {
+                newActivities = projectTimeline.filter(t => new Date(t.timestamp) > sinceDate);
+            }
+        }
+
+        newActivities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                newActivities,
+                lastRefreshedAt: new Date().toISOString()
+            }
+        });
+    } catch (error) {
+        console.error('Refresh project timeline error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Server error'
+        });
+    }
+};
+
 

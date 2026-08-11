@@ -12,7 +12,9 @@ import {
     getProjectMembers,
     addProjectMember,
     removeProjectMember,
-    getProjectTasks
+    getProjectTasks,
+    getProjectTimeline,
+    refreshProjectTimeline
 } from '../controllers/projectController.js';
 import { protect } from '../middlewares/authMiddleware.js';
 import { uploadImage, uploadFile } from '../config/multer.js';
@@ -36,5 +38,9 @@ router.delete('/:id/members/:userId', protect, removeProjectMember);
 
 // Tasks route
 router.get('/:id/tasks', protect, getProjectTasks);
+
+// Timeline routes
+router.get('/:id/timeline', protect, getProjectTimeline);
+router.get('/:id/timeline/refresh', protect, refreshProjectTimeline);
 
 export default router;
