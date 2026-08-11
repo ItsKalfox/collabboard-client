@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './src/routes/authRoutes.js';
 import cloudinaryRoutes from './src/routes/cloudinaryRoutes.js';
+import projectRoutes from './src/routes/projectRoutes.js'; //added
 
 dotenv.config();
 
@@ -20,5 +21,6 @@ app.get('/api/health', (req, res) => {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/cloudinary', cloudinaryRoutes);
+app.use('/api/projects', projectRoutes); //added
 
 export default app;

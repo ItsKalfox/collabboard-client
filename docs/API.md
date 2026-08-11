@@ -19,6 +19,12 @@ The API is built using **Node.js** and **Express.js** and provides authenticatio
   * [Register](#1-register)
   * [Login](#2-login)
   * [Get Current User](#3-get-current-user)
+  * [Forgot Password](#4-forgot-password)
+  * [Reset Password](#5-reset-password)
+* [Project Endpoints](#project-endpoints)
+
+  * [Get All Projects](#1-get-all-projects)
+  * [Get Project by ID](#2-get-project-by-id)
 * [Error Handling](#error-handling)
 * [Testing with Bruno](#testing-with-bruno)
 * [API Development Status](#api-development-status)
@@ -427,6 +433,161 @@ Authorization: Bearer <JWT_TOKEN>
 
 ---
 
+---
+
+# Project Endpoints
+
+All project endpoints require authentication via a JWT Bearer token.
+
+---
+
+## 1. Get All Projects
+
+Returns a list of all projects. Supports optional search filtering.
+
+### Endpoint
+
+```http
+GET /api/projects
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### Query Parameters
+
+| Parameter | Type   | Required | Description                              |
+| --------- | ------ | -------- | ---------------------------------------- |
+| `q`       | String | No       | Search term to filter projects by name   |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "projects": [
+      {
+        "id": "proj_001",
+        "name": "Website Design",
+        "description": "Redesign the company website with a modern look and feel.",
+        "status": "active",
+        "ownerId": "1786340518154",
+        "coverImage": null,
+        "createdAt": "2026-08-10T05:41:58.154Z",
+        "updatedAt": "2026-08-10T05:41:58.154Z"
+      }
+    ]
+  }
+}
+```
+
+### Error — Unauthorized
+
+**Status:** `401 Unauthorized`
+
+```json
+{
+  "status": "error",
+  "message": "Authentication token is required"
+}
+```
+
+---
+
+## 2. Get Project by ID
+
+Returns the details of a single project by its ID.
+
+### Endpoint
+
+```http
+GET /api/projects/:id
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### URL Parameters
+
+| Parameter | Type   | Required | Description    |
+| --------- | ------ | -------- | -------------- |
+| `id`      | String | Yes      | Project ID     |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "project": {
+      "id": "proj_001",
+      "name": "Website Design",
+      "description": "Redesign the company website with a modern look and feel.",
+      "status": "active",
+      "ownerId": "1786340518154",
+      "coverImage": null,
+      "createdAt": "2026-08-10T05:41:58.154Z",
+      "updatedAt": "2026-08-10T05:41:58.154Z"
+    }
+  }
+}
+```
+
+### Error — Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Project not found"
+}
+```
+
+### Error — Unauthorized
+
+**Status:** `401 Unauthorized`
+
+```json
+{
+  "status": "error",
+  "message": "Authentication token is required"
+}
+```
+
+---
+
 # Error Handling
 
 The API should return consistent error responses.
@@ -709,11 +870,15 @@ The API is being implemented incrementally according to the project milestones.
 
 ### Projects
 
-* [ ] Get projects
-* [ ] Get project
+* [x] Get projects
+* [x] Get project by ID
 * [ ] Create project
 * [ ] Update project
 * [ ] Delete project
+* [ ] Upload project cover image
+* [ ] Get project attachments
+* [ ] Add project attachment
+* [ ] Delete project attachment
 
 ### Tasks
 
