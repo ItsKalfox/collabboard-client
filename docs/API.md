@@ -19,6 +19,9 @@ The API is built using **Node.js** and **Express.js** and provides authenticatio
   * [Register](#1-register)
   * [Login](#2-login)
   * [Get Current User](#3-get-current-user)
+* [Projects Endpoints](#projects-endpoints)
+  * [Get Projects](#1-get-projects)
+  * [Get Project By ID](#2-get-project-by-id)
 * [Error Handling](#error-handling)
 * [Testing with Bruno](#testing-with-bruno)
 * [API Development Status](#api-development-status)
@@ -454,6 +457,90 @@ Example:
   ]
 }
 ```
+
+---
+
+# Projects Endpoints
+
+## 1. Get Projects
+
+Retrieves a list of projects.
+
+**Endpoint:**
+
+```http
+GET /api/projects
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "projects": [
+      {
+        "id": "1",
+        "title": "Project Alpha",
+        "description": "First test project",
+        "ownerId": "1786340518154",
+        "createdAt": "2026-08-11T16:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 2. Get Project By ID
+
+Retrieves details of a specific project.
+
+**Endpoint:**
+
+```http
+GET /api/projects/:projectId
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `projectId` (URL Parameter): The unique ID of the project.
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "project": {
+      "id": "1",
+      "title": "Project Alpha",
+      "description": "First test project",
+      "ownerId": "1786340518154",
+      "createdAt": "2026-08-11T16:00:00.000Z"
+    }
+  }
+}
+```
+
+`404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Project not found"
+}
+```
+
 
 ---
 
