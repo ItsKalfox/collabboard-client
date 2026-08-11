@@ -801,4 +801,62 @@ export const refreshProjectTimeline = (req, res) => {
     }
 };
 
+// GET /api/projects/:id/attachments/:attachmentId/download
+export const downloadAttachment = (req, res) => {
+    try {
+        const { id, attachmentId } = req.params;
+
+        const projects = getMockProjects();
+        const project = projects.find(p => p.id === id);
+
+        if (!project) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Project not found'
+            });
+        }
+
+        const attachments = getMockAttachments();
+        const attachment = attachments.find(a => a.id === attachmentId && a.projectId === id);
+
+        if (!attachment) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Attachment not found'
+            });
+        }
+
+        // Set attachment disposition headers
+        const filename = attachment.filename || `attachment_${attachmentId}`;
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Type', attachment.mimeType || 'application/octet-stream');
+
+        // Check if local file exists
+        if (attachment.localPath && fs.existsSync(attachment.localPath)) {
+            return res.download(attachment.localPath, filename);
+        }
+
+        // If Cloudinary URL or remote URL, redirect or send URL info
+        if (attachment.url && (attachment.url.startsWith('http://') || attachment.url.startsWith('https://'))) {
+            return res.redirect(attachment.url);
+        }
+
+        // Fallback response with attachment details
+        res.status(200).json({
+            status: 'success',
+            message: 'Attachment ready for download',
+            data: {
+                attachment
+            }
+        });
+    } catch (error) {
+        console.error('Download attachment error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Server error'
+        });
+    }
+};
+
+
 

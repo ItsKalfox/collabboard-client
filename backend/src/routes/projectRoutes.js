@@ -14,7 +14,8 @@ import {
     removeProjectMember,
     getProjectTasks,
     getProjectTimeline,
-    refreshProjectTimeline
+    refreshProjectTimeline,
+    downloadAttachment
 } from '../controllers/projectController.js';
 import { protect } from '../middlewares/authMiddleware.js';
 import { uploadImage, uploadFile } from '../config/multer.js';
@@ -42,5 +43,8 @@ router.get('/:id/tasks', protect, getProjectTasks);
 // Timeline routes
 router.get('/:id/timeline', protect, getProjectTimeline);
 router.get('/:id/timeline/refresh', protect, refreshProjectTimeline);
+
+// Download Attachment route
+router.get('/:id/attachments/:attachmentId/download', protect, downloadAttachment);
 
 export default router;

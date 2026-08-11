@@ -1721,6 +1721,74 @@ Authorization: Bearer <JWT_TOKEN>
 
 ---
 
+## 16. Download Attachment
+
+Downloads an attachment file by attachment ID and project ID. Returns file stream or attachment redirect with `Content-Disposition` header.
+
+### Endpoint
+
+```http
+GET /api/projects/:id/attachments/:attachmentId/download
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001/attachments/att_001/download
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### URL Parameters
+
+| Parameter      | Type   | Required | Description   |
+| -------------- | ------ | -------- | ------------- |
+| `id`           | String | Yes      | Project ID    |
+| `attachmentId` | String | Yes      | Attachment ID |
+
+### Response Headers
+
+```http
+Content-Disposition: attachment; filename="design_brief.pdf"
+Content-Type: application/pdf
+```
+
+### Successful Response
+
+**Status:** `200 OK` or `302 Found` (File binary data or URL redirect)
+
+### Error — Attachment Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Attachment not found"
+}
+```
+
+### Error — Project Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Project not found"
+}
+```
+
+---
+
 # Error Handling
 
 The API should return consistent error responses.
