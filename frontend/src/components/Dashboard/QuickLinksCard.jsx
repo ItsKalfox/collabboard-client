@@ -28,8 +28,9 @@ const QUICK_FILES = [
   },
 ];
 
-export default function QuickLinksCard() {
-  const [activeCategory] = useState('All files');
+export default function QuickLinksCard({ data }) {
+  const activeCategory = data?.category || 'All files';
+  const fileItems = data?.items || QUICK_FILES;
 
   const getFileIcon = (type) => {
     switch (type) {
@@ -92,7 +93,7 @@ export default function QuickLinksCard() {
 
       {/* File Quick Link Items */}
       <div className="quick-links-list">
-        {QUICK_FILES.map((file) => (
+        {fileItems.map((file) => (
           <div key={file.id} className="quick-file-pill">
             <div className="file-icon-badge" style={{ color: file.color }}>
               {getFileIcon(file.type)}

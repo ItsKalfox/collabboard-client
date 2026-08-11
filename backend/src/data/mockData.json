@@ -12,5 +12,14 @@
     "email": "nipunmanusha2003@gmail.com",
     "password": "$2b$10$5EQ2eJLIhNSnwTchIbPWA.Q.8GYoKaMIIOrTdbdzMeA2Qs4A36lhi",
     "date": "2026-08-10T10:04:51.453Z"
+  },
+  {
+    "id": "1786417927778",
+    "name": "Alex Hash",
+    "email": "alexhash@dash.com",
+    "password": "$2b$10$bLUYQkKuwZX1cCZ30B8jbeuf01OS2vGDqnDqfR/Zy8C9mSlBwf6Ue",
+    "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
+    "role": "Lead Designer",
+    "date": "2026-08-11T03:12:07.778Z"
   }
 ]

@@ -1,7 +1,11 @@
 import './OngoingProjectsCard.css';
 
-export default function OngoingProjectsCard() {
-  const categories = [
+export default function OngoingProjectsCard({ data }) {
+  const cardTitle = data?.title || 'Ongoing projects';
+  const salesTrendLabel = data?.salesTrendLabel || 'Sales trend';
+  const percentage = data?.percentage || '68,5%';
+  const compareText = data?.compareText || 'Compared to last month';
+  const categories = data?.categories || [
     { label: 'Finance', value: '148,800', color: '#111827' },
     { label: 'Design Reviews', value: '15,200', color: '#4b5563' },
     { label: 'Other', value: '00,00', color: '#9ca3af' },
@@ -11,7 +15,7 @@ export default function OngoingProjectsCard() {
     <div className="ongoing-projects-card">
       {/* Top Header */}
       <div className="ongoing-header">
-        <h3 className="ongoing-title">Ongoing projects</h3>
+        <h3 className="ongoing-title">{cardTitle}</h3>
         <button className="ongoing-grid-icon" aria-label="View options">
           <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
             <rect x="3" y="3" width="7" height="7" rx="1"></rect>
@@ -24,9 +28,9 @@ export default function OngoingProjectsCard() {
 
       {/* Main Stat Section */}
       <div className="ongoing-stat-section">
-        <span className="ongoing-subtitle">Sales trend</span>
-        <div className="ongoing-percentage">68,5%</div>
-        <span className="ongoing-compare">Compared to last month</span>
+        <span className="ongoing-subtitle">{salesTrendLabel}</span>
+        <div className="ongoing-percentage">{percentage}</div>
+        <span className="ongoing-compare">{compareText}</span>
       </div>
 
       {/* Chart Section */}

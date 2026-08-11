@@ -132,9 +132,11 @@ function calculatePosition(startTime, endTime) {
   };
 }
 
-export default function TimelineTable() {
+export default function TimelineTable({ data }) {
   const [activeFilter, setActiveFilter] = useState('Day');
-  const [selectedDate] = useState('JUNE 1, 2023');
+  const selectedDate = data?.selectedDate || 'JUNE 1, 2023';
+  const timelineRows = data?.rows || INITIAL_TIMELINE_DATA;
+  const timeSlots = data?.timeSlots || TIME_SLOTS;
 
   const filterOptions = ['Day', 'Week', 'Month', 'Year'];
 
@@ -179,7 +181,7 @@ export default function TimelineTable() {
         <div className="timeline-grid-wrapper">
           {/* Rows Container */}
           <div className="timeline-rows-container">
-            {INITIAL_TIMELINE_DATA.map((row) => (
+            {timelineRows.map((row) => (
               <div key={row.id} className="timeline-row">
                 {/* Category Label */}
                 <div className="timeline-category-label">
@@ -190,7 +192,7 @@ export default function TimelineTable() {
                 <div className="timeline-track">
                   {/* Vertical Grid lines corresponding to hours */}
                   <div className="timeline-grid-lines">
-                    {TIME_SLOTS.map((slot, index) => (
+                    {timeSlots.map((slot, index) => (
                       <div key={slot + index} className="timeline-grid-line" />
                     ))}
                   </div>
@@ -241,7 +243,7 @@ export default function TimelineTable() {
           <div className="timeline-footer">
             <div className="timeline-category-spacer" />
             <div className="timeline-time-slots">
-              {TIME_SLOTS.map((slot) => (
+              {timeSlots.map((slot) => (
                 <div key={slot} className="timeline-time-slot">
                   {slot}
                 </div>

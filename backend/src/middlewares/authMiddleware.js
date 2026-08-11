@@ -48,3 +48,24 @@ export const protect = (req, res, next) => {
         return res.status(401).json({ status: 'error', message: 'Invalid or expired token' });
     }
 };
+
+export const optionalProtect = (req, res, next) => {
+    try {
+        let token;
+        if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+            token = req.headers.authorization.split(' ')[1];
+        }
+        if (token) {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'super_secret_key_12345');
+            const users = getMockData();
+            const user = users.find(u => u.id === decoded.id);
+            if (user) {
+                const { password, ...userWithoutPassword } = user;
+                req.user = userWithoutPassword;
+            }
+        }
+        next();
+    } catch (error) {
+        next();
+    }
+};

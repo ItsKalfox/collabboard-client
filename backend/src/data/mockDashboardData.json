@@ -1,0 +1,167 @@
+{
+  "user": {
+    "name": "Alex Hash",
+    "email": "alexhash@dash.com",
+    "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
+    "role": "Lead Designer"
+  },
+  "timeline": {
+    "selectedDate": "JUNE 1, 2023",
+    "timeSlots": ["1 PM", "2 PM", "3 PM", "4 PM", "5 PM", "6 PM", "7 PM", "8 PM"],
+    "rows": [
+      {
+        "id": "1",
+        "category": "Design",
+        "items": [
+          {
+            "id": "item-1",
+            "title": "about 3 hours",
+            "startTime": "13:30",
+            "endTime": "16:30",
+            "avatars": [
+              "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
+              "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80"
+            ],
+            "hasPlus": true
+          }
+        ]
+      },
+      {
+        "id": "2",
+        "category": "Mobile Apps",
+        "items": [
+          {
+            "id": "item-2",
+            "title": "about 2 hours",
+            "startTime": "14:15",
+            "endTime": "15:45",
+            "avatars": [
+              "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80"
+            ],
+            "hasPlus": false
+          }
+        ]
+      },
+      {
+        "id": "3",
+        "category": "Infography",
+        "items": [
+          {
+            "id": "item-3a",
+            "title": "about 2 hours",
+            "startTime": "15:15",
+            "endTime": "16:30",
+            "avatars": [
+              "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80",
+              "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&auto=format&fit=crop&q=80"
+            ],
+            "hasPlus": true
+          },
+          {
+            "id": "item-3b",
+            "title": "about 2 hours",
+            "startTime": "18:00",
+            "endTime": "19:45",
+            "topLabel": "vacations",
+            "avatars": [
+              "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=100&auto=format&fit=crop&q=80",
+              "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80"
+            ],
+            "hasPlus": true
+          }
+        ]
+      },
+      {
+        "id": "4",
+        "category": "Wireframes",
+        "items": [
+          {
+            "id": "item-4",
+            "title": "about 3 hours",
+            "startTime": "16:00",
+            "endTime": "18:30",
+            "avatars": [
+              "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&auto=format&fit=crop&q=80",
+              "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=100&auto=format&fit=crop&q=80"
+            ],
+            "hasPlus": false
+          }
+        ]
+      }
+    ]
+  },
+  "ongoingProjects": {
+    "title": "Ongoing projects",
+    "salesTrendLabel": "Sales trend",
+    "percentage": "68,5%",
+    "compareText": "Compared to last month",
+    "categories": [
+      { "label": "Finance", "value": "148,800", "color": "#111827" },
+      { "label": "Design Reviews", "value": "15,200", "color": "#4b5563" },
+      { "label": "Other", "value": "00,00", "color": "#9ca3af" }
+    ]
+  },
+  "files": {
+    "category": "All files",
+    "items": [
+      {
+        "id": "1",
+        "name": "Licence on Figma templates.pdf",
+        "type": "pdf",
+        "color": "#ef4444"
+      },
+      {
+        "id": "2",
+        "name": "Devspire_18-48.fig",
+        "type": "figma",
+        "color": "#a855f7"
+      },
+      {
+        "id": "3",
+        "name": "Devspire redesign.word",
+        "type": "word",
+        "color": "#3b82f6"
+      },
+      {
+        "id": "4",
+        "name": "National Bank.fig",
+        "type": "figma",
+        "color": "#a855f7"
+      }
+    ]
+  },
+  "team": {
+    "badge": "+5",
+    "stats": [
+      { "type": "members", "number": 1240, "change": 124 },
+      { "type": "hours", "number": 562, "change": 124 },
+      { "type": "activity", "number": 25 }
+    ],
+    "departments": [
+      {
+        "name": "UX UI Design",
+        "subtitle": "Design and creative",
+        "avatars": [
+          "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
+          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80",
+          "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80"
+        ],
+        "progressPercent": 68
+      },
+      {
+        "name": "Marketing",
+        "subtitle": "Design and creative",
+        "avatars": [
+          "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80",
+          "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&auto=format&fit=crop&q=80"
+        ],
+        "progressPercent": 45
+      },
+      {
+        "name": "Development",
+        "subtitle": "Tech & Engineering",
+        "barHeights": [35, 55, 40, 70, 60, 90, 75, 100]
+      }
+    ]
+  }
+}
