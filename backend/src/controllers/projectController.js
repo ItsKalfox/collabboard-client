@@ -9,8 +9,17 @@ const __dirname = path.dirname(__filename);
 const mockProjectsPath = path.join(__dirname, '../data/mockProjects.json');
 const mockAttachmentsPath = path.join(__dirname, '../data/mockAttachments.json');
 const mockUsersPath = path.join(__dirname, '../data/mockData.json');
+const mockTasksPath = path.join(__dirname, '../data/mockTasks.json');
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
+
+const getMockTasks = () => {
+    if (!fs.existsSync(mockTasksPath)) {
+        return [];
+    }
+    const data = fs.readFileSync(mockTasksPath, 'utf8');
+    return JSON.parse(data);
+};
 
 const getMockUsers = () => {
     if (!fs.existsSync(mockUsersPath)) {
@@ -662,4 +671,37 @@ export const removeProjectMember = (req, res) => {
             message: 'Server error'
         });
     }
-};
+};
+
+// GET /api/projects/:id/tasks
+export const getProjectTasks = (req, res) => {
+    try {
+        const { id } = req.params;
+        const projects = getMockProjects();
+        const project = projects.find(p => p.id === id);
+
+        if (!project) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Project not found'
+            });
+        }
+
+        const allTasks = getMockTasks();
+        const projectTasks = allTasks.filter(t => t.projectId === id);
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                tasks: projectTasks
+            }
+        });
+    } catch (error) {
+        console.error('Get project tasks error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Server error'
+        });
+    }
+};
+

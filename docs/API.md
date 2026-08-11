@@ -1477,6 +1477,89 @@ Authorization: Bearer <JWT_TOKEN>
 
 ---
 
+## 13. Get Project Tasks
+
+Retrieves all tasks and subtasks associated with a specific project.
+
+### Endpoint
+
+```http
+GET /api/projects/:id/tasks
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001/tasks
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### URL Parameters
+
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| `id`      | String | Yes      | Project ID  |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "tasks": [
+      {
+        "id": "task_001",
+        "projectId": "proj_001",
+        "title": "Design Homepage Wireframes",
+        "description": "Create low-fidelity wireframes for desktop and mobile layouts.",
+        "status": "in_progress",
+        "priority": "high",
+        "assigneeId": "1786340518154",
+        "dueDate": "2026-08-20T18:00:00.000Z",
+        "subtasks": [
+          {
+            "id": "sub_101",
+            "title": "Desktop navbar layout",
+            "completed": true
+          },
+          {
+            "id": "sub_102",
+            "title": "Hero section banner",
+            "completed": false
+          }
+        ],
+        "createdAt": "2026-08-10T08:00:00.000Z",
+        "updatedAt": "2026-08-11T10:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+### Error — Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Project not found"
+}
+```
+
+---
+
 # Error Handling
 
 The API should return consistent error responses.
