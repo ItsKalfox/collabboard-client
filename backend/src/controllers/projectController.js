@@ -8,8 +8,17 @@ const __dirname = path.dirname(__filename);
 
 const mockProjectsPath = path.join(__dirname, '../data/mockProjects.json');
 const mockAttachmentsPath = path.join(__dirname, '../data/mockAttachments.json');
+const mockUsersPath = path.join(__dirname, '../data/mockData.json');
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
+
+const getMockUsers = () => {
+    if (!fs.existsSync(mockUsersPath)) {
+        return [];
+    }
+    const data = fs.readFileSync(mockUsersPath, 'utf8');
+    return JSON.parse(data);
+};
 
 const getMockProjects = () => {
     if (!fs.existsSync(mockProjectsPath)) {
@@ -471,3 +480,186 @@ export const deleteAttachment = async (req, res) => {
         });
     }
 };
+
+// GET /api/projects/:id/members
+export const getProjectMembers = (req, res) => {
+    try {
+        const { id } = req.params;
+        const projects = getMockProjects();
+        const project = projects.find(p => p.id === id);
+
+        if (!project) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Project not found'
+            });
+        }
+
+        const users = getMockUsers();
+        const projectMembers = project.members || [
+            { userId: project.ownerId, role: 'owner', joinedAt: project.createdAt }
+        ];
+
+        const membersWithDetails = projectMembers.map(m => {
+            const user = users.find(u => u.id === m.userId);
+            return {
+                userId: m.userId,
+                name: user ? user.name : 'Unknown User',
+                email: user ? user.email : '',
+                role: m.role || 'member',
+                joinedAt: m.joinedAt || project.createdAt
+            };
+        });
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                members: membersWithDetails
+            }
+        });
+    } catch (error) {
+        console.error('Get project members error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Server error'
+        });
+    }
+};
+
+// POST /api/projects/:id/members
+export const addProjectMember = (req, res) => {
+    try {
+        const { id } = req.params;
+        const { userId, email, role } = req.body;
+
+        if (!userId && !email) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'User ID or email is required'
+            });
+        }
+
+        const projects = getMockProjects();
+        const projectIndex = projects.findIndex(p => p.id === id);
+
+        if (projectIndex === -1) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Project not found'
+            });
+        }
+
+        const project = projects[projectIndex];
+        const users = getMockUsers();
+
+        const targetUser = users.find(u =>
+            (userId && u.id === userId) || (email && u.email.toLowerCase() === email.toLowerCase())
+        );
+
+        if (!targetUser) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'User not found'
+            });
+        }
+
+        if (!project.members) {
+            project.members = [{ userId: project.ownerId, role: 'owner', joinedAt: project.createdAt }];
+        }
+
+        const alreadyMember = project.members.some(m => m.userId === targetUser.id);
+        if (alreadyMember) {
+            return res.status(409).json({
+                status: 'error',
+                message: 'User is already a member of this project'
+            });
+        }
+
+        const newMember = {
+            userId: targetUser.id,
+            role: role || 'member',
+            joinedAt: new Date().toISOString()
+        };
+
+        project.members.push(newMember);
+        project.updatedAt = new Date().toISOString();
+
+        projects[projectIndex] = project;
+        saveMockProjects(projects);
+
+        res.status(201).json({
+            status: 'success',
+            message: 'Member added successfully',
+            data: {
+                member: {
+                    userId: targetUser.id,
+                    name: targetUser.name,
+                    email: targetUser.email,
+                    role: newMember.role,
+                    joinedAt: newMember.joinedAt
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Add project member error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Server error'
+        });
+    }
+};
+
+// DELETE /api/projects/:id/members/:userId
+export const removeProjectMember = (req, res) => {
+    try {
+        const { id, userId } = req.params;
+
+        const projects = getMockProjects();
+        const projectIndex = projects.findIndex(p => p.id === id);
+
+        if (projectIndex === -1) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Project not found'
+            });
+        }
+
+        const project = projects[projectIndex];
+
+        if (!project.members) {
+            project.members = [{ userId: project.ownerId, role: 'owner', joinedAt: project.createdAt }];
+        }
+
+        const memberIndex = project.members.findIndex(m => m.userId === userId);
+        if (memberIndex === -1) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Member not found in project'
+            });
+        }
+
+        if (userId === project.ownerId || project.members[memberIndex].role === 'owner') {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Cannot remove project owner'
+            });
+        }
+
+        project.members.splice(memberIndex, 1);
+        project.updatedAt = new Date().toISOString();
+
+        projects[projectIndex] = project;
+        saveMockProjects(projects);
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Member removed successfully'
+        });
+    } catch (error) {
+        console.error('Remove project member error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Server error'
+        });
+    }
+};

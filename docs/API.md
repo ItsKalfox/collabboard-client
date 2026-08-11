@@ -1242,6 +1242,241 @@ Authorization: Bearer <JWT_TOKEN>
 
 ---
 
+## 10. Get Project Members
+
+Retrieves all team members of a project.
+
+### Endpoint
+
+```http
+GET /api/projects/:id/members
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001/members
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### URL Parameters
+
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| `id`      | String | Yes      | Project ID  |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "members": [
+      {
+        "userId": "1786340518154",
+        "name": "Test",
+        "email": "test@test.com",
+        "role": "owner",
+        "joinedAt": "2026-08-10T05:41:58.154Z"
+      },
+      {
+        "userId": "1786356291453",
+        "name": "Nipun Manusha",
+        "email": "nipunmanusha2003@gmail.com",
+        "role": "member",
+        "joinedAt": "2026-08-10T06:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+### Error — Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Project not found"
+}
+```
+
+---
+
+## 11. Add Project Member
+
+Adds a user to a project team by `userId` or `email`.
+
+### Endpoint
+
+```http
+POST /api/projects/:id/members
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001/members
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+Content-Type: application/json
+```
+
+### URL Parameters
+
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| `id`      | String | Yes      | Project ID  |
+
+### Request Body
+
+```json
+{
+  "userId": "1786431927127",
+  "role": "member"
+}
+```
+
+### Request Parameters
+
+| Field    | Type   | Required | Description                                            |
+| -------- | ------ | -------- | ------------------------------------------------------ |
+| `userId` | String | No*      | User ID of member to add (*either `userId` or `email`) |
+| `email`  | String | No*      | Email of user to add (*either `userId` or `email`)    |
+| `role`   | String | No       | Member role (default: `member`)                        |
+
+### Successful Response
+
+**Status:** `201 Created`
+
+```json
+{
+  "status": "success",
+  "message": "Member added successfully",
+  "data": {
+    "member": {
+      "userId": "1786431927127",
+      "name": "Isuri Perera",
+      "email": "isuriupp@gmail.com",
+      "role": "member",
+      "joinedAt": "2026-08-11T18:00:00.000Z"
+    }
+  }
+}
+```
+
+### Error — User Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "User not found"
+}
+```
+
+### Error — Already Member
+
+**Status:** `409 Conflict`
+
+```json
+{
+  "status": "error",
+  "message": "User is already a member of this project"
+}
+```
+
+---
+
+## 12. Remove Project Member
+
+Removes a member from a project team.
+
+### Endpoint
+
+```http
+DELETE /api/projects/:id/members/:userId
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001/members/1786431927127
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### URL Parameters
+
+| Parameter | Type   | Required | Description         |
+| --------- | ------ | -------- | ------------------- |
+| `id`      | String | Yes      | Project ID          |
+| `userId`  | String | Yes      | Member User ID      |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Member removed successfully"
+}
+```
+
+### Error — Member Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Member not found in project"
+}
+```
+
+### Error — Cannot Remove Owner
+
+**Status:** `400 Bad Request`
+
+```json
+{
+  "status": "error",
+  "message": "Cannot remove project owner"
+}
+```
+
+---
+
 # Error Handling
 
 The API should return consistent error responses.

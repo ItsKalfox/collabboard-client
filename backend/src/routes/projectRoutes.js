@@ -8,7 +8,10 @@ import {
     uploadCoverImage,
     getAttachments,
     addAttachment,
-    deleteAttachment
+    deleteAttachment,
+    getProjectMembers,
+    addProjectMember,
+    removeProjectMember
 } from '../controllers/projectController.js';
 import { protect } from '../middlewares/authMiddleware.js';
 import { uploadImage, uploadFile } from '../config/multer.js';
@@ -24,5 +27,10 @@ router.post('/:id/cover-image', protect, uploadImage.single('image'), uploadCove
 router.get('/:id/attachments', protect, getAttachments);
 router.post('/:id/attachments', protect, uploadFile.single('file'), addAttachment);
 router.delete('/:id/attachments/:attachmentId', protect, deleteAttachment);
+
+// Members routes
+router.get('/:id/members', protect, getProjectMembers);
+router.post('/:id/members', protect, addProjectMember);
+router.delete('/:id/members/:userId', protect, removeProjectMember);
 
 export default router;
