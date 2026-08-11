@@ -29,6 +29,8 @@ The API is built using **Node.js** and **Express.js** and provides authenticatio
   * [Update Project](#4-update-project)
   * [Delete Project](#5-delete-project)
   * [Upload Cover Image](#6-upload-cover-image)
+  * [Get Attachments](#7-get-attachments)
+  * [Add Attachment](#8-add-attachment)
 * [Error Handling](#error-handling)
 * [Testing with Bruno](#testing-with-bruno)
 * [API Development Status](#api-development-status)
@@ -930,6 +932,165 @@ Send as `multipart/form-data`:
 
 ---
 
+## 7. Get Attachments
+
+Returns all attachments for a specific project.
+
+### Endpoint
+
+```http
+GET /api/projects/:id/attachments
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001/attachments
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### URL Parameters
+
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| `id`      | String | Yes      | Project ID  |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "attachments": [
+      {
+        "id": "att_1786340518154",
+        "projectId": "proj_001",
+        "filename": "design_brief.pdf",
+        "url": "https://res.cloudinary.com/your-cloud/.../design_brief.pdf",
+        "publicId": "collabboard/attachments/proj_001/att_123456",
+        "mimeType": "application/pdf",
+        "size": 204800,
+        "uploadedBy": "1786340518154",
+        "uploadedAt": "2026-08-11T15:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+### Error — Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Project not found"
+}
+```
+
+---
+
+## 8. Add Attachment
+
+Uploads a new attachment to a project. The file is stored in Cloudinary and the record is saved to the attachments store.
+
+### Endpoint
+
+```http
+POST /api/projects/:id/attachments
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001/attachments
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+Content-Type: multipart/form-data
+```
+
+### URL Parameters
+
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| `id`      | String | Yes      | Project ID  |
+
+### Request Body
+
+Send as `multipart/form-data`:
+
+| Field  | Type | Required | Description                      |
+| ------ | ---- | -------- | -------------------------------- |
+| `file` | File | Yes      | Any file type, maximum size 20MB |
+
+### Successful Response
+
+**Status:** `201 Created`
+
+```json
+{
+  "status": "success",
+  "message": "Attachment uploaded successfully",
+  "data": {
+    "attachment": {
+      "id": "att_1786340518154",
+      "projectId": "proj_001",
+      "filename": "design_brief.pdf",
+      "url": "https://res.cloudinary.com/your-cloud/.../design_brief.pdf",
+      "publicId": "collabboard/attachments/proj_001/att_123456",
+      "mimeType": "application/pdf",
+      "size": 204800,
+      "uploadedBy": "1786340518154",
+      "uploadedAt": "2026-08-11T15:00:00.000Z"
+    }
+  }
+}
+```
+
+### Error — No File
+
+**Status:** `400 Bad Request`
+
+```json
+{
+  "status": "error",
+  "message": "Attachment file is required"
+}
+```
+
+### Error — Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Project not found"
+}
+```
+
+---
+
 # Error Handling
 
 The API should return consistent error responses.
@@ -1218,8 +1379,8 @@ The API is being implemented incrementally according to the project milestones.
 * [x] Update project
 * [x] Delete project
 * [x] Upload project cover image
-* [ ] Get project attachments
-* [ ] Add project attachment
+* [x] Get project attachments
+* [x] Add project attachment
 * [ ] Delete project attachment
 
 ### Tasks

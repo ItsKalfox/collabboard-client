@@ -1,7 +1,16 @@
 import express from 'express';
-import { getProjects, getProjectById, createProject, updateProject, deleteProject, uploadCoverImage } from '../controllers/projectController.js';
+import {
+    getProjects,
+    getProjectById,
+    createProject,
+    updateProject,
+    deleteProject,
+    uploadCoverImage,
+    getAttachments,
+    addAttachment
+} from '../controllers/projectController.js';
 import { protect } from '../middlewares/authMiddleware.js';
-import { uploadImage } from '../config/multer.js';
+import { uploadImage, uploadFile } from '../config/multer.js';
 
 const router = express.Router();
 
@@ -11,5 +20,7 @@ router.post('/', protect, createProject);
 router.put('/:id', protect, updateProject);
 router.delete('/:id', protect, deleteProject);
 router.post('/:id/cover-image', protect, uploadImage.single('image'), uploadCoverImage);
+router.get('/:id/attachments', protect, getAttachments);
+router.post('/:id/attachments', protect, uploadFile.single('file'), addAttachment);
 
 export default router;

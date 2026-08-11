@@ -23,6 +23,18 @@ const saveMockProjects = (data) => {
     fs.writeFileSync(mockProjectsPath, JSON.stringify(data, null, 2));
 };
 
+const getMockAttachments = () => {
+    if (!fs.existsSync(mockAttachmentsPath)) {
+        return [];
+    }
+    const data = fs.readFileSync(mockAttachmentsPath, 'utf8');
+    return JSON.parse(data);
+};
+
+const saveMockAttachments = (data) => {
+    fs.writeFileSync(mockAttachmentsPath, JSON.stringify(data, null, 2));
+};
+
 // Helper to upload a buffer to Cloudinary
 const uploadToCloudinary = (buffer, options) => {
     return new Promise((resolve, reject) => {
@@ -300,6 +312,101 @@ export const uploadCoverImage = async (req, res) => {
         res.status(500).json({
             status: 'error',
             message: 'Server error while uploading image'
+        });
+    }
+};
+
+// GET /api/projects/:id/attachments
+export const getAttachments = (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const projects = getMockProjects();
+        const project = projects.find(p => p.id === id);
+
+        if (!project) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Project not found'
+            });
+        }
+
+        const allAttachments = getMockAttachments();
+        const projectAttachments = allAttachments.filter(a => a.projectId === id);
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                attachments: projectAttachments
+            }
+        });
+    } catch (error) {
+        console.error('Get attachments error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Server error'
+        });
+    }
+};
+
+// POST /api/projects/:id/attachments
+export const addAttachment = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!req.file) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Attachment file is required'
+            });
+        }
+
+        const projects = getMockProjects();
+        const project = projects.find(p => p.id === id);
+
+        if (!project) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Project not found'
+            });
+        }
+
+        // Upload file to Cloudinary
+        const result = await uploadToCloudinary(req.file.buffer, {
+            folder: `collabboard/attachments/${id}`,
+            public_id: `att_${Date.now()}`,
+            resource_type: 'auto'
+        });
+
+        // Save attachment record
+        const attachments = getMockAttachments();
+        const newAttachment = {
+            id: `att_${Date.now()}`,
+            projectId: id,
+            filename: req.file.originalname,
+            url: result.secure_url,
+            publicId: result.public_id,
+            mimeType: req.file.mimetype,
+            size: req.file.size,
+            uploadedBy: req.user.id,
+            uploadedAt: new Date().toISOString()
+        };
+
+        attachments.push(newAttachment);
+        saveMockAttachments(attachments);
+
+        res.status(201).json({
+            status: 'success',
+            message: 'Attachment uploaded successfully',
+            data: {
+                attachment: newAttachment
+            }
+        });
+    } catch (error) {
+        console.error('Add attachment error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Server error while uploading attachment'
         });
     }
 };
