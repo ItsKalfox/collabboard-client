@@ -176,3 +176,44 @@ export const updateProject = (req, res) => {
         });
     }
 };
+
+// DELETE /api/projects/:id
+export const deleteProject = (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const projects = getMockProjects();
+        const projectIndex = projects.findIndex(p => p.id === id);
+
+        if (projectIndex === -1) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Project not found'
+            });
+        }
+
+        const project = projects[projectIndex];
+
+        // Only the owner can delete the project
+        if (project.ownerId !== req.user.id) {
+            return res.status(403).json({
+                status: 'error',
+                message: 'You are not authorized to delete this project'
+            });
+        }
+
+        projects.splice(projectIndex, 1);
+        saveMockProjects(projects);
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Project deleted successfully'
+        });
+    } catch (error) {
+        console.error('Delete project error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Server error'
+        });
+    }
+};

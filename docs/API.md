@@ -27,6 +27,7 @@ The API is built using **Node.js** and **Express.js** and provides authenticatio
   * [Get Project by ID](#2-get-project-by-id)
   * [Create Project](#3-create-project)
   * [Update Project](#4-update-project)
+  * [Delete Project](#5-delete-project)
 * [Error Handling](#error-handling)
 * [Testing with Bruno](#testing-with-bruno)
 * [API Development Status](#api-development-status)
@@ -771,6 +772,73 @@ All fields are optional. Only provided fields will be updated.
 
 ---
 
+## 5. Delete Project
+
+Permanently deletes a project. Only the project owner can perform this action.
+
+### Endpoint
+
+```http
+DELETE /api/projects/:id
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### URL Parameters
+
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| `id`      | String | Yes      | Project ID  |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Project deleted successfully"
+}
+```
+
+### Error — Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Project not found"
+}
+```
+
+### Error — Forbidden
+
+**Status:** `403 Forbidden`
+
+```json
+{
+  "status": "error",
+  "message": "You are not authorized to delete this project"
+}
+```
+
+---
+
 # Error Handling
 
 The API should return consistent error responses.
@@ -1057,7 +1125,7 @@ The API is being implemented incrementally according to the project milestones.
 * [x] Get project by ID
 * [x] Create project
 * [x] Update project
-* [ ] Delete project
+* [x] Delete project
 * [ ] Upload project cover image
 * [ ] Get project attachments
 * [ ] Add project attachment
