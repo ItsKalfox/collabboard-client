@@ -31,6 +31,7 @@ The API is built using **Node.js** and **Express.js** and provides authenticatio
   * [Upload Cover Image](#6-upload-cover-image)
   * [Get Attachments](#7-get-attachments)
   * [Add Attachment](#8-add-attachment)
+  * [Delete Attachment](#9-delete-attachment)
 * [Error Handling](#error-handling)
 * [Testing with Bruno](#testing-with-bruno)
 * [API Development Status](#api-development-status)
@@ -1091,6 +1092,85 @@ Send as `multipart/form-data`:
 
 ---
 
+## 9. Delete Attachment
+
+Permanently deletes an attachment from a project. The file is also removed from Cloudinary. Only the user who uploaded the attachment or the project owner can delete it.
+
+### Endpoint
+
+```http
+DELETE /api/projects/:id/attachments/:attachmentId
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001/attachments/att_1786340518154
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### URL Parameters
+
+| Parameter      | Type   | Required | Description   |
+| -------------- | ------ | -------- | ------------- |
+| `id`           | String | Yes      | Project ID    |
+| `attachmentId` | String | Yes      | Attachment ID |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Attachment deleted successfully"
+}
+```
+
+### Error — Project Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Project not found"
+}
+```
+
+### Error — Attachment Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Attachment not found"
+}
+```
+
+### Error — Forbidden
+
+**Status:** `403 Forbidden`
+
+```json
+{
+  "status": "error",
+  "message": "You are not authorized to delete this attachment"
+}
+```
+
+---
+
 # Error Handling
 
 The API should return consistent error responses.
@@ -1381,7 +1461,7 @@ The API is being implemented incrementally according to the project milestones.
 * [x] Upload project cover image
 * [x] Get project attachments
 * [x] Add project attachment
-* [ ] Delete project attachment
+* [x] Delete project attachment
 
 ### Tasks
 

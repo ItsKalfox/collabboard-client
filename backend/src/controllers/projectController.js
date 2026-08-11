@@ -410,3 +410,64 @@ export const addAttachment = async (req, res) => {
         });
     }
 };
+
+// DELETE /api/projects/:id/attachments/:attachmentId
+export const deleteAttachment = async (req, res) => {
+    try {
+        const { id, attachmentId } = req.params;
+
+        const projects = getMockProjects();
+        const project = projects.find(p => p.id === id);
+
+        if (!project) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Project not found'
+            });
+        }
+
+        const attachments = getMockAttachments();
+        const attachmentIndex = attachments.findIndex(
+            a => a.id === attachmentId && a.projectId === id
+        );
+
+        if (attachmentIndex === -1) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Attachment not found'
+            });
+        }
+
+        const attachment = attachments[attachmentIndex];
+
+        // Only the uploader or the project owner can delete an attachment
+        if (attachment.uploadedBy !== req.user.id && project.ownerId !== req.user.id) {
+            return res.status(403).json({
+                status: 'error',
+                message: 'You are not authorized to delete this attachment'
+            });
+        }
+
+        // Delete from Cloudinary
+        try {
+            await cloudinary.uploader.destroy(attachment.publicId, { resource_type: 'auto' });
+        } catch (err) {
+            console.warn('Failed to delete attachment from Cloudinary:', err.message);
+        }
+
+        // Remove from store
+        attachments.splice(attachmentIndex, 1);
+        saveMockAttachments(attachments);
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Attachment deleted successfully'
+        });
+    } catch (error) {
+        console.error('Delete attachment error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Server error'
+        });
+    }
+};
