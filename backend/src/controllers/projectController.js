@@ -1,11 +1,13 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import cloudinary from '../config/cloudinary.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const mockProjectsPath = path.join(__dirname, '../data/mockProjects.json');
+const mockAttachmentsPath = path.join(__dirname, '../data/mockAttachments.json');
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -19,6 +21,17 @@ const getMockProjects = () => {
 
 const saveMockProjects = (data) => {
     fs.writeFileSync(mockProjectsPath, JSON.stringify(data, null, 2));
+};
+
+// Helper to upload a buffer to Cloudinary
+const uploadToCloudinary = (buffer, options) => {
+    return new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(options, (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+        });
+        uploadStream.end(buffer);
+    });
 };
 
 // ─── Controllers ─────────────────────────────────────────────────────────────
@@ -214,6 +227,79 @@ export const deleteProject = (req, res) => {
         res.status(500).json({
             status: 'error',
             message: 'Server error'
+        });
+    }
+};
+
+// POST /api/projects/:id/cover-image
+export const uploadCoverImage = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!req.file) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Image file is required'
+            });
+        }
+
+        const projects = getMockProjects();
+        const projectIndex = projects.findIndex(p => p.id === id);
+
+        if (projectIndex === -1) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Project not found'
+            });
+        }
+
+        const project = projects[projectIndex];
+
+        // Only the owner can change the cover image
+        if (project.ownerId !== req.user.id) {
+            return res.status(403).json({
+                status: 'error',
+                message: 'You are not authorized to update this project'
+            });
+        }
+
+        // Delete the old cover image from Cloudinary if it exists
+        if (project.coverImagePublicId) {
+            try {
+                await cloudinary.uploader.destroy(project.coverImagePublicId);
+            } catch (err) {
+                console.warn('Failed to delete old cover image from Cloudinary:', err.message);
+            }
+        }
+
+        // Upload new image to Cloudinary
+        const result = await uploadToCloudinary(req.file.buffer, {
+            folder: `collabboard/covers/${id}`,
+            public_id: `cover_${Date.now()}`,
+            overwrite: true,
+            resource_type: 'image'
+        });
+
+        // Save Cloudinary URL to the project
+        project.coverImage = result.secure_url;
+        project.coverImagePublicId = result.public_id;
+        project.updatedAt = new Date().toISOString();
+
+        projects[projectIndex] = project;
+        saveMockProjects(projects);
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Cover image uploaded successfully',
+            data: {
+                coverImage: result.secure_url
+            }
+        });
+    } catch (error) {
+        console.error('Upload cover image error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Server error while uploading image'
         });
     }
 };

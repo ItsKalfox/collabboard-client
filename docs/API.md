@@ -28,6 +28,7 @@ The API is built using **Node.js** and **Express.js** and provides authenticatio
   * [Create Project](#3-create-project)
   * [Update Project](#4-update-project)
   * [Delete Project](#5-delete-project)
+  * [Upload Cover Image](#6-upload-cover-image)
 * [Error Handling](#error-handling)
 * [Testing with Bruno](#testing-with-bruno)
 * [API Development Status](#api-development-status)
@@ -839,6 +840,96 @@ Authorization: Bearer <JWT_TOKEN>
 
 ---
 
+## 6. Upload Cover Image
+
+Uploads or replaces the cover image for a project. The image is stored in Cloudinary and its URL is saved to the project. Only the project owner can upload a cover image.
+
+### Endpoint
+
+```http
+POST /api/projects/:id/cover-image
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001/cover-image
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+Content-Type: multipart/form-data
+```
+
+### URL Parameters
+
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| `id`      | String | Yes      | Project ID  |
+
+### Request Body
+
+Send as `multipart/form-data`:
+
+| Field   | Type | Required | Description                               |
+| ------- | ---- | -------- | ----------------------------------------- |
+| `image` | File | Yes      | Image file (JPEG, PNG, WebP, GIF, max 5MB) |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Cover image uploaded successfully",
+  "data": {
+    "coverImage": "https://res.cloudinary.com/your-cloud/image/upload/collabboard/covers/proj_001/cover_123456.jpg"
+  }
+}
+```
+
+### Error — No File
+
+**Status:** `400 Bad Request`
+
+```json
+{
+  "status": "error",
+  "message": "Image file is required"
+}
+```
+
+### Error — Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Project not found"
+}
+```
+
+### Error — Forbidden
+
+**Status:** `403 Forbidden`
+
+```json
+{
+  "status": "error",
+  "message": "You are not authorized to update this project"
+}
+```
+
+---
+
 # Error Handling
 
 The API should return consistent error responses.
@@ -1126,7 +1217,7 @@ The API is being implemented incrementally according to the project milestones.
 * [x] Create project
 * [x] Update project
 * [x] Delete project
-* [ ] Upload project cover image
+* [x] Upload project cover image
 * [ ] Get project attachments
 * [ ] Add project attachment
 * [ ] Delete project attachment
