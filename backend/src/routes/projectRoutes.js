@@ -17,6 +17,7 @@ import {
     refreshProjectTimeline,
     downloadAttachment
 } from '../controllers/projectController.js';
+import { getTasksByProject, createTask } from '../controllers/taskController.js';
 import { protect } from '../middlewares/authMiddleware.js';
 import { uploadImage, uploadFile } from '../config/multer.js';
 
@@ -37,8 +38,9 @@ router.get('/:id/members', protect, getProjectMembers);
 router.post('/:id/members', protect, addProjectMember);
 router.delete('/:id/members/:userId', protect, removeProjectMember);
 
-// Tasks route
-router.get('/:id/tasks', protect, getProjectTasks);
+// Project Task routes (Kanban branch uses projectId parameter name)
+router.get('/:projectId/tasks', protect, getTasksByProject);
+router.post('/:projectId/tasks', protect, createTask);
 
 // Timeline routes
 router.get('/:id/timeline', protect, getProjectTimeline);

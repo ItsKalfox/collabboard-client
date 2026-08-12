@@ -22,7 +22,6 @@ The API is built using **Node.js** and **Express.js** and provides authenticatio
   * [Forgot Password](#4-forgot-password)
   * [Reset Password](#5-reset-password)
 * [Project Endpoints](#project-endpoints)
-
   * [Get All Projects](#1-get-all-projects)
   * [Get Project by ID](#2-get-project-by-id)
   * [Create Project](#3-create-project)
@@ -32,6 +31,16 @@ The API is built using **Node.js** and **Express.js** and provides authenticatio
   * [Get Attachments](#7-get-attachments)
   * [Add Attachment](#8-add-attachment)
   * [Delete Attachment](#9-delete-attachment)
+  * [Get Project Tasks](#3-get-project-tasks)
+  * [Create Project Task](#4-create-project-task)
+* [Tasks Endpoints](#tasks-endpoints)
+  * [Get Task](#1-get-task)
+  * [Update Task](#2-update-task)
+  * [Delete Task](#3-delete-task)
+  * [Update Task Status](#4-update-task-status)
+  * [Review Task](#5-review-task)
+  * [Reject Task](#6-reject-task)
+  * [Get Task Reviews](#7-get-task-reviews)
 * [Error Handling](#error-handling)
 * [Testing with Bruno](#testing-with-bruno)
 * [API Development Status](#api-development-status)
@@ -1816,6 +1825,426 @@ Example:
   ]
 }
 ```
+
+---
+
+## 3. Get Project Tasks
+
+Retrieves all tasks for a specific project.
+
+**Endpoint:**
+
+```http
+GET /api/projects/:projectId/tasks
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `projectId` (URL Parameter): The unique ID of the project.
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "tasks": [
+      {
+        "id": "101",
+        "projectId": "1",
+        "title": "Design Database Schema",
+        "description": "Create the initial database schema",
+        "status": "todo",
+        "assignee": "1786340518154",
+        "reviews": [],
+        "createdAt": "2026-08-11T16:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 4. Create Project Task
+
+Creates a new task within a specific project.
+
+**Endpoint:**
+
+```http
+POST /api/projects/:projectId/tasks
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `projectId` (URL Parameter): The unique ID of the project.
+
+**Request Body:**
+
+```json
+{
+  "title": "Design Database Schema",
+  "description": "Create the initial database schema",
+  "status": "todo",
+  "assignee": "1786340518154"
+}
+```
+
+**Response:**
+
+`201 Created`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "task": {
+      "id": "101",
+      "projectId": "1",
+      "title": "Design Database Schema",
+      "description": "Create the initial database schema",
+      "status": "todo",
+      "assignee": "1786340518154",
+      "reviews": [],
+      "createdAt": "2026-08-11T16:00:00.000Z"
+    }
+  }
+}
+```
+
+`400 Bad Request`
+
+```json
+{
+  "status": "error",
+  "message": "Title is required"
+}
+```
+
+---
+
+# Tasks Endpoints
+
+## 1. Get Task
+
+Retrieves details of a specific task.
+
+**Endpoint:**
+
+```http
+GET /api/tasks/:taskId
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "task": {
+      "id": "101",
+      "projectId": "1",
+      "title": "Design Database Schema",
+      "description": "Create the initial database schema",
+      "status": "todo",
+      "assignee": "1786340518154",
+      "reviews": [],
+      "createdAt": "2026-08-11T16:00:00.000Z"
+    }
+  }
+}
+```
+
+`404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Task not found"
+}
+```
+
+---
+
+## 2. Update Task
+
+Updates an existing task.
+
+**Endpoint:**
+
+```http
+PATCH /api/tasks/:taskId
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Request Body (Partial):**
+
+```json
+{
+  "status": "in_progress",
+  "description": "Updated database schema description"
+}
+```
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "task": {
+      "id": "101",
+      "projectId": "1",
+      "title": "Design Database Schema",
+      "description": "Updated database schema description",
+      "status": "in_progress",
+      "assignee": "1786340518154",
+      "reviews": [],
+      "createdAt": "2026-08-11T16:00:00.000Z"
+    }
+  }
+}
+```
+
+---
+
+## 3. Delete Task
+
+Deletes a specific task.
+
+**Endpoint:**
+
+```http
+DELETE /api/tasks/:taskId
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Task deleted successfully"
+}
+```
+
+---
+
+## 4. Update Task Status
+
+Updates the status of a specific task.
+
+**Endpoint:**
+
+```http
+PATCH /api/tasks/:taskId/status
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Request Body:**
+
+```json
+{
+  "status": "in_review"
+}
+```
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "task": {
+      "id": "101",
+      "projectId": "1",
+      "title": "Design Database Schema",
+      "description": "Updated database schema description",
+      "status": "in_review",
+      "assignee": "1786340518154",
+      "reviews": [],
+      "createdAt": "2026-08-11T16:00:00.000Z"
+    }
+  }
+}
+```
+
+---
+
+## 5. Review Task
+
+Approves and adds a review comment to a task.
+
+**Endpoint:**
+
+```http
+POST /api/tasks/:taskId/review
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Request Body:**
+
+```json
+{
+  "comment": "Looks good, approved."
+}
+```
+
+**Response:**
+
+`201 Created`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "review": {
+      "id": "1691763123456",
+      "reviewerId": "1786340518154",
+      "comment": "Looks good, approved.",
+      "decision": "approved",
+      "createdAt": "2026-08-11T16:05:00.000Z"
+    },
+    "task": {
+      "id": "101",
+      "status": "reviewed"
+    }
+  }
+}
+```
+
+---
+
+## 6. Reject Task
+
+Rejects and adds a rejection comment to a task.
+
+**Endpoint:**
+
+```http
+POST /api/tasks/:taskId/reject
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Request Body:**
+
+```json
+{
+  "comment": "Needs more work."
+}
+```
+
+**Response:**
+
+`201 Created`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "review": {
+      "id": "1691763123456",
+      "reviewerId": "1786340518154",
+      "comment": "Needs more work.",
+      "decision": "rejected",
+      "createdAt": "2026-08-11T16:05:00.000Z"
+    },
+    "task": {
+      "id": "101",
+      "status": "rejected"
+    }
+  }
+}
+```
+
+---
+
+## 7. Get Task Reviews
+
+Retrieves all reviews for a specific task.
+
+**Endpoint:**
+
+```http
+GET /api/tasks/:taskId/reviews
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "reviews": [
+      {
+        "id": "1691763123456",
+        "reviewerId": "1786340518154",
+        "comment": "Looks good, approved.",
+        "decision": "approved",
+        "createdAt": "2026-08-11T16:05:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+
+
+
 
 ---
 

@@ -10,6 +10,8 @@ collections:
     path: "collections/auth"
   - name: "project"
     path: "collections/project"
+  - name: "tasks"
+    path: "collections/tasks"
 
 specs:
 
