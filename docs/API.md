@@ -44,6 +44,7 @@ The API is built using **Node.js** and **Express.js** and provides authenticatio
 * [Dashboard Endpoints](#dashboard-endpoints)
   * [Get Timeline](#1-get-timeline)
   * [Get Ongoing Projects Stats](#2-get-ongoing-projects-stats)
+  * [Get Team Progress](#3-get-team-progress)
 * [Error Handling](#error-handling)
 * [Testing with Bruno](#testing-with-bruno)
 * [API Development Status](#api-development-status)
@@ -1891,6 +1892,52 @@ Authorization: Bearer <token>
       }
     ]
   }
+}
+```
+
+---
+
+## 3. Get Team Progress
+
+Retrieves team-based statistics for the dashboard. It groups users into teams based on their assigned team field, and aggregates the task metrics (total subtasks vs completed subtasks) assigned to members of each team to calculate the progress percentage.
+
+**Endpoint:**
+
+```http
+GET /api/dashboard/teams
+```
+
+**Headers:**
+
+```http
+Authorization: Bearer <token>
+```
+
+**Response: `200 OK`**
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "teamName": "UX UI Design",
+      "members": [
+        {
+          "id": "1786340518154",
+          "name": "Test",
+          "avatar": "https://ui-avatars.com/api/?name=Test"
+        },
+        {
+          "id": "1786448728310",
+          "name": "sathsarani Perera",
+          "avatar": "https://ui-avatars.com/api/?name=sathsarani%20Perera"
+        }
+      ],
+      "totalTasks": 8,
+      "completedTasks": 5,
+      "progress": 62.5
+    }
+  ]
 }
 ```
 

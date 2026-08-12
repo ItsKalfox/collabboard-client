@@ -130,3 +130,69 @@ export const getOngoingProjectsStats = async (req, res) => {
         res.status(500).json({ status: 'error', message: 'Internal server error' });
     }
 };
+
+export const getTeamProgress = async (req, res) => {
+    try {
+        const usersData = await fs.readFile(path.join(dataDir, 'mockData.json'), 'utf-8');
+        const tasksData = await fs.readFile(path.join(dataDir, 'mockTasks.json'), 'utf-8');
+
+        const users = JSON.parse(usersData);
+        const tasks = JSON.parse(tasksData);
+
+        const teamStats = {};
+
+        users.forEach(user => {
+            const teamName = user.team || 'Other';
+            if (!teamStats[teamName]) {
+                teamStats[teamName] = {
+                    teamName,
+                    members: [],
+                    totalTasks: 0,
+                    completedTasks: 0,
+                    progress: 0
+                };
+            }
+
+            teamStats[teamName].members.push({
+                id: user.id,
+                name: user.name,
+                avatar: user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}`
+            });
+        });
+
+        // Aggregate task data for each team
+        tasks.forEach(task => {
+            const assignee = users.find(u => u.id === task.assigneeId);
+            if (assignee) {
+                const teamName = assignee.team || 'Other';
+                if (teamStats[teamName]) {
+                    if (task.subtasks && task.subtasks.length > 0) {
+                        teamStats[teamName].totalTasks += task.subtasks.length;
+                        teamStats[teamName].completedTasks += task.subtasks.filter(s => s.completed).length;
+                    } else {
+                        teamStats[teamName].totalTasks += 1;
+                        if (task.status === 'completed') {
+                            teamStats[teamName].completedTasks += 1;
+                        }
+                    }
+                }
+            }
+        });
+
+        const teamsArray = Object.values(teamStats).map(team => {
+            const progress = team.totalTasks === 0 ? 0 : Number(((team.completedTasks / team.totalTasks) * 100).toFixed(1));
+            return {
+                ...team,
+                progress
+            };
+        });
+
+        res.status(200).json({
+            status: 'success',
+            data: teamsArray
+        });
+    } catch (error) {
+        console.error('Error in getTeamProgress:', error);
+        res.status(500).json({ status: 'error', message: 'Internal server error' });
+    }
+};
