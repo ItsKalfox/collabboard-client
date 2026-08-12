@@ -1,0 +1,20 @@
+info:
+  name: Refresh Project Timeline
+  type: http
+  seq: 15
+
+http:
+  method: GET
+  url: http://localhost:5000/api/projects/proj_001/timeline/refresh?since=2026-08-11T00:00:00.000Z
+  body:
+    type: json
+    data: ""
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE3ODYzNDA1MTgxNTQiLCJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJpYXQiOjE3ODYzNDUxMTksImV4cCI6MTc4NjQzMTUxOX0.3sOAwcMXnQeBPjTKS76sVz7hvuYPHu-_0Ho9ufDO6yc
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

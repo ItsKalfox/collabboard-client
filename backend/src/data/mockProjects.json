@@ -1,0 +1,63 @@
+[
+  {
+    "id": "proj_001",
+    "name": "Website Design",
+    "description": "Redesign the company website with a modern look and feel.",
+    "status": "active",
+    "ownerId": "1786340518154",
+    "coverImage": null,
+    "members": [
+      {
+        "userId": "1786340518154",
+        "role": "owner",
+        "joinedAt": "2026-08-10T05:41:58.154Z"
+      },
+      {
+        "userId": "1786356291453",
+        "role": "member",
+        "joinedAt": "2026-08-10T06:00:00.000Z"
+      }
+    ],
+    "createdAt": "2026-08-10T05:41:58.154Z",
+    "updatedAt": "2026-08-10T05:41:58.154Z"
+  },
+  {
+    "id": "proj_002",
+    "name": "Mobile App",
+    "description": "Build a cross-platform mobile application for iOS and Android.",
+    "status": "active",
+    "ownerId": "1786340518154",
+    "coverImage": null,
+    "members": [
+      {
+        "userId": "1786340518154",
+        "role": "owner",
+        "joinedAt": "2026-08-10T06:00:00.000Z"
+      }
+    ],
+    "createdAt": "2026-08-10T06:00:00.000Z",
+    "updatedAt": "2026-08-10T06:00:00.000Z"
+  },
+  {
+    "id": "proj_003",
+    "name": "Design System",
+    "description": "Create a unified design system and component library.",
+    "status": "active",
+    "ownerId": "1786356291453",
+    "coverImage": null,
+    "members": [
+      {
+        "userId": "1786356291453",
+        "role": "owner",
+        "joinedAt": "2026-08-11T07:05:27.127Z"
+      },
+      {
+        "userId": "1786431927127",
+        "role": "member",
+        "joinedAt": "2026-08-11T07:10:00.000Z"
+      }
+    ],
+    "createdAt": "2026-08-11T07:05:27.127Z",
+    "updatedAt": "2026-08-11T07:05:27.127Z"
+  }
+]
