@@ -1,12 +1,79 @@
 [
   {
-    "id": "101",
-    "projectId": "1",
-    "title": "Design Database Schema",
-    "description": "Create the initial database schema",
+    "id": "task_001",
+    "projectId": "proj_001",
+    "title": "Design Homepage Wireframes",
+    "description": "Create low-fidelity wireframes for desktop and mobile layouts.",
+    "status": "in_progress",
+    "priority": "high",
+    "assigneeId": "1786340518154",
+    "dueDate": "2026-08-20T18:00:00.000Z",
+    "subtasks": [
+      {
+        "id": "sub_101",
+        "title": "Desktop navbar layout",
+        "completed": true
+      },
+      {
+        "id": "sub_102",
+        "title": "Hero section banner",
+        "completed": false
+      },
+      {
+        "id": "sub_103",
+        "title": "Footer links and responsive menu",
+        "completed": false
+      }
+    ],
+    "createdAt": "2026-08-10T08:00:00.000Z",
+    "updatedAt": "2026-08-11T10:00:00.000Z"
+  },
+  {
+    "id": "task_002",
+    "projectId": "proj_001",
+    "title": "Setup Color Palette & Typography",
+    "description": "Establish theme tokens for light and dark modes.",
+    "status": "completed",
+    "priority": "medium",
+    "assigneeId": "1786356291453",
+    "dueDate": "2026-08-15T18:00:00.000Z",
+    "subtasks": [
+      {
+        "id": "sub_104",
+        "title": "Define CSS variables",
+        "completed": true
+      },
+      {
+        "id": "sub_105",
+        "title": "Google Fonts integration",
+        "completed": true
+      }
+    ],
+    "createdAt": "2026-08-10T09:00:00.000Z",
+    "updatedAt": "2026-08-11T12:00:00.000Z"
+  },
+  {
+    "id": "task_003",
+    "projectId": "proj_002",
+    "title": "User Authentication Screen",
+    "description": "Build login, register, and password recovery screens.",
     "status": "todo",
-    "assignee": "1786340518154",
-    "reviews": [],
-    "createdAt": "2026-08-11T16:00:00.000Z"
+    "priority": "high",
+    "assigneeId": "1786340518154",
+    "dueDate": "2026-08-25T18:00:00.000Z",
+    "subtasks": [
+      {
+        "id": "sub_106",
+        "title": "Validate form input fields",
+        "completed": false
+      },
+      {
+        "id": "sub_107",
+        "title": "Connect JWT Auth endpoints",
+        "completed": false
+      }
+    ],
+    "createdAt": "2026-08-11T09:00:00.000Z",
+    "updatedAt": "2026-08-11T09:00:00.000Z"
   }
 ]

@@ -5,6 +5,7 @@ import authRoutes from './src/routes/authRoutes.js';
 import cloudinaryRoutes from './src/routes/cloudinaryRoutes.js';
 import projectRoutes from './src/routes/projectRoutes.js';
 import taskRoutes from './src/routes/taskRoutes.js';
+import userRoutes from './src/routes/userRoutes.js';
 
 dotenv.config();
 
@@ -24,5 +25,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/cloudinary', cloudinaryRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/users', userRoutes);
 
 export default app;

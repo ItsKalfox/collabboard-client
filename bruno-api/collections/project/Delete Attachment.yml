@@ -1,0 +1,17 @@
+info:
+  name: Delete Attachment
+  type: http
+  seq: 9
+
+http:
+  method: DELETE
+  url: http://localhost:5000/api/projects/proj_001/attachments/att_1786340518154
+  auth:
+    type: bearer
+    token: <JWT_TOKEN>
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

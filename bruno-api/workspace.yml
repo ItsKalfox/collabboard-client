@@ -8,8 +8,8 @@ collections:
     path: "collections/other"
   - name: "auth"
     path: "collections/auth"
-  - name: "projects"
-    path: "collections/projects"
+  - name: "project"
+    path: "collections/project"
   - name: "tasks"
     path: "collections/tasks"
 

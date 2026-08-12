@@ -1,0 +1,52 @@
+[
+  {
+    "id": "act_001",
+    "projectId": "proj_001",
+    "type": "project_created",
+    "title": "Project Created",
+    "description": "Website Design project was created by Test user.",
+    "userId": "1786340518154",
+    "userName": "Test",
+    "timestamp": "2026-08-10T05:41:58.154Z"
+  },
+  {
+    "id": "act_002",
+    "projectId": "proj_001",
+    "type": "member_added",
+    "title": "Member Joined",
+    "description": "Nipun Manusha joined Website Design team.",
+    "userId": "1786356291453",
+    "userName": "Nipun Manusha",
+    "timestamp": "2026-08-10T06:00:00.000Z"
+  },
+  {
+    "id": "act_003",
+    "projectId": "proj_001",
+    "type": "task_created",
+    "title": "Task Added",
+    "description": "Created task 'Design Homepage Wireframes'.",
+    "userId": "1786340518154",
+    "userName": "Test",
+    "timestamp": "2026-08-10T08:00:00.000Z"
+  },
+  {
+    "id": "act_004",
+    "projectId": "proj_001",
+    "type": "task_updated",
+    "title": "Subtask Completed",
+    "description": "Desktop navbar layout subtask completed.",
+    "userId": "1786340518154",
+    "userName": "Test",
+    "timestamp": "2026-08-11T10:00:00.000Z"
+  },
+  {
+    "id": "act_005",
+    "projectId": "proj_001",
+    "type": "attachment_uploaded",
+    "title": "Attachment Uploaded",
+    "description": "Uploaded design brief file.",
+    "userId": "1786340518154",
+    "userName": "Test",
+    "timestamp": "2026-08-11T15:00:00.000Z"
+  }
+]

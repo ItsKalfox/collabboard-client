@@ -19,9 +19,18 @@ The API is built using **Node.js** and **Express.js** and provides authenticatio
   * [Register](#1-register)
   * [Login](#2-login)
   * [Get Current User](#3-get-current-user)
-* [Projects Endpoints](#projects-endpoints)
-  * [Get Projects](#1-get-projects)
-  * [Get Project By ID](#2-get-project-by-id)
+  * [Forgot Password](#4-forgot-password)
+  * [Reset Password](#5-reset-password)
+* [Project Endpoints](#project-endpoints)
+  * [Get All Projects](#1-get-all-projects)
+  * [Get Project by ID](#2-get-project-by-id)
+  * [Create Project](#3-create-project)
+  * [Update Project](#4-update-project)
+  * [Delete Project](#5-delete-project)
+  * [Upload Cover Image](#6-upload-cover-image)
+  * [Get Attachments](#7-get-attachments)
+  * [Add Attachment](#8-add-attachment)
+  * [Delete Attachment](#9-delete-attachment)
   * [Get Project Tasks](#3-get-project-tasks)
   * [Create Project Task](#4-create-project-task)
 * [Tasks Endpoints](#tasks-endpoints)
@@ -440,6 +449,1355 @@ Authorization: Bearer <JWT_TOKEN>
 
 ---
 
+---
+
+# User Endpoints
+
+All user endpoints require authentication via a JWT Bearer token.
+
+---
+
+## 1. Search Users
+
+Searches users by name or email query string (`q`). Returns matching users (excluding passwords).
+
+### Endpoint
+
+```http
+GET /api/users/search
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/users/search?q=test
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### Query Parameters
+
+| Parameter | Type   | Required | Description                                                    |
+| --------- | ------ | -------- | -------------------------------------------------------------- |
+| `q`       | String | No       | Search term to filter users by name or email (case-insensitive) |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "users": [
+      {
+        "id": "1786340518154",
+        "name": "Test",
+        "email": "test@test.com",
+        "date": "2026-08-10T05:41:58.154Z"
+      }
+    ]
+  }
+}
+```
+
+### Error — Unauthorized
+
+**Status:** `401 Unauthorized`
+
+```json
+{
+  "status": "error",
+  "message": "Authentication token is required"
+}
+```
+
+---
+
+# Project Endpoints
+
+All project endpoints require authentication via a JWT Bearer token.
+
+---
+
+## 1. Get All Projects
+
+Returns a list of all projects. Supports optional search filtering.
+
+### Endpoint
+
+```http
+GET /api/projects
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### Query Parameters
+
+| Parameter | Type   | Required | Description                              |
+| --------- | ------ | -------- | ---------------------------------------- |
+| `q`       | String | No       | Search term to filter projects by name   |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "projects": [
+      {
+        "id": "proj_001",
+        "name": "Website Design",
+        "description": "Redesign the company website with a modern look and feel.",
+        "status": "active",
+        "ownerId": "1786340518154",
+        "coverImage": null,
+        "createdAt": "2026-08-10T05:41:58.154Z",
+        "updatedAt": "2026-08-10T05:41:58.154Z"
+      }
+    ]
+  }
+}
+```
+
+### Error — Unauthorized
+
+**Status:** `401 Unauthorized`
+
+```json
+{
+  "status": "error",
+  "message": "Authentication token is required"
+}
+```
+
+---
+
+## 2. Get Project by ID
+
+Returns the details of a single project by its ID.
+
+### Endpoint
+
+```http
+GET /api/projects/:id
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### URL Parameters
+
+| Parameter | Type   | Required | Description    |
+| --------- | ------ | -------- | -------------- |
+| `id`      | String | Yes      | Project ID     |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "project": {
+      "id": "proj_001",
+      "name": "Website Design",
+      "description": "Redesign the company website with a modern look and feel.",
+      "status": "active",
+      "ownerId": "1786340518154",
+      "coverImage": null,
+      "createdAt": "2026-08-10T05:41:58.154Z",
+      "updatedAt": "2026-08-10T05:41:58.154Z"
+    }
+  }
+}
+```
+
+### Error — Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Project not found"
+}
+```
+
+### Error — Unauthorized
+
+**Status:** `401 Unauthorized`
+
+```json
+{
+  "status": "error",
+  "message": "Authentication token is required"
+}
+```
+
+---
+
+## 3. Create Project
+
+Creates a new project. The authenticated user becomes the project owner.
+
+### Endpoint
+
+```http
+POST /api/projects
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+Content-Type: application/json
+```
+
+### Request Body
+
+```json
+{
+  "name": "New Project",
+  "description": "A brand new project",
+  "status": "active"
+}
+```
+
+### Request Parameters
+
+| Field         | Type   | Required | Description                                       |
+| ------------- | ------ | -------- | ------------------------------------------------- |
+| `name`        | String | Yes      | Project name                                      |
+| `description` | String | No       | Project description (defaults to empty string)    |
+| `status`      | String | No       | Project status — `active` or `archived` (default: `active`) |
+
+### Successful Response
+
+**Status:** `201 Created`
+
+```json
+{
+  "status": "success",
+  "message": "Project created successfully",
+  "data": {
+    "project": {
+      "id": "proj_1786340518154",
+      "name": "New Project",
+      "description": "A brand new project",
+      "status": "active",
+      "ownerId": "1786340518154",
+      "coverImage": null,
+      "createdAt": "2026-08-11T15:00:00.000Z",
+      "updatedAt": "2026-08-11T15:00:00.000Z"
+    }
+  }
+}
+```
+
+### Error — Missing Name
+
+**Status:** `400 Bad Request`
+
+```json
+{
+  "status": "error",
+  "message": "Project name is required"
+}
+```
+
+---
+
+## 4. Update Project
+
+Updates an existing project. Only the project owner can perform this action.
+
+### Endpoint
+
+```http
+PUT /api/projects/:id
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+Content-Type: application/json
+```
+
+### URL Parameters
+
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| `id`      | String | Yes      | Project ID  |
+
+### Request Body
+
+All fields are optional. Only provided fields will be updated.
+
+```json
+{
+  "name": "Updated Project Name",
+  "description": "Updated description",
+  "status": "archived"
+}
+```
+
+### Request Parameters
+
+| Field         | Type   | Required | Description                              |
+| ------------- | ------ | -------- | ---------------------------------------- |
+| `name`        | String | No       | New project name                         |
+| `description` | String | No       | New project description                  |
+| `status`      | String | No       | New project status (`active`/`archived`) |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Project updated successfully",
+  "data": {
+    "project": {
+      "id": "proj_001",
+      "name": "Updated Project Name",
+      "description": "Updated description",
+      "status": "archived",
+      "ownerId": "1786340518154",
+      "coverImage": null,
+      "createdAt": "2026-08-10T05:41:58.154Z",
+      "updatedAt": "2026-08-11T15:00:00.000Z"
+    }
+  }
+}
+```
+
+### Error — Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Project not found"
+}
+```
+
+### Error — Forbidden
+
+**Status:** `403 Forbidden`
+
+```json
+{
+  "status": "error",
+  "message": "You are not authorized to update this project"
+}
+```
+
+---
+
+## 5. Delete Project
+
+Permanently deletes a project. Only the project owner can perform this action.
+
+### Endpoint
+
+```http
+DELETE /api/projects/:id
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### URL Parameters
+
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| `id`      | String | Yes      | Project ID  |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Project deleted successfully"
+}
+```
+
+### Error — Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Project not found"
+}
+```
+
+### Error — Forbidden
+
+**Status:** `403 Forbidden`
+
+```json
+{
+  "status": "error",
+  "message": "You are not authorized to delete this project"
+}
+```
+
+---
+
+## 6. Upload Cover Image
+
+Uploads or replaces the cover image for a project. The image is stored in Cloudinary and its URL is saved to the project. Only the project owner can upload a cover image.
+
+### Endpoint
+
+```http
+POST /api/projects/:id/cover-image
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001/cover-image
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+Content-Type: multipart/form-data
+```
+
+### URL Parameters
+
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| `id`      | String | Yes      | Project ID  |
+
+### Request Body
+
+Send as `multipart/form-data`:
+
+| Field   | Type | Required | Description                               |
+| ------- | ---- | -------- | ----------------------------------------- |
+| `image` | File | Yes      | Image file (JPEG, PNG, WebP, GIF, max 5MB) |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Cover image uploaded successfully",
+  "data": {
+    "coverImage": "https://res.cloudinary.com/your-cloud/image/upload/collabboard/covers/proj_001/cover_123456.jpg"
+  }
+}
+```
+
+### Error — No File
+
+**Status:** `400 Bad Request`
+
+```json
+{
+  "status": "error",
+  "message": "Image file is required"
+}
+```
+
+### Error — Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Project not found"
+}
+```
+
+### Error — Forbidden
+
+**Status:** `403 Forbidden`
+
+```json
+{
+  "status": "error",
+  "message": "You are not authorized to update this project"
+}
+```
+
+---
+
+## 7. Get Attachments
+
+Returns all attachments for a specific project.
+
+### Endpoint
+
+```http
+GET /api/projects/:id/attachments
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001/attachments
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### URL Parameters
+
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| `id`      | String | Yes      | Project ID  |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "attachments": [
+      {
+        "id": "att_1786340518154",
+        "projectId": "proj_001",
+        "filename": "design_brief.pdf",
+        "url": "https://res.cloudinary.com/your-cloud/.../design_brief.pdf",
+        "publicId": "collabboard/attachments/proj_001/att_123456",
+        "mimeType": "application/pdf",
+        "size": 204800,
+        "uploadedBy": "1786340518154",
+        "uploadedAt": "2026-08-11T15:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+### Error — Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Project not found"
+}
+```
+
+---
+
+## 8. Add Attachment
+
+Uploads a new attachment to a project. The file is stored in Cloudinary and the record is saved to the attachments store.
+
+### Endpoint
+
+```http
+POST /api/projects/:id/attachments
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001/attachments
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+Content-Type: multipart/form-data
+```
+
+### URL Parameters
+
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| `id`      | String | Yes      | Project ID  |
+
+### Request Body
+
+Send as `multipart/form-data`:
+
+| Field  | Type | Required | Description                      |
+| ------ | ---- | -------- | -------------------------------- |
+| `file` | File | Yes      | Any file type, maximum size 20MB |
+
+### Successful Response
+
+**Status:** `201 Created`
+
+```json
+{
+  "status": "success",
+  "message": "Attachment uploaded successfully",
+  "data": {
+    "attachment": {
+      "id": "att_1786340518154",
+      "projectId": "proj_001",
+      "filename": "design_brief.pdf",
+      "url": "https://res.cloudinary.com/your-cloud/.../design_brief.pdf",
+      "publicId": "collabboard/attachments/proj_001/att_123456",
+      "mimeType": "application/pdf",
+      "size": 204800,
+      "uploadedBy": "1786340518154",
+      "uploadedAt": "2026-08-11T15:00:00.000Z"
+    }
+  }
+}
+```
+
+### Error — No File
+
+**Status:** `400 Bad Request`
+
+```json
+{
+  "status": "error",
+  "message": "Attachment file is required"
+}
+```
+
+### Error — Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Project not found"
+}
+```
+
+---
+
+## 9. Delete Attachment
+
+Permanently deletes an attachment from a project. The file is also removed from Cloudinary. Only the user who uploaded the attachment or the project owner can delete it.
+
+### Endpoint
+
+```http
+DELETE /api/projects/:id/attachments/:attachmentId
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001/attachments/att_1786340518154
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### URL Parameters
+
+| Parameter      | Type   | Required | Description   |
+| -------------- | ------ | -------- | ------------- |
+| `id`           | String | Yes      | Project ID    |
+| `attachmentId` | String | Yes      | Attachment ID |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Attachment deleted successfully"
+}
+```
+
+### Error — Project Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Project not found"
+}
+```
+
+### Error — Attachment Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Attachment not found"
+}
+```
+
+### Error — Forbidden
+
+**Status:** `403 Forbidden`
+
+```json
+{
+  "status": "error",
+  "message": "You are not authorized to delete this attachment"
+}
+```
+
+---
+
+## 10. Get Project Members
+
+Retrieves all team members of a project.
+
+### Endpoint
+
+```http
+GET /api/projects/:id/members
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001/members
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### URL Parameters
+
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| `id`      | String | Yes      | Project ID  |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "members": [
+      {
+        "userId": "1786340518154",
+        "name": "Test",
+        "email": "test@test.com",
+        "role": "owner",
+        "joinedAt": "2026-08-10T05:41:58.154Z"
+      },
+      {
+        "userId": "1786356291453",
+        "name": "Nipun Manusha",
+        "email": "nipunmanusha2003@gmail.com",
+        "role": "member",
+        "joinedAt": "2026-08-10T06:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+### Error — Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Project not found"
+}
+```
+
+---
+
+## 11. Add Project Member
+
+Adds a user to a project team by `userId` or `email`.
+
+### Endpoint
+
+```http
+POST /api/projects/:id/members
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001/members
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+Content-Type: application/json
+```
+
+### URL Parameters
+
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| `id`      | String | Yes      | Project ID  |
+
+### Request Body
+
+```json
+{
+  "userId": "1786431927127",
+  "role": "member"
+}
+```
+
+### Request Parameters
+
+| Field    | Type   | Required | Description                                            |
+| -------- | ------ | -------- | ------------------------------------------------------ |
+| `userId` | String | No*      | User ID of member to add (*either `userId` or `email`) |
+| `email`  | String | No*      | Email of user to add (*either `userId` or `email`)    |
+| `role`   | String | No       | Member role (default: `member`)                        |
+
+### Successful Response
+
+**Status:** `201 Created`
+
+```json
+{
+  "status": "success",
+  "message": "Member added successfully",
+  "data": {
+    "member": {
+      "userId": "1786431927127",
+      "name": "Isuri Perera",
+      "email": "isuriupp@gmail.com",
+      "role": "member",
+      "joinedAt": "2026-08-11T18:00:00.000Z"
+    }
+  }
+}
+```
+
+### Error — User Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "User not found"
+}
+```
+
+### Error — Already Member
+
+**Status:** `409 Conflict`
+
+```json
+{
+  "status": "error",
+  "message": "User is already a member of this project"
+}
+```
+
+---
+
+## 12. Remove Project Member
+
+Removes a member from a project team.
+
+### Endpoint
+
+```http
+DELETE /api/projects/:id/members/:userId
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001/members/1786431927127
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### URL Parameters
+
+| Parameter | Type   | Required | Description         |
+| --------- | ------ | -------- | ------------------- |
+| `id`      | String | Yes      | Project ID          |
+| `userId`  | String | Yes      | Member User ID      |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Member removed successfully"
+}
+```
+
+### Error — Member Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Member not found in project"
+}
+```
+
+### Error — Cannot Remove Owner
+
+**Status:** `400 Bad Request`
+
+```json
+{
+  "status": "error",
+  "message": "Cannot remove project owner"
+}
+```
+
+---
+
+## 13. Get Project Tasks
+
+Retrieves all tasks and subtasks associated with a specific project.
+
+### Endpoint
+
+```http
+GET /api/projects/:id/tasks
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001/tasks
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### URL Parameters
+
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| `id`      | String | Yes      | Project ID  |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "tasks": [
+      {
+        "id": "task_001",
+        "projectId": "proj_001",
+        "title": "Design Homepage Wireframes",
+        "description": "Create low-fidelity wireframes for desktop and mobile layouts.",
+        "status": "in_progress",
+        "priority": "high",
+        "assigneeId": "1786340518154",
+        "dueDate": "2026-08-20T18:00:00.000Z",
+        "subtasks": [
+          {
+            "id": "sub_101",
+            "title": "Desktop navbar layout",
+            "completed": true
+          },
+          {
+            "id": "sub_102",
+            "title": "Hero section banner",
+            "completed": false
+          }
+        ],
+        "createdAt": "2026-08-10T08:00:00.000Z",
+        "updatedAt": "2026-08-11T10:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+### Error — Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Project not found"
+}
+```
+
+---
+
+## 14. Get Project Timeline
+
+Retrieves the activity history/timeline for a project.
+
+### Endpoint
+
+```http
+GET /api/projects/:id/timeline
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001/timeline
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### URL Parameters
+
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| `id`      | String | Yes      | Project ID  |
+
+### Query Parameters
+
+| Parameter | Type    | Required | Description                                          |
+| --------- | ------- | -------- | ---------------------------------------------------- |
+| `limit`   | Integer | No       | Optional limit on the number of activities returned   |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "timeline": [
+      {
+        "id": "act_005",
+        "projectId": "proj_001",
+        "type": "attachment_uploaded",
+        "title": "Attachment Uploaded",
+        "description": "Uploaded design brief file.",
+        "userId": "1786340518154",
+        "userName": "Test",
+        "timestamp": "2026-08-11T15:00:00.000Z"
+      },
+      {
+        "id": "act_004",
+        "projectId": "proj_001",
+        "type": "task_updated",
+        "title": "Subtask Completed",
+        "description": "Desktop navbar layout subtask completed.",
+        "userId": "1786340518154",
+        "userName": "Test",
+        "timestamp": "2026-08-11T10:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+### Error — Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Project not found"
+}
+```
+
+---
+
+## 15. Refresh Project Timeline
+
+Fetches new project activities logged since a specified timestamp (`since`).
+
+### Endpoint
+
+```http
+GET /api/projects/:id/timeline/refresh
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001/timeline/refresh?since=2026-08-11T00:00:00.000Z
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### URL Parameters
+
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| `id`      | String | Yes      | Project ID  |
+
+### Query Parameters
+
+| Parameter | Type   | Required | Description                                                    |
+| --------- | ------ | -------- | -------------------------------------------------------------- |
+| `since`   | String | No       | ISO timestamp or epoch timestamp to filter newer activity items |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "newActivities": [
+      {
+        "id": "act_005",
+        "projectId": "proj_001",
+        "type": "attachment_uploaded",
+        "title": "Attachment Uploaded",
+        "description": "Uploaded design brief file.",
+        "userId": "1786340518154",
+        "userName": "Test",
+        "timestamp": "2026-08-11T15:00:00.000Z"
+      }
+    ],
+    "lastRefreshedAt": "2026-08-11T18:15:00.000Z"
+  }
+}
+```
+
+### Error — Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Project not found"
+}
+```
+
+---
+
+## 16. Download Attachment
+
+Downloads an attachment file by attachment ID and project ID. Returns file stream or attachment redirect with `Content-Disposition` header.
+
+### Endpoint
+
+```http
+GET /api/projects/:id/attachments/:attachmentId/download
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/projects/proj_001/attachments/att_001/download
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### URL Parameters
+
+| Parameter      | Type   | Required | Description   |
+| -------------- | ------ | -------- | ------------- |
+| `id`           | String | Yes      | Project ID    |
+| `attachmentId` | String | Yes      | Attachment ID |
+
+### Response Headers
+
+```http
+Content-Disposition: attachment; filename="design_brief.pdf"
+Content-Type: application/pdf
+```
+
+### Successful Response
+
+**Status:** `200 OK` or `302 Found` (File binary data or URL redirect)
+
+### Error — Attachment Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Attachment not found"
+}
+```
+
+### Error — Project Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Project not found"
+}
+```
+
+---
+
 # Error Handling
 
 The API should return consistent error responses.
@@ -465,89 +1823,6 @@ Example:
       "message": "Invalid email address"
     }
   ]
-}
-```
-
----
-
-# Projects Endpoints
-
-## 1. Get Projects
-
-Retrieves a list of projects.
-
-**Endpoint:**
-
-```http
-GET /api/projects
-```
-
-**Authentication:** Required (Bearer Token)
-
-**Response:**
-
-`200 OK`
-
-```json
-{
-  "status": "success",
-  "data": {
-    "projects": [
-      {
-        "id": "1",
-        "title": "Project Alpha",
-        "description": "First test project",
-        "ownerId": "1786340518154",
-        "createdAt": "2026-08-11T16:00:00.000Z"
-      }
-    ]
-  }
-}
-```
-
----
-
-## 2. Get Project By ID
-
-Retrieves details of a specific project.
-
-**Endpoint:**
-
-```http
-GET /api/projects/:projectId
-```
-
-**Authentication:** Required (Bearer Token)
-
-**Parameters:**
-
-*   `projectId` (URL Parameter): The unique ID of the project.
-
-**Response:**
-
-`200 OK`
-
-```json
-{
-  "status": "success",
-  "data": {
-    "project": {
-      "id": "1",
-      "title": "Project Alpha",
-      "description": "First test project",
-      "ownerId": "1786340518154",
-      "createdAt": "2026-08-11T16:00:00.000Z"
-    }
-  }
-}
-```
-
-`404 Not Found`
-
-```json
-{
-  "status": "error",
-  "message": "Project not found"
 }
 ```
 
@@ -1225,11 +2500,15 @@ The API is being implemented incrementally according to the project milestones.
 
 ### Projects
 
-* [ ] Get projects
-* [ ] Get project
-* [ ] Create project
-* [ ] Update project
-* [ ] Delete project
+* [x] Get projects
+* [x] Get project by ID
+* [x] Create project
+* [x] Update project
+* [x] Delete project
+* [x] Upload project cover image
+* [x] Get project attachments
+* [x] Add project attachment
+* [x] Delete project attachment
 
 ### Tasks
 
