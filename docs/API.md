@@ -45,6 +45,7 @@ The API is built using **Node.js** and **Express.js** and provides authenticatio
   * [Get Timeline](#1-get-timeline)
   * [Get Ongoing Projects Stats](#2-get-ongoing-projects-stats)
   * [Get Team Progress](#3-get-team-progress)
+  * [Get Recent Files](#4-get-recent-files)
 * [Error Handling](#error-handling)
 * [Testing with Bruno](#testing-with-bruno)
 * [API Development Status](#api-development-status)
@@ -1936,6 +1937,60 @@ Authorization: Bearer <token>
       "totalTasks": 8,
       "completedTasks": 5,
       "progress": 62.5
+    }
+  ]
+}
+```
+
+---
+
+## 4. Get Recent Files
+
+Retrieves a list of recent attachments (files, documents, images) uploaded across all projects, sorted by the most recent uploads first.
+
+**Endpoint:**
+
+```http
+GET /api/dashboard/files
+```
+
+**Headers:**
+
+```http
+Authorization: Bearer <token>
+```
+
+**Response: `200 OK`**
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "id": "att_002",
+      "filename": "project_requirements.docx",
+      "url": "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "size": 102400,
+      "uploadedAt": "2026-08-11T16:30:00.000Z",
+      "uploadedBy": {
+        "id": "1786356291453",
+        "name": "Nipun Manusha",
+        "avatar": "https://ui-avatars.com/api/?name=Nipun%20Manusha"
+      }
+    },
+    {
+      "id": "att_001",
+      "filename": "design_brief.pdf",
+      "url": "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+      "mimeType": "application/pdf",
+      "size": 204800,
+      "uploadedAt": "2026-08-11T15:00:00.000Z",
+      "uploadedBy": {
+        "id": "1786340518154",
+        "name": "Test",
+        "avatar": "https://ui-avatars.com/api/?name=Test"
+      }
     }
   ]
 }

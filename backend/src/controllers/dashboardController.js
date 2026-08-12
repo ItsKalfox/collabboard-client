@@ -196,3 +196,42 @@ export const getTeamProgress = async (req, res) => {
         res.status(500).json({ status: 'error', message: 'Internal server error' });
     }
 };
+
+export const getRecentFiles = async (req, res) => {
+    try {
+        const usersData = await fs.readFile(path.join(dataDir, 'mockData.json'), 'utf-8');
+        const attachmentsData = await fs.readFile(path.join(dataDir, 'mockAttachments.json'), 'utf-8');
+
+        const users = JSON.parse(usersData);
+        let attachments = JSON.parse(attachmentsData);
+
+        // Sort attachments by uploadedAt descending (most recent first)
+        attachments.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+
+        // Format and map user details
+        const recentFiles = attachments.map(att => {
+            const uploadedBy = users.find(u => u.id === att.uploadedBy);
+            return {
+                id: att.id,
+                filename: att.filename,
+                url: att.url,
+                mimeType: att.mimeType,
+                size: att.size,
+                uploadedAt: att.uploadedAt,
+                uploadedBy: uploadedBy ? {
+                    id: uploadedBy.id,
+                    name: uploadedBy.name,
+                    avatar: uploadedBy.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(uploadedBy.name)}`
+                } : null
+            };
+        });
+
+        res.status(200).json({
+            status: 'success',
+            data: recentFiles
+        });
+    } catch (error) {
+        console.error('Error in getRecentFiles:', error);
+        res.status(500).json({ status: 'error', message: 'Internal server error' });
+    }
+};
