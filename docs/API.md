@@ -41,6 +41,8 @@ The API is built using **Node.js** and **Express.js** and provides authenticatio
   * [Review Task](#5-review-task)
   * [Reject Task](#6-reject-task)
   * [Get Task Reviews](#7-get-task-reviews)
+* [Dashboard Endpoints](#dashboard-endpoints)
+  * [Get Timeline](#1-get-timeline)
 * [Error Handling](#error-handling)
 * [Testing with Bruno](#testing-with-bruno)
 * [API Development Status](#api-development-status)
@@ -1793,6 +1795,56 @@ Content-Type: application/pdf
 {
   "status": "error",
   "message": "Project not found"
+}
+```
+
+---
+
+# Dashboard Endpoints
+
+## 1. Get Timeline
+
+Retrieves aggregated task data for the management timeline card, grouping tasks by their tracks (projects) and calculating durations.
+
+**Endpoint:**
+
+```http
+GET /api/dashboard/timeline
+```
+
+**Headers:**
+
+```http
+Authorization: Bearer <token>
+```
+
+**Response: `200 OK`**
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "trackId": "proj_001",
+      "trackName": "Website Design",
+      "tasks": [
+        {
+          "id": "task_001",
+          "title": "Design Homepage Wireframes",
+          "status": "in_progress",
+          "priority": "high",
+          "duration": "about 10 days",
+          "startDate": "2026-08-10T08:00:00.000Z",
+          "dueDate": "2026-08-20T18:00:00.000Z",
+          "assignee": {
+            "id": "1786340518154",
+            "name": "Test",
+            "avatar": "https://ui-avatars.com/api/?name=Test"
+          }
+        }
+      ]
+    }
+  ]
 }
 ```
 
