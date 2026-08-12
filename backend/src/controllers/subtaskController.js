@@ -179,3 +179,84 @@ export const deleteSubtask = async (req, res) => {
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
+
+// ── PATCH /api/tasks/:taskId/subtasks ────────────────────────────────────────
+
+export const bulkSaveSubtasks = async (req, res) => {
+    try {
+        const { taskId } = req.params;
+        const { subtasks: incomingSubtasks } = req.body;
+
+        if (!Array.isArray(incomingSubtasks)) {
+            return res.status(400).json({ status: 'error', message: 'Expected an array of subtasks' });
+        }
+
+        // Verify parent task exists
+        const tasks = getTasksList();
+        const taskIndex = tasks.findIndex(t => t.id === taskId);
+        if (taskIndex === -1) {
+            return res.status(404).json({ status: 'error', message: 'Task not found' });
+        }
+
+        const now = new Date().toISOString();
+        let subtasks = getSubtasksList();
+        
+        // Remove all old subtasks for this task that are not in the new array (meaning they were deleted)
+        const incomingIds = incomingSubtasks.filter(s => s.id).map(s => s.id);
+        subtasks = subtasks.filter(s => s.taskId !== taskId || incomingIds.includes(s.id));
+
+        const updatedEmbeddedSubtasks = [];
+
+        // Process incoming subtasks
+        incomingSubtasks.forEach(incoming => {
+            if (incoming.id) {
+                // Update existing
+                const index = subtasks.findIndex(s => s.id === incoming.id && s.taskId === taskId);
+                if (index !== -1) {
+                    if (incoming.title !== undefined) subtasks[index].title = incoming.title;
+                    if (incoming.completed !== undefined) subtasks[index].completed = incoming.completed;
+                    subtasks[index].updatedAt = now;
+                    updatedEmbeddedSubtasks.push({
+                        id: subtasks[index].id,
+                        title: subtasks[index].title,
+                        completed: subtasks[index].completed
+                    });
+                }
+            } else {
+                // Create new
+                if (incoming.title) {
+                    const newSubtask = {
+                        id: `sub_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+                        taskId,
+                        title: incoming.title,
+                        completed: incoming.completed || false,
+                        createdAt: now,
+                        updatedAt: now
+                    };
+                    subtasks.push(newSubtask);
+                    updatedEmbeddedSubtasks.push({
+                        id: newSubtask.id,
+                        title: newSubtask.title,
+                        completed: newSubtask.completed
+                    });
+                }
+            }
+        });
+
+        // Save to flat list
+        saveSubtasksList(subtasks);
+
+        // Sync to parent task
+        tasks[taskIndex].subtasks = updatedEmbeddedSubtasks;
+        tasks[taskIndex].updatedAt = now;
+        saveTasksList(tasks);
+
+        res.status(200).json({
+            status: 'success',
+            data: { subtasks: subtasks.filter(s => s.taskId === taskId) }
+        });
+    } catch (error) {
+        console.error('Error bulk saving subtasks:', error);
+        res.status(500).json({ status: 'error', message: 'Server error' });
+    }
+};

@@ -46,6 +46,7 @@ The API is built using **Node.js** and **Express.js** and provides authenticatio
   * [Create Subtask](#2-create-subtask)
   * [Update Subtask](#3-update-subtask)
   * [Delete Subtask](#4-delete-subtask)
+  * [Bulk Save Subtasks](#5-bulk-save-subtasks)
 * [Error Handling](#error-handling)
 * [Testing with Bruno](#testing-with-bruno)
 * [API Development Status](#api-development-status)
@@ -2550,6 +2551,108 @@ Authorization: Bearer <JWT_TOKEN>
 
 ---
 
+## 5. Bulk Save Subtasks
+
+Replaces the entire list of subtasks for a specific task. Automatically handles creations, updates, and deletions based on the provided list.
+
+### Endpoint
+
+```http
+PATCH /api/tasks/:taskId/subtasks
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/tasks/task_001/subtasks
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+Content-Type: application/json
+```
+
+### URL Parameters
+
+| Parameter | Type   | Required | Description          |
+| --------- | ------ | -------- | -------------------- |
+| `taskId`  | String | Yes      | ID of the parent task |
+
+### Request Body
+
+Provide a complete array of subtasks. Subtasks without an ID will be created as new subtasks. Subtasks with an existing ID will be updated. Existing subtasks omitted from this array will be deleted.
+
+```json
+{
+  "subtasks": [
+    {
+      "id": "sub_101",
+      "title": "Desktop navbar layout",
+      "completed": true
+    },
+    {
+      "title": "A brand new subtask",
+      "completed": false
+    }
+  ]
+}
+```
+
+### Request Parameters
+
+| Field      | Type  | Required | Description |
+| ---------- | ----- | -------- | ----------- |
+| `subtasks` | Array | Yes      | An array of subtask objects |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "subtasks": [
+      {
+        "id": "sub_101",
+        "taskId": "task_001",
+        "title": "Desktop navbar layout",
+        "completed": true,
+        "createdAt": "2026-08-10T08:00:00.000Z",
+        "updatedAt": "2026-08-12T12:05:00.000Z"
+      },
+      {
+        "id": "sub_1691763123456",
+        "taskId": "task_001",
+        "title": "A brand new subtask",
+        "completed": false,
+        "createdAt": "2026-08-12T12:05:00.000Z",
+        "updatedAt": "2026-08-12T12:05:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+### Error — Task Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Task not found"
+}
+```
+
+---
+
 # 4. Forgot Password
 
 Initiates the password reset flow by generating an OTP and sending it to the user's email.
@@ -2826,6 +2929,7 @@ The API is being implemented incrementally according to the project milestones.
 * [x] Create subtask
 * [x] Update subtask
 * [x] Delete subtask
+* [x] Bulk save subtasks
 
 ### API Integration
 
