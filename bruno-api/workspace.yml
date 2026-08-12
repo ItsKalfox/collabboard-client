@@ -12,6 +12,8 @@ collections:
     path: "collections/project"
   - name: "tasks"
     path: "collections/tasks"
+  - name: "subtask"
+    path: "collections/subtask"
 
 specs:
 

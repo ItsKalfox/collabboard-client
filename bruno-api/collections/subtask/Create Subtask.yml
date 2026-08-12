@@ -1,0 +1,23 @@
+info:
+  name: Create Subtask
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://localhost:5000/api/tasks/task_001/subtasks
+  body:
+    type: json
+    data: |-
+      {
+        "title": "Write unit tests"
+      }
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE3ODYzNDA1MTgxNTQiLCJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJpYXQiOjE3ODY1NDMxOTYsImV4cCI6MTc4NjYyOTU5Nn0.EUnIt1jKd9O5WNjsN816AF5JuB3_0lCcf1vU9KMiGPI
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

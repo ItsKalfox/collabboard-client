@@ -41,6 +41,11 @@ The API is built using **Node.js** and **Express.js** and provides authenticatio
   * [Review Task](#5-review-task)
   * [Reject Task](#6-reject-task)
   * [Get Task Reviews](#7-get-task-reviews)
+* [Subtasks Endpoints](#subtasks-endpoints)
+  * [Get Subtasks](#1-get-subtasks)
+  * [Create Subtask](#2-create-subtask)
+  * [Update Subtask](#3-update-subtask)
+  * [Delete Subtask](#4-delete-subtask)
 * [Error Handling](#error-handling)
 * [Testing with Bruno](#testing-with-bruno)
 * [API Development Status](#api-development-status)
@@ -2242,9 +2247,306 @@ GET /api/tasks/:taskId/reviews
 }
 ```
 
+---
 
+# Subtasks Endpoints
 
+All subtask endpoints require authentication via a JWT Bearer token.
 
+---
+
+## 1. Get Subtasks
+
+Retrieves all subtasks for a specific task.
+
+### Endpoint
+
+```http
+GET /api/tasks/:taskId/subtasks
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/tasks/task_001/subtasks
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### URL Parameters
+
+| Parameter | Type   | Required | Description          |
+| --------- | ------ | -------- | -------------------- |
+| `taskId`  | String | Yes      | ID of the parent task |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "subtasks": [
+      {
+        "id": "sub_101",
+        "taskId": "task_001",
+        "title": "Desktop navbar layout",
+        "completed": true,
+        "createdAt": "2026-08-10T08:00:00.000Z",
+        "updatedAt": "2026-08-10T08:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+### Error — Task Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Task not found"
+}
+```
+
+---
+
+## 2. Create Subtask
+
+Creates a new subtask under a specific task.
+
+### Endpoint
+
+```http
+POST /api/tasks/:taskId/subtasks
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/tasks/task_001/subtasks
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+Content-Type: application/json
+```
+
+### URL Parameters
+
+| Parameter | Type   | Required | Description          |
+| --------- | ------ | -------- | -------------------- |
+| `taskId`  | String | Yes      | ID of the parent task |
+
+### Request Body
+
+```json
+{
+  "title": "Write unit tests"
+}
+```
+
+### Request Parameters
+
+| Field   | Type   | Required | Description          |
+| ------- | ------ | -------- | -------------------- |
+| `title` | String | Yes      | Subtask display name |
+
+### Successful Response
+
+**Status:** `201 Created`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "subtask": {
+      "id": "sub_1786340518154",
+      "taskId": "task_001",
+      "title": "Write unit tests",
+      "completed": false,
+      "createdAt": "2026-08-12T12:00:00.000Z",
+      "updatedAt": "2026-08-12T12:00:00.000Z"
+    }
+  }
+}
+```
+
+### Error — Missing Title
+
+**Status:** `400 Bad Request`
+
+```json
+{
+  "status": "error",
+  "message": "Title is required"
+}
+```
+
+### Error — Task Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Task not found"
+}
+```
+
+---
+
+## 3. Update Subtask
+
+Updates the `title` or `completed` state of an existing subtask. All fields are optional.
+
+### Endpoint
+
+```http
+PATCH /api/subtasks/:subtaskId
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/subtasks/sub_101
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+Content-Type: application/json
+```
+
+### URL Parameters
+
+| Parameter    | Type   | Required | Description    |
+| ------------ | ------ | -------- | -------------- |
+| `subtaskId`  | String | Yes      | Subtask ID     |
+
+### Request Body (Partial)
+
+```json
+{
+  "completed": true
+}
+```
+
+### Request Parameters
+
+| Field       | Type    | Required | Description                     |
+| ----------- | ------- | -------- | ------------------------------- |
+| `title`     | String  | No       | Updated subtask display name    |
+| `completed` | Boolean | No       | Mark subtask done (`true/false`) |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "subtask": {
+      "id": "sub_101",
+      "taskId": "task_001",
+      "title": "Desktop navbar layout",
+      "completed": true,
+      "createdAt": "2026-08-10T08:00:00.000Z",
+      "updatedAt": "2026-08-12T12:05:00.000Z"
+    }
+  }
+}
+```
+
+### Error — Subtask Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Subtask not found"
+}
+```
+
+---
+
+## 4. Delete Subtask
+
+Permanently deletes a subtask.
+
+### Endpoint
+
+```http
+DELETE /api/subtasks/:subtaskId
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/subtasks/sub_101
+```
+
+### Authentication
+
+Required.
+
+### Headers
+
+```http
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### URL Parameters
+
+| Parameter   | Type   | Required | Description |
+| ----------- | ------ | -------- | ----------- |
+| `subtaskId` | String | Yes      | Subtask ID  |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Subtask deleted successfully"
+}
+```
+
+### Error — Subtask Not Found
+
+**Status:** `404 Not Found`
+
+```json
+{
+  "status": "error",
+  "message": "Subtask not found"
+}
+```
 
 ---
 
@@ -2517,6 +2819,13 @@ The API is being implemented incrementally according to the project milestones.
 * [ ] Create task
 * [ ] Update task
 * [ ] Delete task
+
+### Subtasks
+
+* [x] Get subtasks for a task
+* [x] Create subtask
+* [x] Update subtask
+* [x] Delete subtask
 
 ### API Integration
 
