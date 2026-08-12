@@ -43,6 +43,7 @@ The API is built using **Node.js** and **Express.js** and provides authenticatio
   * [Get Task Reviews](#7-get-task-reviews)
 * [Dashboard Endpoints](#dashboard-endpoints)
   * [Get Timeline](#1-get-timeline)
+  * [Get Ongoing Projects Stats](#2-get-ongoing-projects-stats)
 * [Error Handling](#error-handling)
 * [Testing with Bruno](#testing-with-bruno)
 * [API Development Status](#api-development-status)
@@ -1845,6 +1846,51 @@ Authorization: Bearer <token>
       ]
     }
   ]
+}
+```
+
+---
+
+## 2. Get Ongoing Projects Stats
+
+Retrieves statistics for ongoing active projects. It calculates the overall progress percentage based on completed subtasks across active projects, and provides a breakdown by project categories (e.g., Design Reviews, Development).
+
+**Endpoint:**
+
+```http
+GET /api/dashboard/projects/ongoing
+```
+
+**Headers:**
+
+```http
+Authorization: Bearer <token>
+```
+
+**Response: `200 OK`**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "overallProgress": 68.5,
+    "categories": [
+      {
+        "name": "Design Reviews",
+        "totalProjects": 2,
+        "completedTasks": 3,
+        "totalTasks": 5,
+        "progress": 60.0
+      },
+      {
+        "name": "Development",
+        "totalProjects": 1,
+        "completedTasks": 0,
+        "totalTasks": 2,
+        "progress": 0.0
+      }
+    ]
+  }
 }
 ```
 

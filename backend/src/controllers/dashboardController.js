@@ -63,3 +63,70 @@ export const getTimeline = async (req, res) => {
         res.status(500).json({ status: 'error', message: 'Internal server error' });
     }
 };
+
+export const getOngoingProjectsStats = async (req, res) => {
+    try {
+        const tasksData = await fs.readFile(path.join(dataDir, 'mockTasks.json'), 'utf-8');
+        const projectsData = await fs.readFile(path.join(dataDir, 'mockProjects.json'), 'utf-8');
+
+        const tasks = JSON.parse(tasksData);
+        const projects = JSON.parse(projectsData);
+
+        const activeProjects = projects.filter(p => p.status === 'active');
+        
+        let totalSubtasksAll = 0;
+        let completedSubtasksAll = 0;
+        const categoryStats = {};
+
+        activeProjects.forEach(project => {
+            const projectTasks = tasks.filter(t => t.projectId === project.id);
+            let totalSubtasks = 0;
+            let completedSubtasks = 0;
+
+            projectTasks.forEach(task => {
+                if (task.subtasks && task.subtasks.length > 0) {
+                    totalSubtasks += task.subtasks.length;
+                    completedSubtasks += task.subtasks.filter(s => s.completed).length;
+                }
+            });
+
+            totalSubtasksAll += totalSubtasks;
+            completedSubtasksAll += completedSubtasks;
+
+            const category = project.category || 'Other';
+            if (!categoryStats[category]) {
+                categoryStats[category] = {
+                    name: category,
+                    totalProjects: 0,
+                    completedTasks: 0,
+                    totalTasks: 0
+                };
+            }
+
+            categoryStats[category].totalProjects += 1;
+            categoryStats[category].totalTasks += totalSubtasks;
+            categoryStats[category].completedTasks += completedSubtasks;
+        });
+
+        const overallProgress = totalSubtasksAll === 0 ? 0 : Number(((completedSubtasksAll / totalSubtasksAll) * 100).toFixed(1));
+
+        const categoriesArray = Object.values(categoryStats).map(cat => {
+            const progress = cat.totalTasks === 0 ? 0 : Number(((cat.completedTasks / cat.totalTasks) * 100).toFixed(1));
+            return {
+                ...cat,
+                progress
+            };
+        });
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                overallProgress,
+                categories: categoriesArray
+            }
+        });
+    } catch (error) {
+        console.error('Error in getOngoingProjectsStats:', error);
+        res.status(500).json({ status: 'error', message: 'Internal server error' });
+    }
+};
