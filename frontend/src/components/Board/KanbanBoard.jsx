@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -14,176 +14,19 @@ import TaskCard from './TaskCard';
 import TaskPopup from '../TaskPopup/TaskPopup';
 import './KanbanBoard.css';
 
-const INITIAL_DATA = [
-  {
-    id: 'col-todo',
-    title: 'To Do',
-    tasks: [
-      {
-        id: 'task-1',
-        tag: 'Design System',
-        tagColor: 'cyan',
-        date: 'Mon, 20 Nov',
-        title: 'Design System',
-        description: 'I need a mood board to get inspiration for my project.',
-        imageUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500&auto=format&fit=crop&q=80',
-        progressCurrent: 5,
-        progressTotal: 10,
-        members: [
-          { name: 'Satria Cogil', initials: 'SC', bg: '#ef4444' },
-          { name: 'John Doe', initials: 'JD', bg: '#3b82f6' },
-        ],
-        viewsCount: 4,
-        commentsCount: 6,
-        linksCount: 1,
-      },
-      {
-        id: 'task-2',
-        tag: 'Discussion',
-        tagColor: 'green',
-        date: 'Mon, 20 Nov',
-        title: 'Team Meeting',
-        description: 'I need a mood board to get inspiration for my project.',
-        progressCurrent: 5,
-        progressTotal: 10,
-        members: [
-          { name: 'Alex K', initials: 'AK', bg: '#10b981' },
-        ],
-        viewsCount: 4,
-        commentsCount: 6,
-        linksCount: 1,
-      },
-    ],
-  },
-  {
-    id: 'col-inprogress',
-    title: 'In Progress',
-    tasks: [
-      {
-        id: 'task-3',
-        tag: 'Mood Board',
-        tagColor: 'amber',
-        date: 'Mon, 20 Nov',
-        title: 'Create Mood Board',
-        description: 'I need a mood board to get inspiration for my project.',
-        progressCurrent: 7,
-        progressTotal: 10,
-        members: [
-          { name: 'Satria Cogil', initials: 'SC', bg: '#ef4444' },
-          { name: 'John Doe', initials: 'JD', bg: '#3b82f6' },
-        ],
-        extraMembersCount: 2,
-        viewsCount: 4,
-        commentsCount: 6,
-        linksCount: 1,
-      },
-      {
-        id: 'task-4',
-        tag: 'UI Design',
-        tagColor: 'purple',
-        date: 'Mon, 20 Nov',
-        title: 'Home Screen',
-        description: 'Inspiration for clean design',
-        imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=500&auto=format&fit=crop&q=80',
-        progressCurrent: 8,
-        progressTotal: 10,
-        members: [
-          { name: 'Alex K', initials: 'AK', bg: '#10b981' },
-        ],
-        viewsCount: 4,
-        commentsCount: 6,
-        linksCount: 1,
-      },
-    ],
-  },
-  {
-    id: 'col-needreview',
-    title: 'Need Review',
-    tasks: [
-      {
-        id: 'task-5',
-        tag: 'UX Design',
-        tagColor: 'pink',
-        date: 'Mon, 20 Nov',
-        title: 'Competitor research',
-        description: 'Competitor research is carried out to get to know competitors as well as improve product quality in order to win the competition.',
-        imageUrl: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=500&auto=format&fit=crop&q=80',
-        progressCurrent: 9,
-        progressTotal: 10,
-        members: [
-          { name: 'Satria Cogil', initials: 'SC', bg: '#ef4444' },
-          { name: 'John Doe', initials: 'JD', bg: '#3b82f6' },
-        ],
-        viewsCount: 4,
-        commentsCount: 6,
-        linksCount: 1,
-      },
-      {
-        id: 'task-6',
-        tag: 'UI Design',
-        tagColor: 'purple',
-        date: 'Mon, 20 Nov',
-        title: 'Change Font',
-        description: 'Change the font to poppins all over the screen',
-        progressCurrent: 6,
-        progressTotal: 10,
-        members: [
-          { name: 'Alex K', initials: 'AK', bg: '#10b981' },
-        ],
-        viewsCount: 4,
-        commentsCount: 6,
-        linksCount: 1,
-      },
-    ],
-  },
-  {
-    id: 'col-done',
-    title: 'Done',
-    tasks: [
-      {
-        id: 'task-7',
-        tag: 'UX Design',
-        tagColor: 'pink',
-        date: 'Mon, 20 Nov',
-        title: 'Wireframe',
-        description: 'Clean design and aesthetic',
-        imageUrl: 'https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?w=500&auto=format&fit=crop&q=80',
-        progressCurrent: 10,
-        progressTotal: 10,
-        members: [
-          { name: 'Satria Cogil', initials: 'SC', bg: '#ef4444' },
-        ],
-        viewsCount: 4,
-        commentsCount: 6,
-        linksCount: 1,
-      },
-      {
-        id: 'task-8',
-        tag: 'UI Design',
-        tagColor: 'purple',
-        date: 'Mon, 20 Nov',
-        title: 'Change Button',
-        description: "Change the button on the detail screen, it's not neat enough and the rounded can be given 4",
-        progressCurrent: 10,
-        progressTotal: 10,
-        members: [
-          { name: 'John Doe', initials: 'JD', bg: '#3b82f6' },
-          { name: 'Alex K', initials: 'AK', bg: '#10b981' },
-        ],
-        viewsCount: 4,
-        commentsCount: 6,
-        linksCount: 1,
-      },
-    ],
-  },
+const COLUMNS_DEF = [
+  { id: 'todo', title: 'To Do' },
+  { id: 'in_progress', title: 'In Progress' },
+  { id: 'review', title: 'Need Review' },
+  { id: 'completed', title: 'Done' }
 ];
 
 function normalizeTaskForPopup(task, columnTitle) {
   return {
     ...task,
-    status: task.status || columnTitle || 'To Do',
+    status: task.status || columnTitle || 'todo',
     priority: task.priority || 7,
-    createdDate: task.createdDate || task.date || 'Mon, 20 Nov 2023',
+    createdDate: task.createdAt || task.date || 'Mon, 20 Nov 2023',
     dueDate: task.dueDate || 'Fri, 01 Dec 2023',
     progress: task.progress !== undefined ? task.progress : (task.progressTotal ? Math.round((task.progressCurrent / task.progressTotal) * 100) : 50),
     assignees: task.assignees || (task.members || []).map(m => ({ name: m.name, initials: m.initials })),
@@ -196,15 +39,65 @@ function normalizeTaskForPopup(task, columnTitle) {
     ],
     generalComments: task.generalComments || [],
     activities: task.activities || [
-      { text: `Task "${task.title}" was created`, timestamp: task.date || 'Mon, 20 Nov 2023' },
+      { text: `Task "${task.title}" was created`, timestamp: task.createdAt || task.date || 'Mon, 20 Nov 2023' },
     ],
   };
 }
 
-export default function KanbanBoard() {
-  const [columns, setColumns] = useState(INITIAL_DATA);
+export default function KanbanBoard({ projectId }) {
+  const [columns, setColumns] = useState(() => COLUMNS_DEF.map(col => ({ ...col, tasks: [] })));
   const [activeTask, setActiveTask] = useState(null);
   const [draggedTask, setDraggedTask] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!projectId) return;
+
+    const fetchTasks = async () => {
+      setLoading(true);
+      try {
+        const token = localStorage.getItem('token');
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const response = await fetch(`${apiUrl}/projects/${projectId}/tasks`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const tasks = data.data?.tasks || [];
+          
+          const newCols = COLUMNS_DEF.map(col => ({ ...col, tasks: [] }));
+          tasks.forEach(task => {
+            // Map backend task to frontend TaskCard format
+            const uiTask = {
+              ...task,
+              tag: task.priority === 'high' ? 'High Priority' : task.category || 'Task',
+              tagColor: task.priority === 'high' ? 'pink' : 'cyan',
+              date: new Date(task.dueDate || task.createdAt).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' }),
+              progressCurrent: task.subtasks ? task.subtasks.filter(st => st.completed).length : 0,
+              progressTotal: task.subtasks ? task.subtasks.length : 1,
+              members: task.assigneeId ? [{ initials: 'U' }] : [] // Placeholder
+            };
+            
+            const statusCol = newCols.find(c => c.id === task.status);
+            if (statusCol) {
+              statusCol.tasks.push(uiTask);
+            } else {
+              newCols[0].tasks.push(uiTask); // fallback to To Do
+            }
+          });
+          
+          setColumns(newCols);
+        }
+      } catch (err) {
+        console.error('Failed to fetch tasks:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchTasks();
+  }, [projectId]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -283,7 +176,7 @@ export default function KanbanBoard() {
     });
   };
 
-  const handleDragEnd = (event) => {
+  const handleDragEnd = async (event) => {
     const { active, over } = event;
     setDraggedTask(null);
 
@@ -292,20 +185,21 @@ export default function KanbanBoard() {
     const activeId = active.id;
     const overId = over.id;
 
-    const activeColumn = findColumnOfTask(activeId);
+    // Find the column the task is CURRENTLY in (after onDragOver moved it)
+    const currentColumn = findColumnOfTask(activeId);
+    if (!currentColumn) return;
+
+    // Determine the column we dropped it over to handle same-column reordering
     const overColumn = findColumnOfTask(overId) || columns.find(c => c.id === overId);
 
-    if (!activeColumn || !overColumn) {
-      return;
-    }
+    // If it's the same column, just reorder
+    if (overColumn && currentColumn.id === overColumn.id) {
+      const activeIndex = currentColumn.tasks.findIndex(t => t.id === activeId);
+      const overIndex = currentColumn.tasks.findIndex(t => t.id === overId);
 
-    const activeIndex = activeColumn.tasks.findIndex(t => t.id === activeId);
-    const overIndex = overColumn.tasks.findIndex(t => t.id === overId);
-
-    if (activeColumn === overColumn) {
       if (activeIndex !== overIndex) {
         setColumns((prev) => prev.map(c => {
-          if (c.id === activeColumn.id) {
+          if (c.id === currentColumn.id) {
             return {
               ...c,
               tasks: arrayMove(c.tasks, activeIndex, overIndex)
@@ -313,6 +207,39 @@ export default function KanbanBoard() {
           }
           return c;
         }));
+      }
+    }
+
+    // Check if the task was moved to a new column by comparing its object status with the current column ID
+    const task = currentColumn.tasks.find(t => t.id === activeId);
+    if (task && task.status !== currentColumn.id) {
+      const newStatus = currentColumn.id;
+
+      // Update local task state to reflect new status
+      setColumns((prev) => prev.map(c => {
+        if (c.id === newStatus) {
+          return {
+            ...c,
+            tasks: c.tasks.map(t => t.id === activeId ? { ...t, status: newStatus } : t)
+          };
+        }
+        return c;
+      }));
+
+      // Persist to backend API
+      try {
+        const token = localStorage.getItem('token');
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        await fetch(`${apiUrl}/tasks/${activeId}/status`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ status: newStatus })
+        });
+      } catch (err) {
+        console.error('Failed to update task status:', err);
       }
     }
   };

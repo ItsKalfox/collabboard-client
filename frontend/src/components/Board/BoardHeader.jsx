@@ -6,7 +6,18 @@ export default function BoardHeader({ project = {} }) {
 
   const subTabs = ['Board', 'Timeline', 'Team Info'];
 
-  const { name = 'Unknown Project', description, members = [], priority = 'Normal', deadline = 'No deadline', tags = [] } = project;
+  const { 
+    name = 'Unknown Project', 
+    description = '', 
+    members = [], 
+    category = 'General',
+    status = 'active',
+    createdAt 
+  } = project;
+
+  const displayTags = [category, status === 'active' ? 'Active' : 'Archived'];
+  const displayDeadline = createdAt ? new Date(createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Ongoing';
+  const displayPriority = 'Normal';
 
   return (
     <div className="board-header-container">
@@ -49,7 +60,7 @@ export default function BoardHeader({ project = {} }) {
               <line x1="4" y1="22" x2="4" y2="15"></line>
             </svg>
             <span className="meta-label">Priority:</span>
-            <span className="priority-badge">{priority}</span>
+            <span className="priority-badge">{displayPriority}</span>
           </div>
 
           <div className="meta-item">
@@ -58,7 +69,7 @@ export default function BoardHeader({ project = {} }) {
               <polyline points="12 6 12 12 16 14"></polyline>
             </svg>
             <span className="meta-label">Deadline:</span>
-            <span className="meta-value">{deadline}</span>
+            <span className="meta-value">{displayDeadline}</span>
           </div>
 
           <div className="meta-item">
@@ -68,7 +79,7 @@ export default function BoardHeader({ project = {} }) {
             </svg>
             <span className="meta-label">Tags:</span>
             <div className="tags-list">
-              {tags.map((tag, idx) => (
+              {displayTags.map((tag, idx) => (
                 <span key={idx} className={`tag-pill tag-${idx % 2 === 0 ? 'blue' : 'purple'}`}>
                   {tag}
                 </span>

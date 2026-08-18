@@ -1,35 +1,60 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ProjectsSidebar from '../components/Board/ProjectsSidebar';
 import BoardHeader from '../components/Board/BoardHeader';
 import KanbanBoard from '../components/Board/KanbanBoard';
 import './Board.css';
 
-const PROJECTS = [
-  { id: '1', name: 'Finance apps', description: 'Financial tracking and management.', members: [{ initials: 'SC' }], priority: 'High', deadline: '12 Dec 2023', tags: ['Fintech'] },
-  { id: '2', name: 'Travel apps', description: 'Explore the world with our new app.', members: [{ initials: 'SC' }, { initials: 'JD' }, { initials: 'AK' }], priority: 'Normal', deadline: '30 Dec 2023', tags: ['UI Design', 'UX Design'] },
-  { id: '3', name: 'E-Commerce apps', description: 'Online shopping platform.', members: [{ initials: 'JD' }, { initials: 'AK' }], priority: 'High', deadline: '15 Jan 2024', tags: ['E-Commerce'] },
-  { id: '4', name: 'Education', description: 'Learning management system.', members: [{ initials: 'SC' }], priority: 'Low', deadline: '20 Jan 2024', tags: ['EdTech'] },
-  { id: '5', name: 'Village Tourism', description: 'Promoting local tourism.', members: [{ initials: 'JD' }], priority: 'Normal', deadline: '05 Feb 2024', tags: ['Travel'] },
-  { id: '6', name: 'Real Estate', description: 'Property listing and management.', members: [{ initials: 'AK' }], priority: 'High', deadline: '10 Feb 2024', tags: ['Real Estate'] },
-  { id: '7', name: 'Job Finder', description: 'Connect job seekers and employers.', members: [{ initials: 'SC' }, { initials: 'AK' }], priority: 'Normal', deadline: '25 Feb 2024', tags: ['Jobs'] },
-  { id: '8', name: 'Rent a Car', description: 'Car rental services.', members: [{ initials: 'JD' }], priority: 'Low', deadline: '01 Mar 2024', tags: ['Automotive'] },
-  { id: '9', name: 'Portfolio', description: 'Personal portfolio website.', members: [{ initials: 'SC' }], priority: 'Normal', deadline: '15 Mar 2024', tags: ['Portfolio'] },
-];
-
 export default function Board() {
-  const [selectedProjectId, setSelectedProjectId] = useState('2');
+  const [projects, setProjects] = useState([]);
+  const [selectedProjectId, setSelectedProjectId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        
+        const response = await fetch(`${apiUrl}/projects`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch projects');
+        }
+
+        const data = await response.json();
+        if (data.status === 'success' && data.data && data.data.projects) {
+          setProjects(data.data.projects);
+          if (data.data.projects.length > 0) {
+            setSelectedProjectId(data.data.projects[0].id);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching projects:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
 
   const handleSelectProject = (projectId) => {
     setSelectedProjectId(projectId);
   };
 
-  const currentProject = PROJECTS.find((p) => p.id === selectedProjectId) || PROJECTS[1];
+  const currentProject = projects.find((p) => p.id === selectedProjectId) || null;
 
   return (
     <div className="board-page-container">
       {/* Left side: Projects Preview Sidebar */}
       <ProjectsSidebar
-        projects={PROJECTS}
+        projects={projects}
         activeProjectId={selectedProjectId}
         onSelectProject={handleSelectProject}
       />
@@ -37,11 +62,19 @@ export default function Board() {
       {/* Right side: Main Board Workspace */}
       <div className="board-main-view">
         {/* Top Header & Navigation */}
-        <BoardHeader project={currentProject} />
+        {currentProject && <BoardHeader project={currentProject} />}
 
         {/* Kanban Board Columns */}
         <div className="board-content-area">
-          <KanbanBoard />
+          {loading ? (
+            <div style={{ padding: '20px', color: 'var(--text-secondary)' }}>Loading projects...</div>
+          ) : error ? (
+            <div style={{ padding: '20px', color: 'var(--text-secondary)' }}>Error: {error}</div>
+          ) : selectedProjectId ? (
+            <KanbanBoard projectId={selectedProjectId} />
+          ) : (
+            <div style={{ padding: '20px', color: 'var(--text-secondary)' }}>No projects found. Please create a project.</div>
+          )}
         </div>
       </div>
     </div>
