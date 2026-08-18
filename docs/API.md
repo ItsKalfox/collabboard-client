@@ -41,6 +41,11 @@ The API is built using **Node.js** and **Express.js** and provides authenticatio
   * [Review Task](#5-review-task)
   * [Reject Task](#6-reject-task)
   * [Get Task Reviews](#7-get-task-reviews)
+* [Dashboard Endpoints](#dashboard-endpoints)
+  * [Get Timeline](#1-get-timeline)
+  * [Get Ongoing Projects Stats](#2-get-ongoing-projects-stats)
+  * [Get Team Progress](#3-get-team-progress)
+  * [Get Recent Files](#4-get-recent-files)
 * [Error Handling](#error-handling)
 * [Testing with Bruno](#testing-with-bruno)
 * [API Development Status](#api-development-status)
@@ -1793,6 +1798,201 @@ Content-Type: application/pdf
 {
   "status": "error",
   "message": "Project not found"
+}
+```
+
+---
+
+# Dashboard Endpoints
+
+## 1. Get Timeline
+
+Retrieves aggregated task data for the management timeline card, grouping tasks by their tracks (projects) and calculating durations.
+
+**Endpoint:**
+
+```http
+GET /api/dashboard/timeline
+```
+
+**Headers:**
+
+```http
+Authorization: Bearer <token>
+```
+
+**Response: `200 OK`**
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "trackId": "proj_001",
+      "trackName": "Website Design",
+      "tasks": [
+        {
+          "id": "task_001",
+          "title": "Design Homepage Wireframes",
+          "status": "in_progress",
+          "priority": "high",
+          "duration": "about 10 days",
+          "startDate": "2026-08-10T08:00:00.000Z",
+          "dueDate": "2026-08-20T18:00:00.000Z",
+          "assignee": {
+            "id": "1786340518154",
+            "name": "Test",
+            "avatar": "https://ui-avatars.com/api/?name=Test"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## 2. Get Ongoing Projects Stats
+
+Retrieves statistics for ongoing active projects. It calculates the overall progress percentage based on completed subtasks across active projects, and provides a breakdown by project categories (e.g., Design Reviews, Development).
+
+**Endpoint:**
+
+```http
+GET /api/dashboard/projects/ongoing
+```
+
+**Headers:**
+
+```http
+Authorization: Bearer <token>
+```
+
+**Response: `200 OK`**
+
+```json
+{
+  "status": "success",
+  "data": {
+    "overallProgress": 68.5,
+    "categories": [
+      {
+        "name": "Design Reviews",
+        "totalProjects": 2,
+        "completedTasks": 3,
+        "totalTasks": 5,
+        "progress": 60.0
+      },
+      {
+        "name": "Development",
+        "totalProjects": 1,
+        "completedTasks": 0,
+        "totalTasks": 2,
+        "progress": 0.0
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 3. Get Team Progress
+
+Retrieves team-based statistics for the dashboard. It groups users into teams based on their assigned team field, and aggregates the task metrics (total subtasks vs completed subtasks) assigned to members of each team to calculate the progress percentage.
+
+**Endpoint:**
+
+```http
+GET /api/dashboard/teams
+```
+
+**Headers:**
+
+```http
+Authorization: Bearer <token>
+```
+
+**Response: `200 OK`**
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "teamName": "UX UI Design",
+      "members": [
+        {
+          "id": "1786340518154",
+          "name": "Test",
+          "avatar": "https://ui-avatars.com/api/?name=Test"
+        },
+        {
+          "id": "1786448728310",
+          "name": "sathsarani Perera",
+          "avatar": "https://ui-avatars.com/api/?name=sathsarani%20Perera"
+        }
+      ],
+      "totalTasks": 8,
+      "completedTasks": 5,
+      "progress": 62.5
+    }
+  ]
+}
+```
+
+---
+
+## 4. Get Recent Files
+
+Retrieves a list of recent attachments (files, documents, images) uploaded across all projects, sorted by the most recent uploads first.
+
+**Endpoint:**
+
+```http
+GET /api/dashboard/files
+```
+
+**Headers:**
+
+```http
+Authorization: Bearer <token>
+```
+
+**Response: `200 OK`**
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "id": "att_002",
+      "filename": "project_requirements.docx",
+      "url": "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "size": 102400,
+      "uploadedAt": "2026-08-11T16:30:00.000Z",
+      "uploadedBy": {
+        "id": "1786356291453",
+        "name": "Nipun Manusha",
+        "avatar": "https://ui-avatars.com/api/?name=Nipun%20Manusha"
+      }
+    },
+    {
+      "id": "att_001",
+      "filename": "design_brief.pdf",
+      "url": "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+      "mimeType": "application/pdf",
+      "size": 204800,
+      "uploadedAt": "2026-08-11T15:00:00.000Z",
+      "uploadedBy": {
+        "id": "1786340518154",
+        "name": "Test",
+        "avatar": "https://ui-avatars.com/api/?name=Test"
+      }
+    }
+  ]
 }
 ```
 
