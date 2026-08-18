@@ -1,13 +1,23 @@
 import { useState } from 'react';
+import {
+  DndContext,
+  DragOverlay,
+  closestCorners,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import KanbanColumn from './KanbanColumn';
+import TaskCard from './TaskCard';
 import TaskPopup from '../TaskPopup/TaskPopup';
 import './KanbanBoard.css';
 
-const KANBAN_DATA = [
+const INITIAL_DATA = [
   {
     id: 'col-todo',
     title: 'To Do',
-    count: 3,
     tasks: [
       {
         id: 'task-1',
@@ -48,7 +58,6 @@ const KANBAN_DATA = [
   {
     id: 'col-inprogress',
     title: 'In Progress',
-    count: 2,
     tasks: [
       {
         id: 'task-3',
@@ -90,7 +99,6 @@ const KANBAN_DATA = [
   {
     id: 'col-needreview',
     title: 'Need Review',
-    count: 2,
     tasks: [
       {
         id: 'task-5',
@@ -131,7 +139,6 @@ const KANBAN_DATA = [
   {
     id: 'col-done',
     title: 'Done',
-    count: 2,
     tasks: [
       {
         id: 'task-7',
@@ -195,23 +202,144 @@ function normalizeTaskForPopup(task, columnTitle) {
 }
 
 export default function KanbanBoard() {
+  const [columns, setColumns] = useState(INITIAL_DATA);
   const [activeTask, setActiveTask] = useState(null);
+  const [draggedTask, setDraggedTask] = useState(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const handleOpenTaskPopup = (rawTask, columnTitle) => {
     setActiveTask(normalizeTaskForPopup(rawTask, columnTitle));
   };
 
+  const findColumnOfTask = (taskId) => {
+    return columns.find(col => col.tasks.some(task => task.id === taskId));
+  };
+
+  const handleDragStart = (event) => {
+    const { active } = event;
+    const col = findColumnOfTask(active.id);
+    if (col) {
+      const task = col.tasks.find(t => t.id === active.id);
+      setDraggedTask(task);
+    }
+  };
+
+  const handleDragOver = (event) => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeId = active.id;
+    const overId = over.id;
+
+    if (activeId === overId) return;
+
+    const activeColumn = findColumnOfTask(activeId);
+    const overColumn = findColumnOfTask(overId) || columns.find(c => c.id === overId);
+
+    if (!activeColumn || !overColumn || activeColumn === overColumn) {
+      return;
+    }
+
+    setColumns((prev) => {
+      const activeItems = activeColumn.tasks;
+      const overItems = overColumn.tasks;
+      const activeIndex = activeItems.findIndex(t => t.id === activeId);
+      const overIndex = overItems.findIndex(t => t.id === overId);
+
+      let newIndex;
+      if (overId in columns.map(c => c.id)) {
+        newIndex = overItems.length + 1;
+      } else {
+        const isBelowOverItem = over && active.rect.current.translated && active.rect.current.translated.top > over.rect.top + over.rect.height;
+        const modifier = isBelowOverItem ? 1 : 0;
+        newIndex = overIndex >= 0 ? overIndex + modifier : overItems.length + 1;
+      }
+
+      return prev.map(c => {
+        if (c.id === activeColumn.id) {
+          return { ...c, tasks: c.tasks.filter(t => t.id !== activeId) };
+        } else if (c.id === overColumn.id) {
+          return {
+            ...c,
+            tasks: [
+              ...c.tasks.slice(0, newIndex),
+              activeItems[activeIndex],
+              ...c.tasks.slice(newIndex, c.tasks.length)
+            ]
+          };
+        }
+        return c;
+      });
+    });
+  };
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    setDraggedTask(null);
+
+    if (!over) return;
+
+    const activeId = active.id;
+    const overId = over.id;
+
+    const activeColumn = findColumnOfTask(activeId);
+    const overColumn = findColumnOfTask(overId) || columns.find(c => c.id === overId);
+
+    if (!activeColumn || !overColumn) {
+      return;
+    }
+
+    const activeIndex = activeColumn.tasks.findIndex(t => t.id === activeId);
+    const overIndex = overColumn.tasks.findIndex(t => t.id === overId);
+
+    if (activeColumn === overColumn) {
+      if (activeIndex !== overIndex) {
+        setColumns((prev) => prev.map(c => {
+          if (c.id === activeColumn.id) {
+            return {
+              ...c,
+              tasks: arrayMove(c.tasks, activeIndex, overIndex)
+            };
+          }
+          return c;
+        }));
+      }
+    }
+  };
+
   return (
     <>
-      <div className="kanban-board-container">
-        {KANBAN_DATA.map((column) => (
-          <KanbanColumn
-            key={column.id}
-            column={column}
-            onTaskOptionClick={handleOpenTaskPopup}
-          />
-        ))}
-      </div>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="kanban-board-container">
+          {columns.map((column) => (
+            <KanbanColumn
+              key={column.id}
+              column={{...column, count: column.tasks.length}}
+              onTaskOptionClick={handleOpenTaskPopup}
+            />
+          ))}
+        </div>
+
+        <DragOverlay>
+          {draggedTask ? <TaskCard task={draggedTask} isOverlay /> : null}
+        </DragOverlay>
+      </DndContext>
 
       {activeTask && (
         <TaskPopup
