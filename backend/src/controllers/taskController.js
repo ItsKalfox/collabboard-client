@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import cloudinary from '../config/cloudinary.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,6 +17,17 @@ const getMockTasks = () => {
 
 const saveMockTasks = (data) => {
     fs.writeFileSync(mockTasksPath, JSON.stringify(data, null, 2));
+};
+
+// Helper to upload a buffer to Cloudinary
+const uploadToCloudinary = (buffer, options) => {
+    return new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(options, (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+        });
+        uploadStream.end(buffer);
+    });
 };
 
 export const getTasksByProject = async (req, res) => {
@@ -344,6 +356,99 @@ export const updateSubtasksList = async (req, res) => {
         });
     } catch (error) {
         console.error('Error updating subtasks list:', error);
+        res.status(500).json({ status: 'error', message: 'Server error' });
+    }
+};
+
+export const uploadTaskImage = async (req, res) => {
+    try {
+        const { taskId } = req.params;
+
+        if (!req.file) {
+            return res.status(400).json({ status: 'error', message: 'Image file is required' });
+        }
+
+        const tasks = getMockTasks();
+        const taskIndex = tasks.findIndex(t => t.id === taskId);
+
+        if (taskIndex === -1) {
+            return res.status(404).json({ status: 'error', message: 'Task not found' });
+        }
+
+        const task = tasks[taskIndex];
+
+        if (task.imagePublicId) {
+            try {
+                await cloudinary.uploader.destroy(task.imagePublicId);
+            } catch (err) {
+                console.warn('Failed to delete old task image from Cloudinary:', err.message);
+            }
+        }
+
+        const result = await uploadToCloudinary(req.file.buffer, {
+            folder: `collabboard/tasks/${taskId}`,
+            public_id: `image_${Date.now()}`,
+            overwrite: true,
+            resource_type: 'image'
+        });
+
+        task.imageUrl = result.secure_url;
+        task.imagePublicId = result.public_id;
+        task.updatedAt = new Date().toISOString();
+
+        tasks[taskIndex] = task;
+        saveMockTasks(tasks);
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Task image uploaded successfully',
+            data: {
+                imageUrl: result.secure_url
+            }
+        });
+    } catch (error) {
+        console.error('Upload task image error:', error);
+        res.status(500).json({ status: 'error', message: 'Server error' });
+    }
+};
+
+export const deleteTaskImage = async (req, res) => {
+    try {
+        const { taskId } = req.params;
+
+        const tasks = getMockTasks();
+        const taskIndex = tasks.findIndex(t => t.id === taskId);
+
+        if (taskIndex === -1) {
+            return res.status(404).json({ status: 'error', message: 'Task not found' });
+        }
+
+        const task = tasks[taskIndex];
+
+        if (!task.imagePublicId) {
+            return res.status(400).json({ status: 'error', message: 'Task has no image to delete' });
+        }
+
+        try {
+            await cloudinary.uploader.destroy(task.imagePublicId);
+        } catch (err) {
+            console.error('Failed to delete task image from Cloudinary:', err.message);
+            return res.status(500).json({ status: 'error', message: 'Failed to delete image from cloud storage' });
+        }
+
+        task.imageUrl = null;
+        task.imagePublicId = null;
+        task.updatedAt = new Date().toISOString();
+
+        tasks[taskIndex] = task;
+        saveMockTasks(tasks);
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Task image deleted successfully'
+        });
+    } catch (error) {
+        console.error('Delete task image error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };

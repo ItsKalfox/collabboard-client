@@ -41,6 +41,8 @@ The API is built using **Node.js** and **Express.js** and provides authenticatio
   * [Review Task](#5-review-task)
   * [Reject Task](#6-reject-task)
   * [Get Task Reviews](#7-get-task-reviews)
+  * [Upload Task Image](#8-upload-task-image)
+  * [Delete Task Image](#9-delete-task-image)
 * [Subtask Endpoints](#subtask-endpoints)
   * [Get Subtasks](#1-get-subtasks)
   * [Create Subtask](#2-create-subtask)
@@ -2448,6 +2450,70 @@ GET /api/tasks/:taskId/reviews
 }
 ```
 
+---
+
+## 8. Upload Task Image
+
+Uploads an image attachment for a task.
+
+**Endpoint:**
+
+```http
+POST /api/tasks/:taskId/image
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Request Body (multipart/form-data):**
+
+*   `image`: The image file to upload.
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Task image uploaded successfully",
+  "data": {
+    "imageUrl": "https://res.cloudinary.com/..."
+  }
+}
+```
+
+---
+
+## 9. Delete Task Image
+
+Deletes the uploaded image for a task.
+
+**Endpoint:**
+
+```http
+DELETE /api/tasks/:taskId/image
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Task image deleted successfully"
+}
+```
 
 
 
