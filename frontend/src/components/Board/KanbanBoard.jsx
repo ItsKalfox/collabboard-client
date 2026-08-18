@@ -44,7 +44,7 @@ function normalizeTaskForPopup(task, columnTitle) {
   };
 }
 
-export default function KanbanBoard({ projectId }) {
+export default function KanbanBoard({ projectId, refreshKey }) {
   const [columns, setColumns] = useState(() => COLUMNS_DEF.map(col => ({ ...col, tasks: [] })));
   const [activeTask, setActiveTask] = useState(null);
   const [draggedTask, setDraggedTask] = useState(null);
@@ -53,21 +53,35 @@ export default function KanbanBoard({ projectId }) {
   useEffect(() => {
     if (!projectId) return;
 
-    const fetchTasks = async () => {
+    const fetchData = async () => {
       setLoading(true);
       try {
         const token = localStorage.getItem('token');
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-        const response = await fetch(`${apiUrl}/projects/${projectId}/tasks`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
         
-        if (response.ok) {
-          const data = await response.json();
+        // Fetch tasks and members in parallel
+        const [tasksRes, membersRes] = await Promise.all([
+          fetch(`${apiUrl}/projects/${projectId}/tasks`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`${apiUrl}/projects/${projectId}/members`, { headers: { 'Authorization': `Bearer ${token}` } })
+        ]);
+        
+        let members = [];
+        if (membersRes.ok) {
+          const membersData = await membersRes.json();
+          members = membersData.data?.members || [];
+        }
+
+        if (tasksRes.ok) {
+          const data = await tasksRes.json();
           const tasks = data.data?.tasks || [];
           
           const newCols = COLUMNS_DEF.map(col => ({ ...col, tasks: [] }));
           tasks.forEach(task => {
+            // Find assignee details
+            const assignee = task.assigneeId ? members.find(m => m.userId === task.assigneeId) : null;
+            const assigneeName = assignee ? assignee.name : 'Unknown';
+            const assigneeInitial = assigneeName.charAt(0).toUpperCase();
+
             // Map backend task to frontend TaskCard format
             const uiTask = {
               ...task,
@@ -76,7 +90,7 @@ export default function KanbanBoard({ projectId }) {
               date: new Date(task.dueDate || task.createdAt).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' }),
               progressCurrent: task.subtasks ? task.subtasks.filter(st => st.completed).length : 0,
               progressTotal: task.subtasks ? task.subtasks.length : 1,
-              members: task.assigneeId ? [{ initials: 'U' }] : [] // Placeholder
+              members: task.assigneeId ? [{ name: assigneeName, initials: assigneeInitial }] : []
             };
             
             const statusCol = newCols.find(c => c.id === task.status);
@@ -96,8 +110,8 @@ export default function KanbanBoard({ projectId }) {
       }
     };
     
-    fetchTasks();
-  }, [projectId]);
+    fetchData();
+  }, [projectId, refreshKey]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
