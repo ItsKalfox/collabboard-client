@@ -1,7 +1,13 @@
+import { useDroppable } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import TaskCard from './TaskCard';
 
 export default function KanbanColumn({ column, onTaskOptionClick }) {
-  const { title, count = 0, tasks = [] } = column;
+  const { id, title, count = 0, tasks = [] } = column;
+
+  const { setNodeRef } = useDroppable({
+    id: id,
+  });
 
   return (
     <div className="kanban-column">
@@ -21,10 +27,12 @@ export default function KanbanColumn({ column, onTaskOptionClick }) {
       </div>
 
       {/* Task List */}
-      <div className="kanban-tasks-list">
-        {tasks.map((task) => (
-          <TaskCard key={task.id} task={task} onOptionClick={() => onTaskOptionClick && onTaskOptionClick(task, title)} />
-        ))}
+      <div ref={setNodeRef} className="kanban-tasks-list" style={{ minHeight: '150px' }}>
+        <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+          {tasks.map((task) => (
+            <TaskCard key={task.id} task={task} onOptionClick={() => onTaskOptionClick && onTaskOptionClick(task, title)} />
+          ))}
+        </SortableContext>
       </div>
     </div>
   );

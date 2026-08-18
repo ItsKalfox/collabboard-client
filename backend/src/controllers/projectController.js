@@ -182,7 +182,7 @@ export const createProject = (req, res) => {
 export const updateProject = (req, res) => {
     try {
         const { id } = req.params;
-        const { name, description, status } = req.body;
+        const { name, description, status, tags } = req.body;
 
         const projects = getMockProjects();
         const projectIndex = projects.findIndex(p => p.id === id);
@@ -208,6 +208,7 @@ export const updateProject = (req, res) => {
         if (name !== undefined) project.name = name;
         if (description !== undefined) project.description = description;
         if (status !== undefined) project.status = status;
+        if (tags !== undefined) project.tags = tags;
         project.updatedAt = new Date().toISOString();
 
         projects[projectIndex] = project;
