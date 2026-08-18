@@ -50,6 +50,10 @@ export default function ProjectsPage({ theme = 'dark', currentUser, onOpenBoard 
   };
 
   const handleDeleteConfirm = (projectId) => {
+    const idx = INITIAL_PROJECTS.findIndex(p => p.id === projectId);
+    if (idx !== -1) {
+      INITIAL_PROJECTS.splice(idx, 1);
+    }
     setProjects(projects.filter((p) => p.id !== projectId));
     if (selectedDetailsProject && selectedDetailsProject.id === projectId) {
       setSelectedDetailsProject(null);
@@ -174,6 +178,7 @@ export default function ProjectsPage({ theme = 'dark', currentUser, onOpenBoard 
         onClose={() => setSelectedDetailsProject(null)} 
         project={selectedDetailsProject} 
         onSaveProject={handleSaveEdit}
+        onDeleteProject={handleDeleteConfirm}
         onOpenBoard={onOpenBoard} 
         theme={theme} 
       />

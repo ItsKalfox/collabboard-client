@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, ArrowRight, ChevronDown, ChevronRight, UserPlus, Trash2, Calendar, Search } from 'lucide-react';
 import { MOCK_MEMBERS, normalizeMember } from '../../mock/mockMembers';
+import DeleteConfirmModal from './DeleteConfirmModal';
 import '../TaskPopup/TaskPopup.css';
 import './projects.css';
 
@@ -24,11 +25,14 @@ export default function ProjectDetailsModal({
   onClose, 
   project: propProject, 
   onSaveProject,
+  onDeleteProject,
   onOpenBoard, 
   theme = 'dark' 
 }) {
   const lightCls = theme === 'light' ? ' light' : '';
   const fileInputRef = useRef();
+
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   // Local state initialized from props
   const [project, setProject] = useState(() => ({
@@ -623,13 +627,59 @@ export default function ProjectDetailsModal({
         </div>
 
         {/* Footer */}
-        <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end', paddingTop: '16px', borderTop: 'var(--popup-divider)' }}>
+        <div style={{ 
+          marginTop: '24px', 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          paddingTop: '16px', 
+          borderTop: 'var(--popup-divider)' 
+        }}>
+          <button
+            type="button"
+            className="popup-delete-btn"
+            onClick={() => setIsDeleteConfirmOpen(true)}
+            title="Delete Project"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              background: 'rgba(239, 68, 68, 0.12)',
+              border: '1px solid rgba(239, 68, 68, 0.35)',
+              color: '#ef4444',
+              padding: '8px 14px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: '600',
+              transition: 'all 0.2s'
+            }}
+          >
+            <Trash2 size={15} />
+            <span>Delete Project</span>
+          </button>
+
           <button className="popup-save-btn" onClick={handleOpenBoard} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span>Open Project Board</span>
             <ArrowRight size={14} />
           </button>
         </div>
       </div>
+
+      <DeleteConfirmModal
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        project={project}
+        onDeleteConfirm={(projectId) => {
+          setIsDeleteConfirmOpen(false);
+          if (onDeleteProject) {
+            onDeleteProject(projectId);
+          }
+          onClose();
+        }}
+        theme={theme}
+      />
     </div>
   );
 }
