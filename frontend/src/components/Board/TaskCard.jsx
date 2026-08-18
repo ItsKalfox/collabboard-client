@@ -1,5 +1,9 @@
-export default function TaskCard({ task, onOptionClick }) {
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+export default function TaskCard({ task, onOptionClick, isOverlay }) {
   const {
+    id,
     tag,
     tagColor = 'cyan',
     date = 'Mon, 20 Nov',
@@ -16,11 +20,31 @@ export default function TaskCard({ task, onOptionClick }) {
     linksCount = 1,
   } = task;
 
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    cursor: isDragging || isOverlay ? 'grabbing' : 'grab',
+  };
+
   const progressPercent = Math.min(100, Math.max(0, (progressCurrent / progressTotal) * 100));
 
   return (
     <div 
-      className="task-card"
+      ref={setNodeRef}
+      style={style}
+      className={`task-card ${isOverlay ? 'drag-overlay-active' : ''}`}
+      {...attributes}
+      {...listeners}
       onClick={() => onOptionClick && onOptionClick(task)}
     >
       {/* Card Header: Tag & Date */}
