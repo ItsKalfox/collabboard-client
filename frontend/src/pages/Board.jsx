@@ -3,20 +3,45 @@ import ProjectsSidebar from '../components/Board/ProjectsSidebar';
 import BoardHeader from '../components/Board/BoardHeader';
 import KanbanBoard from '../components/Board/KanbanBoard';
 import ActionModal from '../components/Board/ActionModal';
+import { INITIAL_PROJECTS } from '../mock/mockProjects';
 import './Board.css';
 
-export default function Board({ initialProjectId, onSelectProject }) {
-  const [projects, setProjects] = useState([]);
-  const [selectedProjectId, setSelectedProjectId] = useState(initialProjectId || null);
-  const [loading, setLoading] = useState(true);
+export default function Board({ initialProjectId, selectedProject, onSelectProject }) {
+  const [projects, setProjects] = useState(() => {
+    const list = [...INITIAL_PROJECTS];
+    if (selectedProject && typeof selectedProject === 'object') {
+      if (!list.some(p => p.id === selectedProject.id)) {
+        list.unshift(selectedProject);
+      }
+    }
+    return list;
+  });
+
+  const [selectedProjectId, setSelectedProjectId] = useState(() => {
+    if (selectedProject) return typeof selectedProject === 'object' ? selectedProject.id : selectedProject;
+    if (initialProjectId) return typeof initialProjectId === 'object' ? initialProjectId.id : initialProjectId;
+    return INITIAL_PROJECTS[0]?.id || null;
+  });
+
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    if (initialProjectId) {
-      setSelectedProjectId(initialProjectId);
+    const target = selectedProject || initialProjectId;
+    const targetId = typeof target === 'object' ? target?.id : target;
+    if (targetId) {
+      setSelectedProjectId(targetId);
+      if (typeof target === 'object' && target !== null) {
+        setProjects(prev => {
+          if (!prev.some(p => p.id === targetId)) {
+            return [target, ...prev];
+          }
+          return prev.map(p => p.id === targetId ? { ...p, ...target } : p);
+        });
+      }
     }
-  }, [initialProjectId]);
+  }, [initialProjectId, selectedProject]);
 
   // Modal states
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
@@ -39,32 +64,45 @@ export default function Board({ initialProjectId, onSelectProject }) {
           }
         });
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch projects');
-        }
+        if (response.ok) {
+          const data = await response.json();
+          if (data.status === 'success' && data.data && data.data.projects) {
+            const apiProjects = data.data.projects;
+            setProjects(prev => {
+              const map = new Map();
+              // Add API projects first
+              apiProjects.forEach(p => map.set(p.id, p));
+              // Add mock initial projects
+              INITIAL_PROJECTS.forEach(p => {
+                if (!map.has(p.id)) map.set(p.id, p);
+              });
+              // Add any dynamically added/selected projects
+              prev.forEach(p => {
+                if (!map.has(p.id)) map.set(p.id, p);
+              });
+              const target = selectedProject || initialProjectId;
+              if (typeof target === 'object' && target !== null) {
+                map.set(target.id, { ...map.get(target.id), ...target });
+              }
+              return Array.from(map.values());
+            });
 
-        const data = await response.json();
-        if (data.status === 'success' && data.data && data.data.projects) {
-          setProjects(data.data.projects);
-          if (data.data.projects.length > 0) {
-            const hasInitial = initialProjectId && data.data.projects.some(p => p.id === initialProjectId);
-            if (hasInitial) {
-              setSelectedProjectId(initialProjectId);
-            } else if (!selectedProjectId) {
-              setSelectedProjectId(data.data.projects[0].id);
+            const target = selectedProject || initialProjectId;
+            const targetId = typeof target === 'object' ? target?.id : target;
+            if (targetId) {
+              setSelectedProjectId(targetId);
             }
           }
         }
       } catch (err) {
-        console.error('Error fetching projects:', err);
-        setError(err.message);
+        console.error('Error fetching projects from API:', err);
       } finally {
         setLoading(false);
       }
     };
 
     fetchProjects();
-  }, [initialProjectId]);
+  }, [initialProjectId, selectedProject]);
 
   const handleSelectProject = (projectId) => {
     setSelectedProjectId(projectId);

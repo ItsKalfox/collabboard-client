@@ -371,7 +371,11 @@ function App() {
           {activeTab === 'Dashboard' ? (
             <Dashboard />
           ) : activeTab === 'Board' ? (
-            <Board initialProjectId={selectedProjectId} onSelectProject={setSelectedProjectId} />
+            <Board 
+              initialProjectId={selectedProjectId} 
+              selectedProject={typeof selectedProjectId === 'object' ? selectedProjectId : null}
+              onSelectProject={(id) => setSelectedProjectId(id)} 
+            />
           ) : activeTab === 'Projects' ? (
             <ProjectsPage theme={theme} toggleTheme={toggleTheme} currentUser={currentUser} onOpenBoard={handleOpenBoard} />
           ) : (
