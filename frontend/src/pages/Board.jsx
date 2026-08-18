@@ -5,12 +5,18 @@ import KanbanBoard from '../components/Board/KanbanBoard';
 import ActionModal from '../components/Board/ActionModal';
 import './Board.css';
 
-export default function Board() {
+export default function Board({ initialProjectId, onSelectProject }) {
   const [projects, setProjects] = useState([]);
-  const [selectedProjectId, setSelectedProjectId] = useState(null);
+  const [selectedProjectId, setSelectedProjectId] = useState(initialProjectId || null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    if (initialProjectId) {
+      setSelectedProjectId(initialProjectId);
+    }
+  }, [initialProjectId]);
 
   // Modal states
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
@@ -41,7 +47,12 @@ export default function Board() {
         if (data.status === 'success' && data.data && data.data.projects) {
           setProjects(data.data.projects);
           if (data.data.projects.length > 0) {
-            setSelectedProjectId(data.data.projects[0].id);
+            const hasInitial = initialProjectId && data.data.projects.some(p => p.id === initialProjectId);
+            if (hasInitial) {
+              setSelectedProjectId(initialProjectId);
+            } else if (!selectedProjectId) {
+              setSelectedProjectId(data.data.projects[0].id);
+            }
           }
         }
       } catch (err) {
@@ -53,10 +64,13 @@ export default function Board() {
     };
 
     fetchProjects();
-  }, []);
+  }, [initialProjectId]);
 
   const handleSelectProject = (projectId) => {
     setSelectedProjectId(projectId);
+    if (onSelectProject) {
+      onSelectProject(projectId);
+    }
   };
 
   const handleAddTaskSubmit = async (e) => {

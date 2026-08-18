@@ -97,6 +97,14 @@ function App() {
     handleTabClick('Dashboard');
   };
 
+  const [selectedProjectId, setSelectedProjectId] = useState(null);
+
+  const handleOpenBoard = (project) => {
+    const projId = typeof project === 'object' ? project.id : project;
+    setSelectedProjectId(projId);
+    handleTabClick('Board');
+  };
+
   const toggleTheme = () => {
     setTheme((prev) => {
       const newTheme = prev === 'dark' ? 'light' : 'dark';
@@ -363,9 +371,9 @@ function App() {
           {activeTab === 'Dashboard' ? (
             <Dashboard />
           ) : activeTab === 'Board' ? (
-            <Board />
+            <Board initialProjectId={selectedProjectId} onSelectProject={setSelectedProjectId} />
           ) : activeTab === 'Projects' ? (
-            <ProjectsPage theme={theme} toggleTheme={toggleTheme} currentUser={currentUser} />
+            <ProjectsPage theme={theme} toggleTheme={toggleTheme} currentUser={currentUser} onOpenBoard={handleOpenBoard} />
           ) : (
             <div style={{ color: 'var(--text-secondary)', padding: '20px' }}>
               {activeTab} content view...
