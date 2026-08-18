@@ -1,18 +1,20 @@
 import { useState } from 'react';
 import './BoardHeader.css';
 
-export default function BoardHeader({ projectName = 'Travel apps' }) {
+export default function BoardHeader({ project = {} }) {
   const [activeSubTab, setActiveSubTab] = useState('Board');
 
   const subTabs = ['Board', 'Timeline', 'Team Info'];
+
+  const { name = 'Unknown Project', description, members = [], priority = 'Normal', deadline = 'No deadline', tags = [] } = project;
 
   return (
     <div className="board-header-container">
       {/* Main Title & Team Avatars */}
       <div className="board-title-row">
         <div className="board-title-group">
-          <h1 className="board-main-title">{projectName}</h1>
-          <button className="info-icon-btn" title="Project Info">
+          <h1 className="board-main-title">{name}</h1>
+          <button className="info-icon-btn" title={description || 'Project Info'}>
             <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="12" y1="16" x2="12" y2="12"></line>
@@ -23,9 +25,11 @@ export default function BoardHeader({ projectName = 'Travel apps' }) {
 
         <div className="board-team-group">
           <div className="team-avatars-stack">
-            <div className="avatar-circle av-1">SC</div>
-            <div className="avatar-circle av-2">JD</div>
-            <div className="avatar-circle av-3">AK</div>
+            {members.map((m, idx) => (
+              <div key={idx} className={`avatar-circle av-${(idx % 3) + 1}`}>
+                {m.initials}
+              </div>
+            ))}
           </div>
           <button className="invite-member-btn" title="Add Member">
             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2.5" fill="none">
@@ -45,7 +49,7 @@ export default function BoardHeader({ projectName = 'Travel apps' }) {
               <line x1="4" y1="22" x2="4" y2="15"></line>
             </svg>
             <span className="meta-label">Priority:</span>
-            <span className="priority-badge">Normal</span>
+            <span className="priority-badge">{priority}</span>
           </div>
 
           <div className="meta-item">
@@ -54,7 +58,7 @@ export default function BoardHeader({ projectName = 'Travel apps' }) {
               <polyline points="12 6 12 12 16 14"></polyline>
             </svg>
             <span className="meta-label">Deadline:</span>
-            <span className="meta-value">30 December 2023</span>
+            <span className="meta-value">{deadline}</span>
           </div>
 
           <div className="meta-item">
@@ -64,8 +68,11 @@ export default function BoardHeader({ projectName = 'Travel apps' }) {
             </svg>
             <span className="meta-label">Tags:</span>
             <div className="tags-list">
-              <span className="tag-pill tag-blue">UI Design</span>
-              <span className="tag-pill tag-purple">UX Design</span>
+              {tags.map((tag, idx) => (
+                <span key={idx} className={`tag-pill tag-${idx % 2 === 0 ? 'blue' : 'purple'}`}>
+                  {tag}
+                </span>
+              ))}
               <button className="add-tag-btn">+ Add more</button>
             </div>
           </div>
