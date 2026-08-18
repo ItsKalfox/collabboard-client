@@ -1,11 +1,7 @@
-import { useState } from 'react';
 import './ProjectsSidebar.css';
 
 export default function ProjectsSidebar({ projects = [], activeProjectId, onSelectProject }) {
-  const [selectedId, setSelectedId] = useState(activeProjectId || (projects[0]?.id || ''));
-
   const handleSelect = (id) => {
-    setSelectedId(id);
     if (onSelectProject) {
       onSelectProject(id);
     }
@@ -20,7 +16,7 @@ export default function ProjectsSidebar({ projects = [], activeProjectId, onSele
       <div className="projects-list-container">
         <ul className="projects-list">
           {projects.map((proj) => {
-            const isSelected = selectedId === proj.id;
+            const isSelected = activeProjectId === proj.id;
             return (
               <li
                 key={proj.id}
