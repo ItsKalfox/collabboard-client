@@ -6,6 +6,7 @@ import cloudinary from '../config/cloudinary.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const mockTasksPath = path.join(__dirname, '../data/mockTasks.json');
+const mockAttachmentsPath = path.join(__dirname, '../data/mockAttachments.json');
 
 const getMockTasks = () => {
     if (!fs.existsSync(mockTasksPath)) {
@@ -17,6 +18,18 @@ const getMockTasks = () => {
 
 const saveMockTasks = (data) => {
     fs.writeFileSync(mockTasksPath, JSON.stringify(data, null, 2));
+};
+
+const getMockAttachments = () => {
+    if (!fs.existsSync(mockAttachmentsPath)) {
+        return [];
+    }
+    const data = fs.readFileSync(mockAttachmentsPath, 'utf8');
+    return JSON.parse(data);
+};
+
+const saveMockAttachments = (data) => {
+    fs.writeFileSync(mockAttachmentsPath, JSON.stringify(data, null, 2));
 };
 
 // Helper to upload a buffer to Cloudinary
@@ -450,5 +463,77 @@ export const deleteTaskImage = async (req, res) => {
     } catch (error) {
         console.error('Delete task image error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
+    }
+};
+
+export const getTaskAttachments = (req, res) => {
+    try {
+        const { taskId } = req.params;
+
+        const tasks = getMockTasks();
+        const task = tasks.find(t => t.id === taskId);
+
+        if (!task) {
+            return res.status(404).json({ status: 'error', message: 'Task not found' });
+        }
+
+        const allAttachments = getMockAttachments();
+        const taskAttachments = allAttachments.filter(a => a.taskId === taskId);
+
+        res.status(200).json({
+            status: 'success',
+            data: { attachments: taskAttachments }
+        });
+    } catch (error) {
+        console.error('Get task attachments error:', error);
+        res.status(500).json({ status: 'error', message: 'Server error' });
+    }
+};
+
+export const addTaskAttachment = async (req, res) => {
+    try {
+        const { taskId } = req.params;
+
+        if (!req.file) {
+            return res.status(400).json({ status: 'error', message: 'Attachment file is required' });
+        }
+
+        const tasks = getMockTasks();
+        const task = tasks.find(t => t.id === taskId);
+
+        if (!task) {
+            return res.status(404).json({ status: 'error', message: 'Task not found' });
+        }
+
+        const result = await uploadToCloudinary(req.file.buffer, {
+            folder: `collabboard/attachments/tasks/${taskId}`,
+            public_id: `att_${Date.now()}`,
+            resource_type: 'auto'
+        });
+
+        const attachments = getMockAttachments();
+        const newAttachment = {
+            id: `att_${Date.now()}`,
+            taskId,
+            filename: req.file.originalname,
+            url: result.secure_url,
+            publicId: result.public_id,
+            mimeType: req.file.mimetype,
+            size: req.file.size,
+            uploadedBy: req.user.id,
+            uploadedAt: new Date().toISOString()
+        };
+
+        attachments.push(newAttachment);
+        saveMockAttachments(attachments);
+
+        res.status(201).json({
+            status: 'success',
+            message: 'Attachment uploaded successfully',
+            data: { attachment: newAttachment }
+        });
+    } catch (error) {
+        console.error('Add task attachment error:', error);
+        res.status(500).json({ status: 'error', message: 'Server error while uploading attachment' });
     }
 };

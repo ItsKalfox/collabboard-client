@@ -43,6 +43,11 @@ The API is built using **Node.js** and **Express.js** and provides authenticatio
   * [Get Task Reviews](#7-get-task-reviews)
   * [Upload Task Image](#8-upload-task-image)
   * [Delete Task Image](#9-delete-task-image)
+* [Attachment Endpoints](#attachment-endpoints)
+  * [Get Task Attachments](#1-get-task-attachments)
+  * [Add Task Attachment](#2-add-task-attachment)
+  * [Get Attachment by ID](#3-get-attachment-by-id)
+  * [Delete Attachment](#4-delete-attachment)
 * [Subtask Endpoints](#subtask-endpoints)
   * [Get Subtasks](#1-get-subtasks)
   * [Create Subtask](#2-create-subtask)
@@ -2515,10 +2520,166 @@ DELETE /api/tasks/:taskId/image
 }
 ```
 
+---
 
+# Attachment Endpoints
 
+## 1. Get Task Attachments
+
+Retrieves all attachments for a specific task.
+
+**Endpoint:**
+
+```http
+GET /api/tasks/:taskId/attachments
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "attachments": [
+      {
+        "id": "att_001",
+        "taskId": "task_101",
+        "filename": "document.pdf",
+        "url": "https://res.cloudinary.com/...",
+        "publicId": "collabboard/attachments/tasks/task_101/att_001",
+        "mimeType": "application/pdf",
+        "size": 204800,
+        "uploadedBy": "user_id_here",
+        "uploadedAt": "2026-08-11T15:00:00.000Z"
+      }
+    ]
+  }
+}
+```
 
 ---
+
+## 2. Add Task Attachment
+
+Uploads a new attachment to a specific task.
+
+**Endpoint:**
+
+```http
+POST /api/tasks/:taskId/attachments
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Request Body (multipart/form-data):**
+
+*   `file`: The file to upload.
+
+**Response:**
+
+`201 Created`
+
+```json
+{
+  "status": "success",
+  "message": "Attachment uploaded successfully",
+  "data": {
+    "attachment": {
+      "id": "att_002",
+      "taskId": "task_101",
+      "filename": "image.png",
+      "url": "https://res.cloudinary.com/...",
+      "publicId": "collabboard/attachments/tasks/task_101/att_002",
+      "mimeType": "image/png",
+      "size": 102400,
+      "uploadedBy": "user_id_here",
+      "uploadedAt": "2026-08-11T15:30:00.000Z"
+    }
+  }
+}
+```
+
+---
+
+## 3. Get Attachment by ID
+
+Retrieves details of a specific attachment by its ID.
+
+**Endpoint:**
+
+```http
+GET /api/attachments/:attachmentId
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `attachmentId` (URL Parameter): The unique ID of the attachment.
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "attachment": {
+      "id": "att_001",
+      "taskId": "task_101",
+      "filename": "document.pdf",
+      "url": "https://res.cloudinary.com/...",
+      "publicId": "collabboard/attachments/tasks/task_101/att_001",
+      "mimeType": "application/pdf",
+      "size": 204800,
+      "uploadedBy": "user_id_here",
+      "uploadedAt": "2026-08-11T15:00:00.000Z"
+    }
+  }
+}
+```
+
+---
+
+## 4. Delete Attachment
+
+Deletes a specific attachment by its ID.
+
+**Endpoint:**
+
+```http
+DELETE /api/attachments/:attachmentId
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `attachmentId` (URL Parameter): The unique ID of the attachment.
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Attachment deleted successfully"
+}
+```---
 
 # Subtask Endpoints
 
