@@ -78,14 +78,33 @@ export const MOCK_MEMBERS = [
     initials: 'CB',
     bg: '#eab308',
     avatar: ''
+  },
+  {
+    id: 'usr-11',
+    name: 'Sathsarani Perera',
+    email: 'sathsaraniperera16@gmail.com',
+    role: 'Full Stack Developer',
+    initials: 'SP',
+    bg: '#ec4899',
+    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80'
+  },
+  {
+    id: 'usr-12',
+    name: 'Isuri Perera',
+    email: 'isuriupp@gmail.com',
+    role: 'Product Manager',
+    initials: 'IP',
+    bg: '#8b5cf6',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80'
   }
 ];
 
 export function getMemberByName(name) {
   if (!name) return null;
-  const nameStr = typeof name === 'string' ? name : name.name;
+  const nameStr = typeof name === 'string' ? name : (name.name || name.email || '');
   const found = MOCK_MEMBERS.find(
-    m => m.name.toLowerCase() === nameStr.toLowerCase()
+    m => m.name.toLowerCase() === nameStr.toLowerCase() || 
+         (m.email && m.email.toLowerCase() === nameStr.toLowerCase())
   );
   if (found) return found;
 
