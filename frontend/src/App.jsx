@@ -365,7 +365,7 @@ function App() {
           ) : activeTab === 'Board' ? (
             <Board />
           ) : activeTab === 'Projects' ? (
-            <ProjectsPage theme={theme} toggleTheme={toggleTheme} />
+            <ProjectsPage theme={theme} toggleTheme={toggleTheme} currentUser={currentUser} />
           ) : (
             <div style={{ color: 'var(--text-secondary)', padding: '20px' }}>
               {activeTab} content view...

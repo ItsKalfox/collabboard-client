@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import ProjectCard from './ProjectCard';
 import CreateProjectModal from './CreateProjectModal';
 import EditProjectModal from './EditProjectModal';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import ProjectDetailsModal from './ProjectDetailsModal';
 import { Plus, Search } from 'lucide-react';
+import { normalizeMember } from '../../mock/mockMembers';
+import { calculateProjectProgress } from '../../utils/projectUtils';
 import './projects.css';
 
 const initialProjects = [
@@ -16,13 +18,31 @@ const initialProjects = [
     coverImage: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=500&auto=format&fit=crop&q=80',
     owner: 'Alex Johnson',
     members: [
-      { name: 'Alex Johnson', initials: 'AJ', bg: '#3b82f6', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80' },
-      { name: 'Sara Smith', initials: 'SS', bg: '#10b981', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80' },
-      { name: 'David W', initials: 'DW', bg: '#f59e0b', avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=150&q=80' }
+      normalizeMember('Alex Johnson'),
+      normalizeMember('Sara Smith'),
+      normalizeMember('David W')
     ],
     createdDate: '06 Aug 2026',
+    dueDate: '30 Sep 2026',
     status: 'In Progress',
-    progress: 75
+    progress: 75,
+    tasks: [
+      {
+        id: 't1-1', title: 'Header & Navigation UX', completed: true,
+        subtasks: [
+          { id: 'st1', label: 'Navbar Responsiveness', done: true },
+          { id: 'st2', label: 'Dark Mode Switcher', done: true },
+          { id: 'st3', label: 'Mobile Drawer Menu', done: true }
+        ]
+      },
+      {
+        id: 't1-2', title: 'Landing Page Hero Section', completed: false,
+        subtasks: [
+          { id: 'st4', label: 'Hero Copy & Headlines', done: true },
+          { id: 'st5', label: 'CTA Button Micro-animations', done: false }
+        ]
+      }
+    ]
   },
   {
     id: 'proj-2',
@@ -32,12 +52,22 @@ const initialProjects = [
     coverImage: 'https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?w=500&auto=format&fit=crop&q=80',
     owner: 'Sara Smith',
     members: [
-      { name: 'Sara Smith', initials: 'SS', bg: '#10b981', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80' },
-      { name: 'Alex Johnson', initials: 'AJ', bg: '#3b82f6', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80' }
+      normalizeMember('Sara Smith'),
+      normalizeMember('Alex Johnson')
     ],
     createdDate: '04 Aug 2026',
+    dueDate: '15 Oct 2026',
     status: 'In Progress',
-    progress: 40
+    progress: 40,
+    tasks: [
+      {
+        id: 't2-1', title: 'Barcode Scanner Module', completed: false,
+        subtasks: [
+          { id: 'st2-1', label: 'Camera API Integration', done: true },
+          { id: 'st2-2', label: 'Batch Item Lookup', done: false }
+        ]
+      }
+    ]
   },
   {
     id: 'proj-3',
@@ -47,12 +77,22 @@ const initialProjects = [
     coverImage: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500&auto=format&fit=crop&q=80',
     owner: 'Alex Johnson',
     members: [
-      { name: 'Alex Johnson', initials: 'AJ', bg: '#3b82f6', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80' },
-      { name: 'Elena V', initials: 'EV', bg: '#f43f5e', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80' }
+      normalizeMember('Alex Johnson'),
+      normalizeMember('Elena V')
     ],
     createdDate: '01 Aug 2026',
+    dueDate: '20 Nov 2026',
     status: 'Planning',
-    progress: 15
+    progress: 15,
+    tasks: [
+      {
+        id: 't3-1', title: 'Offline Mode Synchronization', completed: false,
+        subtasks: [
+          { id: 'st3-1', label: 'IndexedDB Storage Setup', done: false },
+          { id: 'st3-2', label: 'Background Sync Worker', done: false }
+        ]
+      }
+    ]
   },
   {
     id: 'proj-4',
@@ -62,12 +102,22 @@ const initialProjects = [
     coverImage: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=500&auto=format&fit=crop&q=80',
     owner: 'John Doe',
     members: [
-      { name: 'John Doe', initials: 'JD', bg: '#8b5cf6', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80' },
-      { name: 'Alex Johnson', initials: 'AJ', bg: '#3b82f6', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80' },
+      normalizeMember('John Doe'),
+      normalizeMember('Alex Johnson')
     ],
     createdDate: '28 Jul 2026',
+    dueDate: '10 Aug 2026',
     status: 'Completed',
-    progress: 100
+    progress: 100,
+    tasks: [
+      {
+        id: 't4-1', title: 'Billing History & Invoices', completed: true,
+        subtasks: [
+          { id: 'st4-1', label: 'PDF Invoice Generation', done: true },
+          { id: 'st4-2', label: 'Stripe Receipt Webhook', done: true }
+        ]
+      }
+    ]
   },
   {
     id: 'proj-5',
@@ -77,10 +127,11 @@ const initialProjects = [
     coverImage: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=500&auto=format&fit=crop&q=80',
     owner: 'Elena V',
     members: [
-      { name: 'Elena V', initials: 'EV', bg: '#f43f5e', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80' },
-      { name: 'Alex Johnson', initials: 'AJ', bg: '#3b82f6', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80' }
+      normalizeMember('Elena V'),
+      normalizeMember('Alex Johnson')
     ],
     createdDate: '15 Jul 2026',
+    dueDate: '01 Nov 2026',
     status: 'In Progress',
     progress: 60
   },
@@ -92,10 +143,11 @@ const initialProjects = [
     coverImage: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=500&auto=format&fit=crop&q=80',
     owner: 'Alex Johnson',
     members: [
-      { name: 'Alex Johnson', initials: 'AJ', bg: '#3b82f6', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80' },
-      { name: 'Sara Smith', initials: 'SS', bg: '#10b981', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80' }
+      normalizeMember('Alex Johnson'),
+      normalizeMember('Sara Smith')
     ],
     createdDate: '10 Jul 2026',
+    dueDate: '05 Aug 2026',
     status: 'Completed',
     progress: 100
   },
@@ -107,10 +159,11 @@ const initialProjects = [
     coverImage: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=500&auto=format&fit=crop&q=80',
     owner: 'Alex Johnson',
     members: [
-      { name: 'Alex Johnson', initials: 'AJ', bg: '#3b82f6', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80' },
-      { name: 'David W', initials: 'DW', bg: '#f59e0b', avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=150&q=80' }
+      normalizeMember('Alex Johnson'),
+      normalizeMember('David W')
     ],
     createdDate: '02 Jul 2026',
+    dueDate: '15 Dec 2026',
     status: 'In Progress',
     progress: 30
   },
@@ -122,47 +175,76 @@ const initialProjects = [
     coverImage: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=500&auto=format&fit=crop&q=80',
     owner: 'Sara Smith',
     members: [
-      { name: 'Sara Smith', initials: 'SS', bg: '#10b981', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80' },
-      { name: 'Alex Johnson', initials: 'AJ', bg: '#3b82f6', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80' },
-      { name: 'Elena V', initials: 'EV', bg: '#f43f5e', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80' }
+      normalizeMember('Sara Smith'),
+      normalizeMember('Alex Johnson'),
+      normalizeMember('Elena V')
     ],
     createdDate: '20 Jun 2026',
+    dueDate: '25 Jul 2026',
     status: 'Completed',
     progress: 100
   }
 ];
 
-export default function ProjectsPage({ theme = 'dark', toggleTheme, onOpenBoard = () => {} }) {
+export default function ProjectsPage({ theme = 'dark', currentUser, onOpenBoard = () => {} }) {
   const isDark = theme !== 'light';
   const lightCls = isDark ? '' : ' light';
 
-  const [projects, setProjects] = useState(initialProjects);
+  // Current logged in user name
+  const currentUserName = typeof currentUser === 'string' 
+    ? currentUser 
+    : (currentUser?.name || 'Alex Johnson');
+
+  const [projects, setProjects] = useState(() => {
+    return initialProjects.map(p => ({
+      ...p,
+      progress: calculateProjectProgress(p)
+    }));
+  });
+
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
   const [deletingProject, setDeletingProject] = useState(null);
   const [selectedDetailsProject, setSelectedDetailsProject] = useState(null);
 
-  const currentUser = 'Alex Johnson';
-
   const handleCreateProject = (newProject) => {
-    setProjects([newProject, ...projects]);
+    const computed = {
+      ...newProject,
+      progress: calculateProjectProgress(newProject)
+    };
+    setProjects([computed, ...projects]);
   };
 
   const handleSaveEdit = (updatedProject) => {
-    setProjects(projects.map((p) => (p.id === updatedProject.id ? updatedProject : p)));
+    const computed = {
+      ...updatedProject,
+      progress: calculateProjectProgress(updatedProject)
+    };
+    setProjects(projects.map((p) => (p.id === computed.id ? computed : p)));
+    if (selectedDetailsProject && selectedDetailsProject.id === computed.id) {
+      setSelectedDetailsProject(computed);
+    }
   };
 
   const handleDeleteConfirm = (projectId) => {
     setProjects(projects.filter((p) => p.id !== projectId));
+    if (selectedDetailsProject && selectedDetailsProject.id === projectId) {
+      setSelectedDetailsProject(null);
+    }
   };
 
   const filteredBySearch = projects.filter(p => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase())
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const ownedProjects = filteredBySearch.filter(p => p.owner === currentUser);
-  const partOfProjects = filteredBySearch.filter(p => p.owner !== currentUser && p.members.some(m => m.name === currentUser));
+  const ownedProjects = filteredBySearch.filter(p => p.owner === currentUserName);
+  const partOfProjects = filteredBySearch.filter(p => 
+    p.owner !== currentUserName && 
+    Array.isArray(p.members) && 
+    p.members.some(m => (typeof m === 'string' ? m : m.name) === currentUserName)
+  );
 
   return (
     <div className={`projects-page${lightCls}`}>
@@ -245,10 +327,35 @@ export default function ProjectsPage({ theme = 'dark', toggleTheme, onOpenBoard 
         </div>
       )}
 
-      <CreateProjectModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} onCreate={handleCreateProject} theme={theme} />
-      <EditProjectModal isOpen={!!editingProject} onClose={() => setEditingProject(null)} project={editingProject} onSave={handleSaveEdit} theme={theme} />
-      <DeleteConfirmModal isOpen={!!deletingProject} onClose={() => setDeletingProject(null)} project={deletingProject} onDeleteConfirm={handleDeleteConfirm} theme={theme} />
-      <ProjectDetailsModal isOpen={!!selectedDetailsProject} onClose={() => setSelectedDetailsProject(null)} project={selectedDetailsProject} onOpenBoard={onOpenBoard} theme={theme} />
+      <CreateProjectModal 
+        isOpen={isCreateOpen} 
+        onClose={() => setIsCreateOpen(false)} 
+        onCreate={handleCreateProject} 
+        theme={theme} 
+        currentUser={currentUser}
+      />
+      <EditProjectModal 
+        isOpen={!!editingProject} 
+        onClose={() => setEditingProject(null)} 
+        project={editingProject} 
+        onSave={handleSaveEdit} 
+        theme={theme} 
+      />
+      <DeleteConfirmModal 
+        isOpen={!!deletingProject} 
+        onClose={() => setDeletingProject(null)} 
+        project={deletingProject} 
+        onDeleteConfirm={handleDeleteConfirm} 
+        theme={theme} 
+      />
+      <ProjectDetailsModal 
+        isOpen={!!selectedDetailsProject} 
+        onClose={() => setSelectedDetailsProject(null)} 
+        project={selectedDetailsProject} 
+        onSaveProject={handleSaveEdit}
+        onOpenBoard={onOpenBoard} 
+        theme={theme} 
+      />
     </div>
   );
 }
