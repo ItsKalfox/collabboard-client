@@ -1,20 +1,8 @@
 import { useState } from 'react';
 import './ProjectsSidebar.css';
 
-const HARDCODED_PROJECTS = [
-  { id: '1', name: 'Finance apps' },
-  { id: '2', name: 'Travel apps' },
-  { id: '3', name: 'E-Commerce apps' },
-  { id: '4', name: 'Education' },
-  { id: '5', name: 'Village Tourism' },
-  { id: '6', name: 'Real Estate' },
-  { id: '7', name: 'Job Finder' },
-  { id: '8', name: 'Rent a Car' },
-  { id: '9', name: 'Portfolio' },
-];
-
-export default function ProjectsSidebar({ activeProjectId, onSelectProject }) {
-  const [selectedId, setSelectedId] = useState(activeProjectId || '2');
+export default function ProjectsSidebar({ projects = [], activeProjectId, onSelectProject }) {
+  const [selectedId, setSelectedId] = useState(activeProjectId || (projects[0]?.id || ''));
 
   const handleSelect = (id) => {
     setSelectedId(id);
@@ -31,7 +19,7 @@ export default function ProjectsSidebar({ activeProjectId, onSelectProject }) {
 
       <div className="projects-list-container">
         <ul className="projects-list">
-          {HARDCODED_PROJECTS.map((proj) => {
+          {projects.map((proj) => {
             const isSelected = selectedId === proj.id;
             return (
               <li
