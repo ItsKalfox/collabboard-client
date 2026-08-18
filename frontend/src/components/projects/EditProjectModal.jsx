@@ -202,7 +202,7 @@ export default function EditProjectModal({
                   <input
                     type="text"
                     className="popup-mini-input"
-                    style={{ width: '100%', paddingLeft: '32px', fontSize: '13px', height: '34px', boxSizing: 'border-box' }}
+                    style={{ width: '100%', paddingLeft: '32px', paddingRight: memberSearch ? '32px' : '10px', fontSize: '13px', height: '34px', boxSizing: 'border-box' }}
                     placeholder="Search members to add..."
                     value={memberSearch}
                     onChange={e => {
@@ -211,6 +211,18 @@ export default function EditProjectModal({
                     }}
                     onFocus={() => setShowMemberDropdown(true)}
                   />
+                  {memberSearch && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMemberSearch('');
+                        setShowMemberDropdown(false);
+                      }}
+                      style={{ position: 'absolute', right: '10px', top: '9px', background: 'transparent', border: 'none', color: 'var(--popup-text-muted)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
                 </div>
 
                 {showMemberDropdown && availableMembers.length > 0 && (
@@ -245,6 +257,17 @@ export default function EditProjectModal({
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {showMemberDropdown && memberSearch && availableMembers.length === 0 && (
+                  <div style={{
+                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 99,
+                    background: 'var(--popup-card-bg)', border: 'var(--popup-card-border)',
+                    borderRadius: '8px', padding: '10px 12px', marginTop: '4px',
+                    fontSize: '12px', color: 'var(--popup-text-muted)', textAlign: 'center'
+                  }}>
+                    No matching team members found
                   </div>
                 )}
               </div>

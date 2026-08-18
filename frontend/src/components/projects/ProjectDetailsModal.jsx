@@ -528,12 +528,21 @@ export default function ProjectDetailsModal({
                     <input
                       type="text"
                       className="popup-mini-input"
-                      style={{ width: '100%', paddingLeft: '32px', fontSize: '13px', height: '34px', boxSizing: 'border-box' }}
+                      style={{ width: '100%', paddingLeft: '32px', paddingRight: memberSearch ? '32px' : '10px', fontSize: '13px', height: '34px', boxSizing: 'border-box' }}
                       placeholder="Search existing members by name or role..."
                       value={memberSearch}
                       onChange={e => setMemberSearch(e.target.value)}
                       autoFocus
                     />
+                    {memberSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setMemberSearch('')}
+                        style={{ position: 'absolute', right: '10px', top: '9px', background: 'transparent', border: 'none', color: 'var(--popup-text-muted)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
                   </div>
 
                   {availableMembers.length > 0 && (
