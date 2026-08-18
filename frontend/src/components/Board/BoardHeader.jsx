@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import './BoardHeader.css';
 
-export default function BoardHeader({ project = {}, onAddTask, onAddMember }) {
+export default function BoardHeader({ project = {}, onAddTask, onAddMember, onAddTag }) {
   const [activeSubTab, setActiveSubTab] = useState('Board');
   const [projectMembers, setProjectMembers] = useState([]);
 
@@ -13,6 +13,7 @@ export default function BoardHeader({ project = {}, onAddTask, onAddMember }) {
     description = '', 
     category = 'General',
     status = 'active',
+    tags = [],
     createdAt 
   } = project;
 
@@ -36,7 +37,7 @@ export default function BoardHeader({ project = {}, onAddTask, onAddMember }) {
     fetchMembers();
   }, [projectId]);
 
-  const displayTags = [category, status === 'active' ? 'Active' : 'Archived'];
+  const displayTags = [category, status === 'active' ? 'Active' : 'Archived', ...(tags || [])];
   const displayDeadline = createdAt ? new Date(createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Ongoing';
   const displayPriority = 'Normal';
 
@@ -105,7 +106,7 @@ export default function BoardHeader({ project = {}, onAddTask, onAddMember }) {
                   {tag}
                 </span>
               ))}
-              <button className="add-tag-btn">+ Add more</button>
+              <button className="add-tag-btn" onClick={onAddTag}>+ Add more</button>
             </div>
           </div>
         </div>

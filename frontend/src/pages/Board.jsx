@@ -15,8 +15,10 @@ export default function Board() {
   // Modal states
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
+  const [isAddTagModalOpen, setIsAddTagModalOpen] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newMemberEmail, setNewMemberEmail] = useState('');
+  const [newTag, setNewTag] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -122,6 +124,45 @@ export default function Board() {
     }
   };
 
+  const handleAddTagSubmit = async (e) => {
+    e.preventDefault();
+    const currentProject = projects.find((p) => p.id === selectedProjectId) || null;
+    if (!currentProject || !newTag.trim()) return;
+    
+    setIsSubmitting(true);
+    try {
+      const token = localStorage.getItem('token');
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      
+      const existingTags = currentProject.tags || [];
+      const updatedTags = [...existingTags, newTag.trim()];
+      
+      const res = await fetch(`${apiUrl}/projects/${selectedProjectId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ tags: updatedTags })
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setProjects(projects.map(p => p.id === selectedProjectId ? data.data.project : p));
+        setIsAddTagModalOpen(false);
+        setNewTag('');
+      } else {
+        const errData = await res.json();
+        alert(errData.message || 'Failed to add tag');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error adding tag');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const currentProject = projects.find((p) => p.id === selectedProjectId) || null;
 
   return (
@@ -141,6 +182,7 @@ export default function Board() {
             project={currentProject} 
             onAddTask={() => setIsAddTaskModalOpen(true)} 
             onAddMember={() => setIsAddMemberModalOpen(true)} 
+            onAddTag={() => setIsAddTagModalOpen(true)}
           />
         )}
 
@@ -201,6 +243,31 @@ export default function Board() {
               placeholder="alex.morgan@company.com"
               value={newMemberEmail}
               onChange={(e) => setNewMemberEmail(e.target.value)}
+              required
+              autoFocus
+            />
+          </div>
+        </div>
+      </ActionModal>
+
+      {/* Add Tag Modal */}
+      <ActionModal
+        isOpen={isAddTagModalOpen}
+        onClose={() => setIsAddTagModalOpen(false)}
+        title="Add New Tag"
+        onSubmit={handleAddTagSubmit}
+        submitText="Add Tag"
+        loading={isSubmitting}
+      >
+        <div className="auth-input-group">
+          <label className="auth-label">Tag Name</label>
+          <div className="auth-input-wrapper">
+            <input
+              type="text"
+              className="auth-input"
+              placeholder="e.g. High Priority, Frontend"
+              value={newTag}
+              onChange={(e) => setNewTag(e.target.value)}
               required
               autoFocus
             />
