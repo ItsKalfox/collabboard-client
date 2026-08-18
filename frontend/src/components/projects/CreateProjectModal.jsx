@@ -367,13 +367,13 @@ export default function CreateProjectModal({
                   position: 'absolute',
                   top: '100%',
                   left: 0, right: 0,
-                  zIndex: 99,
+                  zIndex: 999,
                   maxHeight: '180px',
                   overflowY: 'auto',
-                  background: 'var(--popup-card-bg)',
-                  border: 'var(--popup-card-border)',
+                  background: theme === 'light' ? '#ffffff' : '#1a1a24',
+                  border: theme === 'light' ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.18)',
                   borderRadius: '8px',
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                  boxShadow: '0 12px 32px rgba(0,0,0,0.7)',
                   marginTop: '4px'
                 }}>
                   {availableMembers.map(emp => (
@@ -384,9 +384,9 @@ export default function CreateProjectModal({
                         display: 'flex',
                         alignItems: 'center',
                         gap: '10px',
-                        padding: '8px 12px',
+                        padding: '10px 12px',
                         cursor: 'pointer',
-                        borderBottom: '1px solid rgba(255,255,255,0.05)',
+                        borderBottom: theme === 'light' ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.06)',
                         transition: 'background 0.15s'
                       }}
                       className="member-dropdown-item"
@@ -400,8 +400,8 @@ export default function CreateProjectModal({
                         {emp.avatar ? <img src={emp.avatar} alt={emp.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : emp.initials}
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--popup-text-main)' }}>{emp.name}</span>
-                        <span style={{ fontSize: '11px', color: 'var(--popup-text-muted)' }}>{emp.role}</span>
+                        <span style={{ fontSize: '13px', fontWeight: '600', color: theme === 'light' ? '#0f172a' : '#f8fafc' }}>{emp.name}</span>
+                        <span style={{ fontSize: '11px', color: theme === 'light' ? '#64748b' : '#94a3b8' }}>{emp.role}</span>
                       </div>
                     </div>
                   ))}
@@ -410,10 +410,12 @@ export default function CreateProjectModal({
 
               {showMemberDropdown && memberSearch && availableMembers.length === 0 && (
                 <div style={{
-                  position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 99,
-                  background: 'var(--popup-card-bg)', border: 'var(--popup-card-border)',
+                  position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 999,
+                  background: theme === 'light' ? '#ffffff' : '#1a1a24',
+                  border: theme === 'light' ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.18)',
                   borderRadius: '8px', padding: '10px 12px', marginTop: '4px',
-                  fontSize: '12px', color: 'var(--popup-text-muted)', textAlign: 'center'
+                  fontSize: '12px', color: theme === 'light' ? '#64748b' : '#94a3b8', textAlign: 'center',
+                  boxShadow: '0 12px 32px rgba(0,0,0,0.7)'
                 }}>
                   No matching team members found
                 </div>
