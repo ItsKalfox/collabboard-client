@@ -261,3 +261,60 @@ export const getTaskReviews = async (req, res) => {
     }
 };
 
+export const getSubtasks = async (req, res) => {
+    try {
+        const { taskId } = req.params;
+        const tasks = getMockTasks();
+        const task = tasks.find(t => t.id === taskId);
+        
+        if (!task) {
+            return res.status(404).json({ status: 'error', message: 'Task not found' });
+        }
+        
+        res.status(200).json({
+            status: 'success',
+            data: { subtasks: task.subtasks || [] }
+        });
+    } catch (error) {
+        console.error('Error fetching subtasks:', error);
+        res.status(500).json({ status: 'error', message: 'Server error' });
+    }
+};
+
+export const createSubtask = async (req, res) => {
+    try {
+        const { taskId } = req.params;
+        const { title, completed } = req.body;
+        
+        if (!title) {
+            return res.status(400).json({ status: 'error', message: 'Title is required' });
+        }
+        
+        const tasks = getMockTasks();
+        const taskIndex = tasks.findIndex(t => t.id === taskId);
+        
+        if (taskIndex === -1) {
+            return res.status(404).json({ status: 'error', message: 'Task not found' });
+        }
+        
+        const newSubtask = {
+            id: `sub_${Date.now()}`,
+            title,
+            completed: completed || false
+        };
+        
+        if (!tasks[taskIndex].subtasks) tasks[taskIndex].subtasks = [];
+        tasks[taskIndex].subtasks.push(newSubtask);
+        
+        saveMockTasks(tasks);
+        
+        res.status(201).json({
+            status: 'success',
+            data: { subtask: newSubtask }
+        });
+    } catch (error) {
+        console.error('Error creating subtask:', error);
+        res.status(500).json({ status: 'error', message: 'Server error' });
+    }
+};
+

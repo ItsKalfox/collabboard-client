@@ -1,0 +1,20 @@
+info:
+  name: Delete Subtask
+  type: http
+  seq: 4
+
+http:
+  method: DELETE
+  url: http://localhost:5000/api/subtasks/sub_101
+  body:
+    type: json
+    data: ""
+  auth:
+    type: bearer
+    token: "{{token}}"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

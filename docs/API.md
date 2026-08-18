@@ -41,6 +41,11 @@ The API is built using **Node.js** and **Express.js** and provides authenticatio
   * [Review Task](#5-review-task)
   * [Reject Task](#6-reject-task)
   * [Get Task Reviews](#7-get-task-reviews)
+* [Subtask Endpoints](#subtask-endpoints)
+  * [Get Subtasks](#1-get-subtasks)
+  * [Create Subtask](#2-create-subtask)
+  * [Update Subtask](#3-update-subtask)
+  * [Delete Subtask](#4-delete-subtask)
 * [Dashboard Endpoints](#dashboard-endpoints)
   * [Get Timeline](#1-get-timeline)
   * [Get Ongoing Projects Stats](#2-get-ongoing-projects-stats)
@@ -2445,6 +2450,162 @@ GET /api/tasks/:taskId/reviews
 
 
 
+
+---
+
+# Subtask Endpoints
+
+## 1. Get Subtasks
+
+Retrieves all subtasks for a specific task.
+
+**Endpoint:**
+
+```http
+GET /api/tasks/:taskId/subtasks
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "subtasks": [
+      {
+        "id": "sub_101",
+        "title": "Desktop navbar layout",
+        "completed": true
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 2. Create Subtask
+
+Creates a new subtask within a specific task.
+
+**Endpoint:**
+
+```http
+POST /api/tasks/:taskId/subtasks
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Request Body:**
+
+```json
+{
+  "title": "Design Database Schema",
+  "completed": false
+}
+```
+
+**Response:**
+
+`201 Created`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "subtask": {
+      "id": "sub_102",
+      "title": "Design Database Schema",
+      "completed": false
+    }
+  }
+}
+```
+
+---
+
+## 3. Update Subtask
+
+Updates an existing subtask (e.g., mark as completed).
+
+**Endpoint:**
+
+```http
+PATCH /api/subtasks/:subtaskId
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `subtaskId` (URL Parameter): The unique ID of the subtask.
+
+**Request Body (Partial):**
+
+```json
+{
+  "completed": true,
+  "title": "Updated Title"
+}
+```
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "subtask": {
+      "id": "sub_102",
+      "title": "Updated Title",
+      "completed": true
+    }
+  }
+}
+```
+
+---
+
+## 4. Delete Subtask
+
+Deletes a specific subtask.
+
+**Endpoint:**
+
+```http
+DELETE /api/subtasks/:subtaskId
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `subtaskId` (URL Parameter): The unique ID of the subtask.
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Subtask deleted successfully"
+}
+```
 
 ---
 

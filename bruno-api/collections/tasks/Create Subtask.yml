@@ -1,0 +1,24 @@
+info:
+  name: Create Subtask
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://localhost:5000/api/tasks/101/subtasks
+  body:
+    type: json
+    data: |
+      {
+        "title": "New Subtask",
+        "completed": false
+      }
+  auth:
+    type: bearer
+    token: "{{token}}"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
