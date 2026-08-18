@@ -1,0 +1,20 @@
+info:
+  name: Delete Task Image
+  type: http
+  seq: 9
+
+http:
+  method: DELETE
+  url: http://localhost:5000/api/tasks/101/image
+  body:
+    type: json
+    data: ""
+  auth:
+    type: bearer
+    token: "{{token}}"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

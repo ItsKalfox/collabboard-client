@@ -1,0 +1,22 @@
+info:
+  name: Add Task Attachment
+  type: http
+  seq: 11
+
+http:
+  method: POST
+  url: http://localhost:5000/api/tasks/101/attachments
+  body:
+    type: multipartForm
+    multipartForm:
+      - name: file
+        value: "@file()"
+  auth:
+    type: bearer
+    token: "{{token}}"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

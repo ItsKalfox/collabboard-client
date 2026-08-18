@@ -41,6 +41,19 @@ The API is built using **Node.js** and **Express.js** and provides authenticatio
   * [Review Task](#5-review-task)
   * [Reject Task](#6-reject-task)
   * [Get Task Reviews](#7-get-task-reviews)
+  * [Upload Task Image](#8-upload-task-image)
+  * [Delete Task Image](#9-delete-task-image)
+* [Attachment Endpoints](#attachment-endpoints)
+  * [Get Task Attachments](#1-get-task-attachments)
+  * [Add Task Attachment](#2-add-task-attachment)
+  * [Get Attachment by ID](#3-get-attachment-by-id)
+  * [Delete Attachment](#4-delete-attachment)
+* [Subtask Endpoints](#subtask-endpoints)
+  * [Get Subtasks](#1-get-subtasks)
+  * [Create Subtask](#2-create-subtask)
+  * [Update Subtasks List](#3-update-subtasks-list)
+  * [Update Subtask](#4-update-subtask)
+  * [Delete Subtask](#5-delete-subtask)
 * [Dashboard Endpoints](#dashboard-endpoints)
   * [Get Timeline](#1-get-timeline)
   * [Get Ongoing Projects Stats](#2-get-ongoing-projects-stats)
@@ -2442,9 +2455,446 @@ GET /api/tasks/:taskId/reviews
 }
 ```
 
+---
 
+## 8. Upload Task Image
 
+Uploads an image attachment for a task.
 
+**Endpoint:**
+
+```http
+POST /api/tasks/:taskId/image
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Request Body (multipart/form-data):**
+
+*   `image`: The image file to upload.
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Task image uploaded successfully",
+  "data": {
+    "imageUrl": "https://res.cloudinary.com/..."
+  }
+}
+```
+
+---
+
+## 9. Delete Task Image
+
+Deletes the uploaded image for a task.
+
+**Endpoint:**
+
+```http
+DELETE /api/tasks/:taskId/image
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Task image deleted successfully"
+}
+```
+
+---
+
+# Attachment Endpoints
+
+## 1. Get Task Attachments
+
+Retrieves all attachments for a specific task.
+
+**Endpoint:**
+
+```http
+GET /api/tasks/:taskId/attachments
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "attachments": [
+      {
+        "id": "att_001",
+        "taskId": "task_101",
+        "filename": "document.pdf",
+        "url": "https://res.cloudinary.com/...",
+        "publicId": "collabboard/attachments/tasks/task_101/att_001",
+        "mimeType": "application/pdf",
+        "size": 204800,
+        "uploadedBy": "user_id_here",
+        "uploadedAt": "2026-08-11T15:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 2. Add Task Attachment
+
+Uploads a new attachment to a specific task.
+
+**Endpoint:**
+
+```http
+POST /api/tasks/:taskId/attachments
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Request Body (multipart/form-data):**
+
+*   `file`: The file to upload.
+
+**Response:**
+
+`201 Created`
+
+```json
+{
+  "status": "success",
+  "message": "Attachment uploaded successfully",
+  "data": {
+    "attachment": {
+      "id": "att_002",
+      "taskId": "task_101",
+      "filename": "image.png",
+      "url": "https://res.cloudinary.com/...",
+      "publicId": "collabboard/attachments/tasks/task_101/att_002",
+      "mimeType": "image/png",
+      "size": 102400,
+      "uploadedBy": "user_id_here",
+      "uploadedAt": "2026-08-11T15:30:00.000Z"
+    }
+  }
+}
+```
+
+---
+
+## 3. Get Attachment by ID
+
+Retrieves details of a specific attachment by its ID.
+
+**Endpoint:**
+
+```http
+GET /api/attachments/:attachmentId
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `attachmentId` (URL Parameter): The unique ID of the attachment.
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "attachment": {
+      "id": "att_001",
+      "taskId": "task_101",
+      "filename": "document.pdf",
+      "url": "https://res.cloudinary.com/...",
+      "publicId": "collabboard/attachments/tasks/task_101/att_001",
+      "mimeType": "application/pdf",
+      "size": 204800,
+      "uploadedBy": "user_id_here",
+      "uploadedAt": "2026-08-11T15:00:00.000Z"
+    }
+  }
+}
+```
+
+---
+
+## 4. Delete Attachment
+
+Deletes a specific attachment by its ID.
+
+**Endpoint:**
+
+```http
+DELETE /api/attachments/:attachmentId
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `attachmentId` (URL Parameter): The unique ID of the attachment.
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Attachment deleted successfully"
+}
+```---
+
+# Subtask Endpoints
+
+## 1. Get Subtasks
+
+Retrieves all subtasks for a specific task.
+
+**Endpoint:**
+
+```http
+GET /api/tasks/:taskId/subtasks
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "subtasks": [
+      {
+        "id": "sub_101",
+        "title": "Desktop navbar layout",
+        "completed": true
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 2. Create Subtask
+
+Creates a new subtask within a specific task.
+
+**Endpoint:**
+
+```http
+POST /api/tasks/:taskId/subtasks
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Request Body:**
+
+```json
+{
+  "title": "Design Database Schema",
+  "completed": false
+}
+```
+
+**Response:**
+
+`201 Created`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "subtask": {
+      "id": "sub_102",
+      "title": "Design Database Schema",
+      "completed": false
+    }
+  }
+}
+```
+
+---
+
+## 3. Update Subtasks List
+
+Updates the entire list of subtasks for a specific task (e.g., for reordering).
+
+**Endpoint:**
+
+```http
+PATCH /api/tasks/:taskId/subtasks
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Request Body:**
+
+```json
+{
+  "subtasks": [
+    {
+      "id": "sub_101",
+      "title": "Desktop navbar layout",
+      "completed": true
+    },
+    {
+      "id": "sub_102",
+      "title": "Design Database Schema",
+      "completed": false
+    }
+  ]
+}
+```
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "subtasks": [
+      {
+        "id": "sub_101",
+        "title": "Desktop navbar layout",
+        "completed": true
+      },
+      {
+        "id": "sub_102",
+        "title": "Design Database Schema",
+        "completed": false
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 4. Update Subtask
+
+Updates an existing subtask (e.g., mark as completed).
+
+**Endpoint:**
+
+```http
+PATCH /api/subtasks/:subtaskId
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `subtaskId` (URL Parameter): The unique ID of the subtask.
+
+**Request Body (Partial):**
+
+```json
+{
+  "completed": true,
+  "title": "Updated Title"
+}
+```
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "subtask": {
+      "id": "sub_102",
+      "title": "Updated Title",
+      "completed": true
+    }
+  }
+}
+```
+
+---
+
+## 5. Delete Subtask
+
+Deletes a specific subtask.
+
+**Endpoint:**
+
+```http
+DELETE /api/subtasks/:subtaskId
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `subtaskId` (URL Parameter): The unique ID of the subtask.
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Subtask deleted successfully"
+}
+```
 
 ---
 
