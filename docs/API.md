@@ -44,8 +44,9 @@ The API is built using **Node.js** and **Express.js** and provides authenticatio
 * [Subtask Endpoints](#subtask-endpoints)
   * [Get Subtasks](#1-get-subtasks)
   * [Create Subtask](#2-create-subtask)
-  * [Update Subtask](#3-update-subtask)
-  * [Delete Subtask](#4-delete-subtask)
+  * [Update Subtasks List](#3-update-subtasks-list)
+  * [Update Subtask](#4-update-subtask)
+  * [Delete Subtask](#5-delete-subtask)
 * [Dashboard Endpoints](#dashboard-endpoints)
   * [Get Timeline](#1-get-timeline)
   * [Get Ongoing Projects Stats](#2-get-ongoing-projects-stats)
@@ -2536,7 +2537,68 @@ POST /api/tasks/:taskId/subtasks
 
 ---
 
-## 3. Update Subtask
+## 3. Update Subtasks List
+
+Updates the entire list of subtasks for a specific task (e.g., for reordering).
+
+**Endpoint:**
+
+```http
+PATCH /api/tasks/:taskId/subtasks
+```
+
+**Authentication:** Required (Bearer Token)
+
+**Parameters:**
+
+*   `taskId` (URL Parameter): The unique ID of the task.
+
+**Request Body:**
+
+```json
+{
+  "subtasks": [
+    {
+      "id": "sub_101",
+      "title": "Desktop navbar layout",
+      "completed": true
+    },
+    {
+      "id": "sub_102",
+      "title": "Design Database Schema",
+      "completed": false
+    }
+  ]
+}
+```
+
+**Response:**
+
+`200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "subtasks": [
+      {
+        "id": "sub_101",
+        "title": "Desktop navbar layout",
+        "completed": true
+      },
+      {
+        "id": "sub_102",
+        "title": "Design Database Schema",
+        "completed": false
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 4. Update Subtask
 
 Updates an existing subtask (e.g., mark as completed).
 
@@ -2580,7 +2642,7 @@ PATCH /api/subtasks/:subtaskId
 
 ---
 
-## 4. Delete Subtask
+## 5. Delete Subtask
 
 Deletes a specific subtask.
 

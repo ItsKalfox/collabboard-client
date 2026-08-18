@@ -318,3 +318,32 @@ export const createSubtask = async (req, res) => {
     }
 };
 
+export const updateSubtasksList = async (req, res) => {
+    try {
+        const { taskId } = req.params;
+        const { subtasks } = req.body;
+        
+        if (!Array.isArray(subtasks)) {
+            return res.status(400).json({ status: 'error', message: 'Subtasks array is required' });
+        }
+        
+        const tasks = getMockTasks();
+        const taskIndex = tasks.findIndex(t => t.id === taskId);
+        
+        if (taskIndex === -1) {
+            return res.status(404).json({ status: 'error', message: 'Task not found' });
+        }
+        
+        tasks[taskIndex].subtasks = subtasks;
+        
+        saveMockTasks(tasks);
+        
+        res.status(200).json({
+            status: 'success',
+            data: { subtasks: tasks[taskIndex].subtasks }
+        });
+    } catch (error) {
+        console.error('Error updating subtasks list:', error);
+        res.status(500).json({ status: 'error', message: 'Server error' });
+    }
+};

@@ -1,5 +1,5 @@
 import express from 'express';
-import { getTaskById, updateTask, deleteTask, updateTaskStatus, reviewTask, rejectTask, getTaskReviews, getSubtasks, createSubtask } from '../controllers/taskController.js';
+import { getTaskById, updateTask, deleteTask, updateTaskStatus, reviewTask, rejectTask, getTaskReviews, getSubtasks, createSubtask, updateSubtasksList } from '../controllers/taskController.js';
 import { protect } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
@@ -15,5 +15,6 @@ router.get('/:taskId/reviews', protect, getTaskReviews);
 // Subtask endpoints
 router.get('/:taskId/subtasks', protect, getSubtasks);
 router.post('/:taskId/subtasks', protect, createSubtask);
+router.patch('/:taskId/subtasks', protect, updateSubtasksList);
 
 export default router;

@@ -1,0 +1,34 @@
+info:
+  name: Update Subtasks List
+  type: http
+  seq: 5
+
+http:
+  method: PATCH
+  url: http://localhost:5000/api/tasks/101/subtasks
+  body:
+    type: json
+    data: |
+      {
+        "subtasks": [
+          {
+            "id": "sub_101",
+            "title": "Desktop navbar layout",
+            "completed": true
+          },
+          {
+            "id": "sub_102",
+            "title": "Design Database Schema",
+            "completed": false
+          }
+        ]
+      }
+  auth:
+    type: bearer
+    token: "{{token}}"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
