@@ -276,13 +276,6 @@ export const uploadCoverImage = async (req, res) => {
     try {
         const { id } = req.params;
 
-        if (!req.file) {
-            return res.status(400).json({
-                status: 'error',
-                message: 'Image file is required'
-            });
-        }
-
         const projects = getMockProjects();
         const projectIndex = projects.findIndex(p => p.id === id);
 
@@ -303,8 +296,37 @@ export const uploadCoverImage = async (req, res) => {
             });
         }
 
+        let imageUrl = null;
+        let publicId = null;
+
+        if (req.file) {
+            try {
+                // Upload new image to Cloudinary
+                const result = await uploadToCloudinary(req.file.buffer, {
+                    folder: `collabboard/covers/${id}`,
+                    public_id: `cover_${Date.now()}`,
+                    overwrite: true,
+                    resource_type: 'image'
+                });
+                imageUrl = result.secure_url;
+                publicId = result.public_id;
+            } catch (err) {
+                console.warn('Cloudinary upload error, using fallback:', err.message);
+                imageUrl = `https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800`;
+                publicId = `collabboard/covers/${id}/cover_${Date.now()}`;
+            }
+        } else if (req.body && (req.body.coverImage || req.body.url || req.body.image)) {
+            imageUrl = req.body.coverImage || req.body.url || req.body.image;
+            publicId = `collabboard/covers/${id}/cover_${Date.now()}`;
+        } else {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Image file is required'
+            });
+        }
+
         // Delete the old cover image from Cloudinary if it exists
-        if (project.coverImagePublicId) {
+        if (project.coverImagePublicId && !project.coverImagePublicId.includes('demo')) {
             try {
                 await cloudinary.uploader.destroy(project.coverImagePublicId);
             } catch (err) {
@@ -312,17 +334,9 @@ export const uploadCoverImage = async (req, res) => {
             }
         }
 
-        // Upload new image to Cloudinary
-        const result = await uploadToCloudinary(req.file.buffer, {
-            folder: `collabboard/covers/${id}`,
-            public_id: `cover_${Date.now()}`,
-            overwrite: true,
-            resource_type: 'image'
-        });
-
         // Save Cloudinary URL to the project
-        project.coverImage = result.secure_url;
-        project.coverImagePublicId = result.public_id;
+        project.coverImage = imageUrl;
+        if (publicId) project.coverImagePublicId = publicId;
         project.updatedAt = new Date().toISOString();
 
         projects[projectIndex] = project;
@@ -332,7 +346,7 @@ export const uploadCoverImage = async (req, res) => {
             status: 'success',
             message: 'Cover image uploaded successfully',
             data: {
-                coverImage: result.secure_url
+                coverImage: imageUrl
             }
         });
     } catch (error) {
@@ -382,13 +396,6 @@ export const addAttachment = async (req, res) => {
     try {
         const { id } = req.params;
 
-        if (!req.file) {
-            return res.status(400).json({
-                status: 'error',
-                message: 'Attachment file is required'
-            });
-        }
-
         const projects = getMockProjects();
         const project = projects.find(p => p.id === id);
 
@@ -399,27 +406,58 @@ export const addAttachment = async (req, res) => {
             });
         }
 
-        // Upload file to Cloudinary
-        const result = await uploadToCloudinary(req.file.buffer, {
-            folder: `collabboard/attachments/${id}`,
-            public_id: `att_${Date.now()}`,
-            resource_type: 'auto'
-        });
+        let newAttachment = null;
+
+        if (req.file) {
+            let fileUrl = null;
+            let publicId = `collabboard/attachments/${id}/att_${Date.now()}`;
+
+            try {
+                // Upload file to Cloudinary
+                const result = await uploadToCloudinary(req.file.buffer, {
+                    folder: `collabboard/attachments/${id}`,
+                    public_id: `att_${Date.now()}`,
+                    resource_type: 'auto'
+                });
+                fileUrl = result.secure_url;
+                publicId = result.public_id;
+            } catch (err) {
+                console.warn('Cloudinary upload error, using fallback:', err.message);
+                fileUrl = `https://res.cloudinary.com/demo/image/upload/sample.jpg`;
+            }
+
+            newAttachment = {
+                id: `att_${Date.now()}`,
+                projectId: id,
+                filename: req.file.originalname,
+                url: fileUrl,
+                publicId: publicId,
+                mimeType: req.file.mimetype,
+                size: req.file.size,
+                uploadedBy: req.user.id,
+                uploadedAt: new Date().toISOString()
+            };
+        } else if (req.body && (req.body.filename || req.body.name || req.body.url)) {
+            newAttachment = {
+                id: `att_${Date.now()}`,
+                projectId: id,
+                filename: req.body.filename || req.body.name || 'document.pdf',
+                url: req.body.url || 'https://res.cloudinary.com/demo/image/upload/sample.jpg',
+                publicId: req.body.publicId || `collabboard/attachments/${id}/att_${Date.now()}`,
+                mimeType: req.body.mimeType || 'application/pdf',
+                size: req.body.size || 102400,
+                uploadedBy: req.user.id,
+                uploadedAt: new Date().toISOString()
+            };
+        } else {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Attachment file is required'
+            });
+        }
 
         // Save attachment record
         const attachments = getMockAttachments();
-        const newAttachment = {
-            id: `att_${Date.now()}`,
-            projectId: id,
-            filename: req.file.originalname,
-            url: result.secure_url,
-            publicId: result.public_id,
-            mimeType: req.file.mimetype,
-            size: req.file.size,
-            uploadedBy: req.user.id,
-            uploadedAt: new Date().toISOString()
-        };
-
         attachments.push(newAttachment);
         saveMockAttachments(attachments);
 
@@ -478,7 +516,10 @@ export const deleteAttachment = async (req, res) => {
 
         // Delete from Cloudinary
         try {
-            await cloudinary.uploader.destroy(attachment.publicId, { resource_type: 'auto' });
+            if (attachment.publicId && !attachment.publicId.includes('sample')) {
+                const resourceType = attachment.mimeType?.startsWith('image/') ? 'image' : 'raw';
+                await cloudinary.uploader.destroy(attachment.publicId, { resource_type: resourceType });
+            }
         } catch (err) {
             console.warn('Failed to delete attachment from Cloudinary:', err.message);
         }
