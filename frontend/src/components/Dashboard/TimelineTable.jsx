@@ -1,103 +1,7 @@
 import { useState } from 'react';
+import { useDashboardTimeline } from '../../hooks/useDashboardData';
+import { Loader2, AlertCircle } from 'lucide-react';
 import './TimelineTable.css';
-
-const INITIAL_TIMELINE_DATA = [
-  {
-    id: '1',
-    category: 'Design',
-    items: [
-      {
-        id: 'item-1',
-        title: 'about 3 hours',
-        startTime: '13:30', // 1:30 PM
-        endTime: '16:30',   // 4:30 PM
-        avatars: [
-          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
-        ],
-        hasPlus: true,
-      },
-    ],
-  },
-  {
-    id: '2',
-    category: 'Mobile Apps',
-    items: [
-      {
-        id: 'item-2',
-        title: 'about 2 hours',
-        startTime: '14:15', // 2:15 PM
-        endTime: '15:45',   // 3:45 PM
-        avatars: [
-          'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80',
-        ],
-        hasPlus: false,
-      },
-    ],
-  },
-  {
-    id: '3',
-    category: 'Infography',
-    items: [
-      {
-        id: 'item-3a',
-        title: 'about 2 hours',
-        startTime: '15:15', // 3:15 PM
-        endTime: '16:30',   // 4:30 PM
-        avatars: [
-          'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
-          'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&auto=format&fit=crop&q=80',
-        ],
-        hasPlus: true,
-      },
-      {
-        id: 'item-3b',
-        title: 'about 2 hours',
-        startTime: '18:00', // 6:00 PM
-        endTime: '19:45',   // 7:45 PM
-        topLabel: 'vacations',
-        avatars: [
-          'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=100&auto=format&fit=crop&q=80',
-          'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
-        ],
-        hasPlus: true,
-      },
-    ],
-  },
-  {
-    id: '4',
-    category: 'Wireframes',
-    items: [
-      {
-        id: 'item-4',
-        title: 'about 3 hours',
-        startTime: '16:00', // 4:00 PM
-        endTime: '18:30',   // 6:30 PM
-        avatars: [
-          'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&auto=format&fit=crop&q=80',
-          'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=100&auto=format&fit=crop&q=80',
-        ],
-        hasPlus: false,
-      },
-    ],
-  },
-  {
-    id: '5',
-    category: 'Team Management',
-    items: [
-      {
-        id: 'item-5',
-        title: 'about 1 hour',
-        startTime: '16:45', // 4:45 PM
-        endTime: '17:45',   // 5:45 PM
-        avatars: [
-          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
-        ],
-        hasPlus: false,
-      },
-    ],
-  },
-];
 
 const TIME_SLOTS = [
   '1 PM',
@@ -112,6 +16,7 @@ const TIME_SLOTS = [
 
 // Start time is 1 PM (13:00) and End time is 8 PM (20:00) => 7 hours = 420 mins
 const START_HOUR_MINS = 13 * 60;
+const END_HOUR_MINS = 20 * 60;
 const TOTAL_SPAN_MINS = 7 * 60;
 
 function timeToMinutes(timeStr) {
@@ -119,9 +24,25 @@ function timeToMinutes(timeStr) {
   return h * 60 + m;
 }
 
+function extractTime(isoString) {
+  if (!isoString) return '00:00';
+  const date = new Date(isoString);
+  return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+}
+
 function calculatePosition(startTime, endTime) {
-  const startMins = timeToMinutes(startTime);
-  const endMins = timeToMinutes(endTime);
+  let startMins = timeToMinutes(startTime);
+  let endMins = timeToMinutes(endTime);
+
+  // Clamp values to timeline bounds
+  if (startMins < START_HOUR_MINS) startMins = START_HOUR_MINS;
+  if (endMins > END_HOUR_MINS) endMins = END_HOUR_MINS;
+  if (startMins > endMins) startMins = endMins; 
+
+  // Hide if entirely outside the bounds
+  if (endMins <= START_HOUR_MINS || startMins >= END_HOUR_MINS) {
+      return { left: '0%', width: '0%', display: 'none' };
+  }
 
   const leftPercent = Math.max(0, ((startMins - START_HOUR_MINS) / TOTAL_SPAN_MINS) * 100);
   const widthPercent = Math.min(100 - leftPercent, ((endMins - startMins) / TOTAL_SPAN_MINS) * 100);
@@ -135,6 +56,9 @@ function calculatePosition(startTime, endTime) {
 export default function TimelineTable() {
   const [activeFilter, setActiveFilter] = useState('Day');
   const [selectedDate] = useState('JUNE 1, 2023');
+  
+  const { data: timelineResponse, loading, error, refetch } = useDashboardTimeline();
+  const timelineData = timelineResponse?.data || [];
 
   const filterOptions = ['Day', 'Week', 'Month', 'Year'];
 
@@ -176,79 +100,94 @@ export default function TimelineTable() {
 
       {/* Timeline Grid Body */}
       <div className="timeline-body">
-        <div className="timeline-grid-wrapper">
-          {/* Rows Container */}
-          <div className="timeline-rows-container">
-            {INITIAL_TIMELINE_DATA.map((row) => (
-              <div key={row.id} className="timeline-row">
-                {/* Category Label */}
-                <div className="timeline-category-label">
-                  {row.category}
-                </div>
-
-                {/* Timeline Track */}
-                <div className="timeline-track">
-                  {/* Vertical Grid lines corresponding to hours */}
-                  <div className="timeline-grid-lines">
-                    {TIME_SLOTS.map((slot, index) => (
-                      <div key={slot + index} className="timeline-grid-line" />
-                    ))}
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px', color: '#6b7280' }}>
+            <Loader2 className="animate-spin" style={{ marginRight: '8px' }} /> Loading timeline...
+          </div>
+        ) : error ? (
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '200px', color: '#ef4444' }}>
+            <AlertCircle style={{ marginBottom: '8px' }} />
+            <p>{error}</p>
+            <button 
+              onClick={refetch} 
+              style={{ marginTop: '12px', padding: '6px 12px', backgroundColor: '#e5e7eb', borderRadius: '4px', color: '#374151', cursor: 'pointer', border: 'none' }}
+            >
+              Retry
+            </button>
+          </div>
+        ) : (
+          <div className="timeline-grid-wrapper">
+            {/* Rows Container */}
+            <div className="timeline-rows-container">
+              {timelineData.map((row) => (
+                <div key={row.trackId} className="timeline-row">
+                  {/* Category Label */}
+                  <div className="timeline-category-label">
+                    {row.trackName}
                   </div>
 
-                  {/* Task Pills */}
-                  {row.items.map((item) => {
-                    const pos = calculatePosition(item.startTime, item.endTime);
-                    return (
-                      <div
-                        key={item.id}
-                        className="timeline-pill-wrapper"
-                        style={{ left: pos.left, width: pos.width }}
-                      >
-                        {item.topLabel && (
-                          <div className="timeline-top-label">{item.topLabel}</div>
-                        )}
-                        <div className="timeline-pill">
-                          <span className="timeline-pill-title">{item.title}</span>
+                  {/* Timeline Track */}
+                  <div className="timeline-track">
+                    {/* Vertical Grid lines corresponding to hours */}
+                    <div className="timeline-grid-lines">
+                      {TIME_SLOTS.map((slot, index) => (
+                        <div key={slot + index} className="timeline-grid-line" />
+                      ))}
+                    </div>
 
-                          <div className="timeline-avatar-group">
-                            {item.avatars.map((url, i) => (
-                              <img
-                                key={i}
-                                src={url}
-                                alt="Assignee avatar"
-                                className="timeline-avatar"
-                              />
-                            ))}
-                            {item.hasPlus && (
-                              <div className="timeline-plus-badge">
-                                <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" strokeWidth="2.5" fill="none">
-                                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
-                              </div>
-                            )}
+                    {/* Task Pills */}
+                    {row.tasks?.map((item) => {
+                      const pos = calculatePosition(extractTime(item.startDate), extractTime(item.dueDate));
+                      return (
+                        <div
+                          key={item.id}
+                          className="timeline-pill-wrapper"
+                          style={{ left: pos.left, width: pos.width, display: pos.display }}
+                        >
+                          {item.priority && (
+                            <div className="timeline-top-label">{item.priority}</div>
+                          )}
+                          <div className="timeline-pill" title={item.title}>
+                            <span className="timeline-pill-title">{item.duration || item.title}</span>
+
+                            <div className="timeline-avatar-group">
+                              {item.assignee && (
+                                <img
+                                  src={item.assignee.avatar}
+                                  alt={item.assignee.name}
+                                  className="timeline-avatar"
+                                  title={item.assignee.name}
+                                />
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Time Scale Footer */}
-          <div className="timeline-footer">
-            <div className="timeline-category-spacer" />
-            <div className="timeline-time-slots">
-              {TIME_SLOTS.map((slot) => (
-                <div key={slot} className="timeline-time-slot">
-                  {slot}
+                      );
+                    })}
+                  </div>
                 </div>
               ))}
+
+              {timelineData.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '32px', color: '#6b7280' }}>
+                  No timeline data available.
+                </div>
+              )}
+            </div>
+
+            {/* Time Scale Footer */}
+            <div className="timeline-footer">
+              <div className="timeline-category-spacer" />
+              <div className="timeline-time-slots">
+                {TIME_SLOTS.map((slot) => (
+                  <div key={slot} className="timeline-time-slot">
+                    {slot}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
