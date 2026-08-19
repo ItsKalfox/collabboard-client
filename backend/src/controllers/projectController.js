@@ -137,7 +137,7 @@ export const getProjectById = (req, res) => {
 // POST /api/projects
 export const createProject = (req, res) => {
     try {
-        const { name, description, status } = req.body;
+        const { name, description, status, category, members, dueDate, coverImage, color } = req.body;
 
         if (!name) {
             return res.status(400).json({
@@ -153,8 +153,18 @@ export const createProject = (req, res) => {
             name,
             description: description || '',
             status: status || 'active',
+            category: category || 'Design Reviews',
+            color: color || 'blue',
             ownerId: req.user.id,
-            coverImage: null,
+            coverImage: coverImage || null,
+            dueDate: dueDate || null,
+            members: members && Array.isArray(members) && members.length > 0 ? members : [
+                {
+                    userId: req.user.id,
+                    role: 'owner',
+                    joinedAt: new Date().toISOString()
+                }
+            ],
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };

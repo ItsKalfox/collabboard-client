@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Plus, Trash2, Calendar, Search } from 'lucide-react';
+import { X, Plus, Trash2, Calendar, Search, AlertCircle } from 'lucide-react';
 import { MOCK_MEMBERS, normalizeMember } from '../../mock/mockMembers';
+import { createProject, uploadCoverImage, uploadAttachment } from '../../services/projectService';
 import '../TaskPopup/TaskPopup.css';
 import './projects.css';
 
@@ -18,7 +19,12 @@ export default function CreateProjectModal({
   const [dueDate, setDueDate] = useState('');
 
   const [projectImage, setProjectImage] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
   const [documents, setDocuments] = useState([]);
+  const [docFiles, setDocFiles] = useState([]);
+  
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
   
   const imageInputRef = useRef();
   const docInputRef = useRef();
@@ -38,12 +44,16 @@ export default function CreateProjectModal({
     setDescription('');
     setDueDate('');
     setProjectImage(null);
+    setImageFile(null);
     setDocuments([]);
+    setDocFiles([]);
     setMemberSearch('');
     setMembers([]);
     setNewTaskTitle('');
     setTasks([]);
     setNewSubtaskTitles({});
+    setError('');
+    setIsSubmitting(false);
   }, []);
 
   const handleClose = useCallback(() => {
@@ -74,6 +84,7 @@ export default function CreateProjectModal({
   const handleImageUpload = (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      setImageFile(file);
       const imageUrl = URL.createObjectURL(file);
       setProjectImage(imageUrl);
     }
@@ -81,11 +92,13 @@ export default function CreateProjectModal({
 
   const handleDocUpload = (e) => {
     if (e.target.files) {
-      const newDocs = Array.from(e.target.files).map(f => ({
+      const filesArray = Array.from(e.target.files);
+      setDocFiles(prev => [...prev, ...filesArray]);
+      const newDocs = filesArray.map(f => ({
         name: f.name,
         size: (f.size / 1024 / 1024).toFixed(2) + ' MB'
       }));
-      setDocuments([...documents, ...newDocs]);
+      setDocuments(prev => [...prev, ...newDocs]);
     }
   };
 
@@ -109,51 +122,103 @@ export default function CreateProjectModal({
     setMembers(members.filter(m => m.name !== memberName));
   };
 
-  const handleSubmit = () => {
-    if (!name.trim()) return;
+  const handleSubmit = async () => {
+    if (!name.trim() || isSubmitting) return;
 
-    // Owner is automatically current logged-in user
-    const ownerName = typeof currentUser === 'string' ? currentUser : (currentUser?.name || 'Alex Johnson');
-    const ownerMember = normalizeMember(ownerName);
+    setIsSubmitting(true);
+    setError('');
 
-    // Ensure owner is included in members list
-    let finalMembers = [...members];
-    if (!finalMembers.some(m => m.name === ownerName)) {
-      finalMembers.unshift(ownerMember);
-    }
+    try {
+      // Owner is automatically current logged-in user
+      const ownerName = typeof currentUser === 'string' ? currentUser : (currentUser?.name || 'Alex Johnson');
+      const ownerMember = normalizeMember(ownerName);
 
-    // Format display date if date picker date is provided (e.g. YYYY-MM-DD -> DD MMM YYYY)
-    let formattedDueDate = dueDate;
-    if (dueDate && dueDate.includes('-')) {
-      const parts = dueDate.split('-');
-      const d = new Date(parts[0], parts[1] - 1, parts[2]);
-      if (!isNaN(d.getTime())) {
-        formattedDueDate = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      // Ensure owner is included in members list
+      let finalMembers = [...members];
+      if (!finalMembers.some(m => m.name === ownerName)) {
+        finalMembers.unshift(ownerMember);
       }
+
+      // Format display date if date picker date is provided (e.g. YYYY-MM-DD -> DD MMM YYYY)
+      let formattedDueDate = dueDate;
+      if (dueDate && dueDate.includes('-')) {
+        const parts = dueDate.split('-');
+        const d = new Date(parts[0], parts[1] - 1, parts[2]);
+        if (!isNaN(d.getTime())) {
+          formattedDueDate = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+      }
+
+      // Prepare project data for backend API POST /projects
+      const projectPayload = {
+        name: name.trim(),
+        description: description.trim(),
+        status: 'active',
+        dueDate: dueDate || null,
+        members: finalMembers.map(m => ({
+          userId: m.id || m.userId || (m.name === ownerName ? (currentUser?.id || undefined) : undefined),
+          name: m.name,
+          email: m.email || undefined,
+          role: m.role || 'member'
+        }))
+      };
+
+      // Call backend API POST /projects
+      const createdProject = await createProject(projectPayload);
+
+      let finalCoverImage = createdProject?.coverImage || null;
+
+      // If a cover image file was selected, upload it to /api/projects/:id/cover-image
+      if (imageFile && createdProject?.id) {
+        try {
+          finalCoverImage = await uploadCoverImage(createdProject.id, imageFile);
+        } catch (imgErr) {
+          console.warn('Cover image upload warning:', imgErr.message);
+        }
+      }
+
+      // If document attachments were selected, upload them to /api/projects/:id/attachments
+      if (docFiles.length > 0 && createdProject?.id) {
+        for (const docFile of docFiles) {
+          try {
+            await uploadAttachment(createdProject.id, docFile);
+          } catch (docErr) {
+            console.warn('Attachment upload warning:', docErr.message);
+          }
+        }
+      }
+
+      const createdToday = new Date(createdProject?.createdAt || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+      // Assemble final project with backend response as the base
+      const projectForUI = {
+        ...createdProject,
+        id: createdProject?.id || `proj-${Date.now()}`,
+        name: createdProject?.name || name.trim(),
+        description: createdProject?.description || description.trim(),
+        owner: ownerName,
+        ownerId: createdProject?.ownerId || currentUser?.id,
+        members: finalMembers,
+        createdDate: createdToday,
+        dueDate: formattedDueDate || undefined,
+        rawDueDate: dueDate,
+        coverImage: finalCoverImage || projectImage,
+        image: finalCoverImage || projectImage,
+        documents: documents,
+        status: createdProject?.status || 'active',
+        progress: 0,
+        tasks: tasks
+      };
+
+      onCreate(projectForUI);
+      resetForm();
+      onClose();
+    } catch (err) {
+      console.error('Error creating project:', err);
+      setError(err.message || 'Failed to create project. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const createdToday = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-
-    const newProject = {
-      id: `proj-${Date.now()}`,
-      name: name.trim(),
-      description: description.trim(),
-      owner: ownerName,
-      members: finalMembers,
-      createdDate: createdToday,
-      dueDate: formattedDueDate || undefined,
-      rawDueDate: dueDate,
-      coverImage: projectImage,
-      image: projectImage,
-      documents,
-      status: 'Planning',
-      progress: 0,
-      tasks: tasks
-    };
-
-    onCreate(newProject);
-    resetForm();
-    onClose();
   };
 
   // Task Handlers
@@ -211,6 +276,25 @@ export default function CreateProjectModal({
         </div>
 
         <div className="popup-content" style={{ overflowY: 'auto', padding: '0 20px 20px', maxHeight: 'calc(100vh - 140px)' }}>
+          {/* Error Message */}
+          {error && (
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.15)',
+              border: '1px solid rgba(239, 68, 68, 0.35)',
+              color: theme === 'light' ? '#b91c1c' : '#fca5a5',
+              padding: '10px 14px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              marginBottom: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <AlertCircle size={16} style={{ flexShrink: 0 }} />
+              <span>{error}</span>
+            </div>
+          )}
+
           {/* Title */}
           <input
             className="popup-title-input"
@@ -534,9 +618,9 @@ export default function CreateProjectModal({
 
         {/* Footer */}
         <div style={{ padding: '16px 20px', display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: 'var(--popup-divider)' }}>
-          <button className="popup-cancel-btn" onClick={handleClose}>Cancel</button>
-          <button className="popup-save-btn" onClick={handleSubmit} disabled={!name.trim()}>
-            Create Project
+          <button className="popup-cancel-btn" onClick={handleClose} disabled={isSubmitting}>Cancel</button>
+          <button className="popup-save-btn" onClick={handleSubmit} disabled={!name.trim() || isSubmitting}>
+            {isSubmitting ? 'Creating Project...' : 'Create Project'}
           </button>
         </div>
 

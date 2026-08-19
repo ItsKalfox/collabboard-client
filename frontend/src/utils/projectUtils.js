@@ -24,9 +24,13 @@ export function calculateProjectProgress(project) {
 
 export function isProjectOwner(project, user) {
   if (!project || !user) return false;
+  const userId = typeof user === 'object' ? user.id : null;
   const userName = typeof user === 'string' ? user : user.name;
   const userEmail = typeof user === 'object' ? user.email : (typeof user === 'string' && user.includes('@') ? user : null);
   
+  const projectOwnerId = project.ownerId || (typeof project.owner === 'object' ? project.owner?.id : null);
+  if (userId && projectOwnerId && String(userId) === String(projectOwnerId)) return true;
+
   const ownerName = typeof project.owner === 'string' ? project.owner : project.owner?.name;
   const ownerEmail = typeof project.owner === 'object' ? project.owner?.email : (typeof project.owner === 'string' && project.owner.includes('@') ? project.owner : null);
 
@@ -40,11 +44,14 @@ export function isProjectOwner(project, user) {
 
 export function isProjectMember(project, user) {
   if (!project || !user || !Array.isArray(project.members)) return false;
+  const userId = typeof user === 'object' ? user.id : null;
   const userName = typeof user === 'string' ? user : user.name;
   const userEmail = typeof user === 'object' ? user.email : (typeof user === 'string' && user.includes('@') ? user : null);
 
   return project.members.some(m => {
     if (!m) return false;
+    if (userId && (m.userId || m.id) && String(userId) === String(m.userId || m.id)) return true;
+
     const mName = typeof m === 'string' ? m : m.name;
     const mEmail = typeof m === 'object' ? m.email : (typeof m === 'string' && m.includes('@') ? m : null);
 

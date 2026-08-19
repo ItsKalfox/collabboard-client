@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ProjectCard from './ProjectCard';
 import CreateProjectModal from './CreateProjectModal';
 import EditProjectModal from './EditProjectModal';
@@ -8,6 +8,7 @@ import { Plus, Search } from 'lucide-react';
 import { normalizeMember } from '../../mock/mockMembers';
 import { INITIAL_PROJECTS } from '../../mock/mockProjects';
 import { calculateProjectProgress, isProjectOwner, isProjectMember } from '../../utils/projectUtils';
+import { getProjects } from '../../services/projectService';
 import './projects.css';
 
 export default function ProjectsPage({ theme = 'dark', currentUser, onOpenBoard = () => {} }) {
@@ -30,12 +31,40 @@ export default function ProjectsPage({ theme = 'dark', currentUser, onOpenBoard 
   const [deletingProject, setDeletingProject] = useState(null);
   const [selectedDetailsProject, setSelectedDetailsProject] = useState(null);
 
+  useEffect(() => {
+    const fetchApiProjects = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const apiProjects = await getProjects();
+        if (apiProjects && Array.isArray(apiProjects)) {
+          const formatted = apiProjects.map(p => ({
+            ...p,
+            owner: p.owner || (p.ownerId === activeUser.id ? (activeUser.name || 'Me') : (p.ownerName || 'Unknown Owner')),
+            createdDate: p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : (p.createdDate || '—'),
+            progress: calculateProjectProgress(p)
+          }));
+          
+          setProjects(prev => {
+            const apiIds = new Set(formatted.map(p => p.id));
+            const remainingMock = prev.filter(p => !apiIds.has(p.id));
+            return [...formatted, ...remainingMock];
+          });
+        }
+      } catch (err) {
+        console.warn('Could not fetch projects from API:', err.message);
+      }
+    };
+
+    fetchApiProjects();
+  }, [currentUser]);
+
   const handleCreateProject = (newProject) => {
     const computed = {
       ...newProject,
       progress: calculateProjectProgress(newProject)
     };
-    setProjects([computed, ...projects]);
+    setProjects(prev => [computed, ...prev]);
   };
 
   const handleSaveEdit = (updatedProject) => {
