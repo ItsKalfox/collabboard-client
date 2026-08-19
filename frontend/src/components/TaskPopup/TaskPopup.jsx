@@ -255,33 +255,6 @@ export default function TaskPopup({ task: prop, onClose }) {
   };
 
 
-
-  const deleteSubtask = async (i) => {
-    const targetSub = task.subtasks[i];
-
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const token = localStorage.getItem('token');
-      await fetch(`${apiUrl}/subtasks/${targetSub.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-    } catch (e) {
-      console.error('Failed to delete subtask', e);
-    }
-
-    setTask(t => ({
-      ...t,
-      subtasks: t.subtasks.filter((_, idx) => idx !== i),
-      activities: [
-        { text: `Subtask "${targetSub.title}" deleted`, timestamp: fmtNow() },
-        ...t.activities,
-      ],
-    }));
-  };
-
   /* ── Subtask comments ── */
   const [subInputs, setSubInputs] = useState({});
 
@@ -313,45 +286,6 @@ export default function TaskPopup({ task: prop, onClose }) {
     setNewComment('');
   };
 
-  /* ── Activities – add subtask ── */
-  const [newSubInput, setNewSubInput] = useState('');
-
-  const addSubtaskFromActivities = async () => {
-    const title = newSubInput.trim();
-    if (!title) return;
-
-    let subData = { title, completed: false, comments: [] };
-
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${apiUrl}/tasks/${task.id}/subtasks`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ title, completed: false })
-      });
-      const data = await res.json();
-      if (data.status === 'success') {
-        const newApiSubtask = data.data.subtask;
-        subData = { ...subData, id: newApiSubtask.id };
-      }
-    } catch (e) {
-      console.error('Failed to add subtask', e);
-    }
-
-    setTask(t => ({
-      ...t,
-      subtasks: [...t.subtasks, subData],
-      activities: [
-        { text: `New subtask added: "${title}"`, timestamp: fmtNow() },
-        ...t.activities,
-      ],
-    }));
-    setNewSubInput('');
-  };
 
   /* ── Attachments ── */
   const handleFileAdd = async (e) => {
