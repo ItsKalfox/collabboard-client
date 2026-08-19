@@ -132,7 +132,7 @@ export default function ProjectDetailsModal({
       if (propProject.id) {
         getAttachments(propProject.id)
           .then(apiAtts => {
-            if (Array.isArray(apiAtts) && apiAtts.length > 0) {
+            if (Array.isArray(apiAtts)) {
               const formatted = apiAtts.map(formatAttachment);
               setProject(prev => ({
                 ...prev,

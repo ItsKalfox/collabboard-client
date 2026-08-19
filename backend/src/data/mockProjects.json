@@ -1,5 +1,21 @@
 [
   {
+    "id": "proj_002",
+    "name": "Architecture & Infrastructure",
+    "description": "System architecture and cloud setup",
+    "status": "active",
+    "ownerId": "1786340518154",
+    "members": [
+      {
+        "userId": "1786340518154",
+        "role": "owner",
+        "joinedAt": "2026-08-12T10:00:00.000Z"
+      }
+    ],
+    "createdAt": "2026-08-12T10:00:00.000Z",
+    "updatedAt": "2026-08-12T10:00:00.000Z"
+  },
+  {
     "id": "proj_003",
     "name": "Updated Website Design",
     "description": "Updated description for the project",
