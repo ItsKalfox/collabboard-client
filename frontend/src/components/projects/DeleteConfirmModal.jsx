@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
-import { AlertTriangle, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { AlertTriangle, X, AlertCircle } from 'lucide-react';
+import { deleteProject } from '../../services/projectService';
 
 export default function DeleteConfirmModal({
   isOpen,
@@ -9,18 +10,51 @@ export default function DeleteConfirmModal({
   theme = 'dark',
 }) {
   const isDark = theme !== 'light';
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setError('');
+      setIsDeleting(false);
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape' && !isDeleting) onClose();
     };
     if (isOpen) {
       window.addEventListener('keydown', handleKeyDown);
     }
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, isDeleting]);
 
   if (!isOpen || !project) return null;
+
+  const handleDelete = async () => {
+    if (isDeleting) return;
+
+    setIsDeleting(true);
+    setError('');
+
+    try {
+      // Send DELETE /projects/:id
+      await deleteProject(project.id);
+
+      // Only on backend success: update UI and close modal
+      if (onDeleteConfirm) {
+        onDeleteConfirm(project.id);
+      }
+      onClose();
+    } catch (err) {
+      console.error('Delete project failed:', err);
+      setError(err.message || 'Failed to delete project. Please try again.');
+      // Do NOT remove the project from the UI
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <div 
@@ -36,7 +70,7 @@ export default function DeleteConfirmModal({
         justifyContent: 'center',
         padding: '20px'
       }} 
-      onClick={onClose}
+      onClick={isDeleting ? undefined : onClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -55,6 +89,7 @@ export default function DeleteConfirmModal({
       >
         <button 
           onClick={onClose} 
+          disabled={isDeleting}
           aria-label="Close"
           style={{
             position: 'absolute',
@@ -63,7 +98,7 @@ export default function DeleteConfirmModal({
             background: 'transparent',
             border: 'none',
             color: isDark ? '#9ca3af' : '#6b7280',
-            cursor: 'pointer',
+            cursor: isDeleting ? 'not-allowed' : 'pointer',
             padding: '4px',
             display: 'flex',
             alignItems: 'center',
@@ -92,14 +127,35 @@ export default function DeleteConfirmModal({
           Delete Project?
         </h3>
         
-        <p style={{ fontSize: '14px', color: isDark ? '#9ca3af' : '#4b5563', lineHeight: '1.5', marginBottom: '24px' }}>
+        <p style={{ fontSize: '14px', color: isDark ? '#9ca3af' : '#4b5563', lineHeight: '1.5', marginBottom: '20px' }}>
           Are you sure you want to delete <strong style={{ color: isDark ? '#f3f4f6' : '#1f2937' }}>"{project.name}"</strong>? This action cannot be undone and will remove the project from the entire system.
         </p>
+
+        {/* Error Message */}
+        {error && (
+          <div style={{
+            background: 'rgba(239, 68, 68, 0.15)',
+            border: '1px solid rgba(239, 68, 68, 0.35)',
+            color: theme === 'light' ? '#b91c1c' : '#fca5a5',
+            padding: '10px 14px',
+            borderRadius: '8px',
+            fontSize: '13px',
+            marginBottom: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            textAlign: 'left'
+          }}>
+            <AlertCircle size={16} style={{ flexShrink: 0 }} />
+            <span>{error}</span>
+          </div>
+        )}
 
         <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
           <button
             type="button"
             onClick={onClose}
+            disabled={isDeleting}
             style={{
               flex: 1,
               padding: '10px 16px',
@@ -109,17 +165,16 @@ export default function DeleteConfirmModal({
               borderRadius: '8px',
               fontWeight: '600',
               fontSize: '13px',
-              cursor: 'pointer'
+              cursor: isDeleting ? 'not-allowed' : 'pointer',
+              opacity: isDeleting ? 0.6 : 1
             }}
           >
             Cancel
           </button>
           <button
             type="button"
-            onClick={() => {
-              onDeleteConfirm(project.id);
-              onClose();
-            }}
+            onClick={handleDelete}
+            disabled={isDeleting}
             style={{
               flex: 1,
               padding: '10px 16px',
@@ -129,11 +184,12 @@ export default function DeleteConfirmModal({
               borderRadius: '8px',
               fontWeight: '600',
               fontSize: '13px',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
+              cursor: isDeleting ? 'not-allowed' : 'pointer',
+              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+              opacity: isDeleting ? 0.7 : 1
             }}
           >
-            Delete
+            {isDeleting ? 'Deleting...' : 'Delete'}
           </button>
         </div>
       </div>

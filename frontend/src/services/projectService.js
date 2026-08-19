@@ -128,6 +128,44 @@ export const updateProject = async (projectId, updateData) => {
 };
 
 /**
+ * Fetch a single project by ID via GET /api/projects/:id
+ * @param {string} projectId
+ * @returns {Promise<Object>} Project details
+ */
+export const getProjectById = async (projectId) => {
+  const response = await fetch(`${API_URL}/projects/${projectId}`, {
+    method: 'GET',
+    headers: getAuthHeaders(true)
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch project');
+  }
+
+  return data.data?.project;
+};
+
+/**
+ * Delete a project via DELETE /api/projects/:id
+ * @param {string} projectId
+ * @returns {Promise<Object>} Success response
+ */
+export const deleteProject = async (projectId) => {
+  const response = await fetch(`${API_URL}/projects/${projectId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(true)
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to delete project');
+  }
+
+  return data;
+};
+
+/**
  * Fetch attachments for a project via GET /api/projects/:id/attachments
  * @param {string} projectId
  * @returns {Promise<Array>} List of attachments
