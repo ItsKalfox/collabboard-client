@@ -17,6 +17,9 @@ export default function Board() {
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [isAddTagModalOpen, setIsAddTagModalOpen] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskDesc, setNewTaskDesc] = useState('');
+  const [newTaskPriority, setNewTaskPriority] = useState(7);
+  const [newTaskDueDate, setNewTaskDueDate] = useState('');
   const [newMemberEmail, setNewMemberEmail] = useState('');
   const [newTag, setNewTag] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -73,12 +76,21 @@ export default function Board() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ title: newTaskTitle, status: 'todo' })
+        body: JSON.stringify({ 
+          title: newTaskTitle, 
+          description: newTaskDesc,
+          priority: newTaskPriority,
+          dueDate: newTaskDueDate ? new Date(newTaskDueDate).toISOString() : null,
+          status: 'todo' 
+        })
       });
       if (res.ok) {
         setRefreshKey(k => k + 1); // trigger task refetch
         setIsAddTaskModalOpen(false);
         setNewTaskTitle('');
+        setNewTaskDesc('');
+        setNewTaskPriority(7);
+        setNewTaskDueDate('');
       } else {
         const errData = await res.json();
         alert(errData.message || 'Failed to add task');
@@ -221,6 +233,47 @@ export default function Board() {
               required
               autoFocus
             />
+          </div>
+        </div>
+        
+        <div className="auth-input-group">
+          <label className="auth-label">Description</label>
+          <div className="auth-input-wrapper">
+            <textarea
+              className="auth-input"
+              style={{ minHeight: '80px', padding: '12px', resize: 'vertical' }}
+              placeholder="Task details and description..."
+              value={newTaskDesc}
+              onChange={(e) => setNewTaskDesc(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '16px' }}>
+          <div className="auth-input-group" style={{ flex: 1 }}>
+            <label className="auth-label">Priority (1-9)</label>
+            <div className="auth-input-wrapper">
+              <input
+                type="number"
+                min="1"
+                max="9"
+                className="auth-input"
+                value={newTaskPriority}
+                onChange={(e) => setNewTaskPriority(+e.target.value)}
+                required
+              />
+            </div>
+          </div>
+          <div className="auth-input-group" style={{ flex: 1 }}>
+            <label className="auth-label">Due Date</label>
+            <div className="auth-input-wrapper">
+              <input
+                type="date"
+                className="auth-input"
+                value={newTaskDueDate}
+                onChange={(e) => setNewTaskDueDate(e.target.value)}
+              />
+            </div>
           </div>
         </div>
       </ActionModal>
