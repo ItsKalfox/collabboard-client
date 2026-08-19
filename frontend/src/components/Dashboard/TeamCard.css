@@ -274,3 +274,76 @@
     padding-top: 14px;
   }
 }
+
+/* --- LIGHT THEME OVERRIDES --- */
+[data-theme="light"] .team-dark-panel {
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .dept-name {
+  color: #111827;
+}
+
+[data-theme="light"] .dept-sub {
+  color: #6b7280;
+}
+
+[data-theme="light"] .dept-avatar {
+  border-color: #ffffff;
+}
+
+[data-theme="light"] .progress-labels {
+  color: #6b7280;
+}
+
+[data-theme="light"] .progress-bar-track {
+  background: #e5e7eb;
+}
+
+[data-theme="light"] .progress-bar-fill {
+  background: #10b981;
+}
+
+[data-theme="light"] .dept-action-btn {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+  color: #4b5563;
+}
+
+[data-theme="light"] .dept-action-btn:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+[data-theme="light"] .chart-col {
+  border-left: 1px solid #e5e7eb;
+}
+
+[data-theme="light"] .dev-chart-bar-wrapper {
+  background: #f3f4f6;
+}
+
+[data-theme="light"] .dev-chart-bar {
+  background: linear-gradient(180deg, #3b82f6 0%, #93c5fd 100%);
+}
+
+[data-theme="light"] .team-badge {
+  background: #f3f4f6;
+  color: #111827;
+  border: 1px solid #e5e7eb;
+}
+
+[data-theme="light"] .stat-icon-circle {
+  background: #f3f4f6;
+  color: #111827;
+  border: 1px solid #e5e7eb;
+}
+
+@media (max-width: 900px) {
+  [data-theme="light"] .chart-col {
+    border-top: 1px solid #e5e7eb;
+  }
+}

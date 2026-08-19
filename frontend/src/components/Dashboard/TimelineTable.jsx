@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useDashboardTimeline } from '../../hooks/useDashboardData';
 import { Loader2, AlertCircle } from 'lucide-react';
 import './TimelineTable.css';
@@ -164,7 +165,7 @@ export default function TimelineTable() {
             {isDatePickerOpen && (
               <div style={{
                 position: 'absolute', top: '100%', left: 0, marginTop: '8px', padding: '12px', 
-                background: 'rgba(24, 24, 27, 0.95)', border: '1px solid #2d2f36', 
+                background: 'var(--bg-color)', border: 'var(--window-border)', 
                 borderRadius: '12px', zIndex: 99, boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
                 width: '240px', backdropFilter: 'blur(16px)'
               }}>
@@ -292,9 +293,9 @@ export default function TimelineTable() {
                                   {activeAssignee?.assignee?.id === item.assignee.id && (
                                     <div style={{
                                       position: 'absolute', bottom: '100%', right: '0%', transform: 'translate(10px, -8px)',
-                                      background: 'rgba(31, 41, 55, 0.98)', border: '1px solid rgba(255,255,255,0.1)', padding: '12px',
+                                      background: 'var(--bg-color)', border: 'var(--window-border)', padding: '12px',
                                       borderRadius: '8px', zIndex: 100, width: '160px', backdropFilter: 'blur(10px)',
-                                      boxShadow: '0 10px 20px rgba(0, 0, 0, 0.5)', color: '#fff', textAlign: 'center', cursor: 'default'
+                                      boxShadow: 'var(--window-shadow)', color: 'var(--text-primary)', textAlign: 'center', cursor: 'default'
                                     }} onClick={e => e.stopPropagation()}>
                                       <img src={item.assignee.avatar} alt={item.assignee.name} style={{ width: '40px', height: '40px', borderRadius: '50%', marginBottom: '8px', border: '2px solid #3b82f6' }} />
                                       <div style={{ fontSize: '13px', fontWeight: 'bold' }}>{item.assignee.name}</div>
@@ -338,16 +339,16 @@ export default function TimelineTable() {
       </div>
 
       {/* Task Modal Overlay */}
-      {activeTask && (
+      {activeTask && createPortal(
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-          backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+          backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999
         }} onClick={() => setActiveTask(null)}>
           <div style={{
-            background: 'var(--bg-color, #1f2937)', border: '1px solid rgba(255,255,255,0.1)',
+            backgroundColor: '#1a1d24', border: '1px solid rgba(255, 255, 255, 0.1)',
             borderRadius: '16px', padding: '24px', width: '90%', maxWidth: '400px',
-            color: 'var(--text-primary, #fff)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)'
+            color: 'var(--text-primary, #fff)', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.7)'
           }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h2 style={{ margin: 0, fontSize: '18px' }}>{activeTask.title}</h2>
@@ -359,7 +360,7 @@ export default function TimelineTable() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
               <div>
                 <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '4px' }}>Priority</div>
-                <div style={{ fontWeight: '500', display: 'inline-block', background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '10px', fontSize: '12px' }}>{activeTask.priority || 'Normal'}</div>
+                <div style={{ fontWeight: '500', display: 'inline-block', background: 'var(--menu-bg)', padding: '2px 8px', borderRadius: '10px', fontSize: '12px' }}>{activeTask.priority || 'Normal'}</div>
               </div>
               <div>
                 <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '4px' }}>Duration</div>
@@ -369,14 +370,14 @@ export default function TimelineTable() {
 
             <div style={{ marginBottom: '20px' }}>
               <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '8px' }}>Timeframe</div>
-              <div style={{ background: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px', fontSize: '13px' }}>
+              <div style={{ background: 'var(--menu-bg)', padding: '12px', borderRadius: '8px', fontSize: '13px' }}>
                 <div style={{ marginBottom: '8px' }}><strong>Start:</strong> {new Date(activeTask.startDate).toLocaleString()}</div>
                 <div><strong>End:</strong> {new Date(activeTask.dueDate).toLocaleString()}</div>
               </div>
             </div>
 
             {activeTask.assignee && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--menu-bg)', padding: '12px', borderRadius: '8px' }}>
                 <img src={activeTask.assignee.avatar} alt={activeTask.assignee.name} style={{ width: '36px', height: '36px', borderRadius: '50%' }} />
                 <div>
                   <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{activeTask.assignee.name}</div>
@@ -385,7 +386,8 @@ export default function TimelineTable() {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -121,12 +121,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
 
 .project-card-title-group {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+  flex: 1;
 }
 
 .project-card-title {
@@ -145,6 +148,8 @@
   border-radius: 9999px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .project-card-status.active {
   background: rgba(52, 211, 153, 0.15);
@@ -184,4 +189,48 @@
 
 .project-avatar:first-child {
   margin-left: 0;
+}
+
+/* --- LIGHT THEME OVERRIDES --- */
+[data-theme="light"] .project-card {
+  background: rgba(255, 255, 255, 0.6);
+  border-color: #e5e7eb;
+}
+
+[data-theme="light"] .project-card:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: #d1d5db;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .project-card-title {
+  color: #111827;
+}
+
+[data-theme="light"] .project-card-status.active {
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+}
+
+[data-theme="light"] .project-card-status.completed {
+  background: rgba(107, 114, 128, 0.15);
+  color: #4b5563;
+}
+
+[data-theme="light"] .project-avatar {
+  border-color: #ffffff;
+}
+
+[data-theme="light"] .folder-icon-circle {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+  color: #111827;
+}
+
+[data-theme="light"] .category-select-btn {
+  color: #111827;
+}
+
+[data-theme="light"] .category-select-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
 }

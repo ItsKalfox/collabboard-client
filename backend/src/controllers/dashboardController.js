@@ -247,11 +247,23 @@ export const getTeamProgress = async (req, res) => {
 
 export const getRecentFiles = async (req, res) => {
     try {
+        const userId = req.user.id || req.user._id;
         const usersData = await fs.readFile(path.join(dataDir, 'mockData.json'), 'utf-8');
         const attachmentsData = await fs.readFile(path.join(dataDir, 'mockAttachments.json'), 'utf-8');
+        const projectsData = await fs.readFile(path.join(dataDir, 'mockProjects.json'), 'utf-8');
 
         const users = JSON.parse(usersData);
+        const projects = JSON.parse(projectsData);
         let attachments = JSON.parse(attachmentsData);
+
+        // Filter projects accessible by the user
+        let userProjects = projects.filter(p => p.ownerId === userId || p.members.some(m => m.userId === userId));
+        if (userProjects.length === 0) {
+            userProjects = projects.slice(0, 3); // Fallback starter data
+        }
+        
+        const projectIds = new Set(userProjects.map(p => p.id));
+        attachments = attachments.filter(a => projectIds.has(a.projectId) || a.uploadedBy === userId);
 
         // Sort attachments by uploadedAt descending (most recent first)
         attachments.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));

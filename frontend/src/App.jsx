@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Sun, Moon } from 'lucide-react';
 import backgroundBL from './assets/background-BL.jpg';
 import backgroundWH from './assets/background-WH.jpg';
 import logoWH from './assets/logo-WH.png';
@@ -27,16 +28,25 @@ function App() {
   });
 
   const [currentDateTime, setCurrentDateTime] = useState('');
-  const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem('theme');
-    if (saved) return saved;
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-  });
+  const [isDark, setIsDark] = useState(true);
+  
+  const handleThemeToggle = () => {
+    const next = !isDark;
+    setIsDark(next);
+    if (next) {
+      document.documentElement.classList.remove('light-mode');
+      document.body.classList.remove('light-mode');
+    } else {
+      document.documentElement.classList.add('light-mode');
+      document.body.classList.add('light-mode');
+    }
+  };
+
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
 
   const isAuthRoute = authRoutes.includes(activeTab);
-  const isDark = theme === 'dark';
 
   const [currentUser, setCurrentUser] = useState(null);
 
@@ -67,9 +77,7 @@ function App() {
     }
   }, []);
 
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-  }, [theme]);
+
 
   useEffect(() => {
     document.title = 'CollabBoard';
@@ -115,13 +123,7 @@ function App() {
     handleTabClick('Dashboard');
   };
 
-  const toggleTheme = () => {
-    setTheme((prev) => {
-      const newTheme = prev === 'dark' ? 'light' : 'dark';
-      localStorage.setItem('theme', newTheme);
-      return newTheme;
-    });
-  };
+
 
   const themeVars = {
     '--bg-image': isDark ? `url(${backgroundBL})` : `url(${backgroundWH})`,
@@ -146,8 +148,8 @@ function App() {
     return (
       <div className="app-container auth-bg-blur" style={themeVars}>
         <AuthModule 
-          theme={theme} 
-          toggleTheme={toggleTheme} 
+          theme={isDark ? 'dark' : 'light'} 
+          toggleTheme={handleThemeToggle} 
           initialPage={activeTab} 
           onLoginSuccess={handleLoginSuccess}
         />
@@ -347,25 +349,9 @@ function App() {
             <div className="top-bar-actions">
 
               {/* Theme Toggle Button */}
-              <div className="icon-btn" onClick={toggleTheme}>
-                {isDark ? (
-                  <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="5"></circle>
-                    <line x1="12" y1="1" x2="12" y2="3"></line>
-                    <line x1="12" y1="21" x2="12" y2="23"></line>
-                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                    <line x1="1" y1="12" x2="3" y2="12"></line>
-                    <line x1="21" y1="12" x2="23" y2="12"></line>
-                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-                  </svg>
-                ) : (
-                  <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-                  </svg>
-                )}
-              </div>
+              <button type="button" onClick={handleThemeToggle} className="theme-toggle-btn cursor-pointer icon-btn">
+                {isDark ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
 
               {/* Email Button */}
               <div className="icon-btn">
@@ -383,7 +369,7 @@ function App() {
           ) : activeTab === 'Board' ? (
             <Board />
           ) : activeTab === 'Projects' ? (
-            <ProjectsPage theme={theme} toggleTheme={toggleTheme} />
+            <ProjectsPage theme={isDark ? 'dark' : 'light'} toggleTheme={handleThemeToggle} />
           ) : (
             <div style={{ color: 'var(--text-secondary)', padding: '20px' }}>
               {activeTab} content view...
