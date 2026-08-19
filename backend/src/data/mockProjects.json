@@ -118,10 +118,15 @@
         "userId": "1786448728310",
         "role": "Full Stack Developer",
         "joinedAt": "2026-08-19T16:55:05.250Z"
+      },
+      {
+        "userId": "1786356291453",
+        "role": "Member",
+        "joinedAt": "2026-08-19T17:14:26.227Z"
       }
     ],
     "createdAt": "2026-08-19T13:23:41.897Z",
-    "updatedAt": "2026-08-19T16:55:05.250Z",
+    "updatedAt": "2026-08-19T17:14:26.227Z",
     "coverImagePublicId": "collabboard/covers/proj_1787145821897/cover_1787145836497"
   },
   {

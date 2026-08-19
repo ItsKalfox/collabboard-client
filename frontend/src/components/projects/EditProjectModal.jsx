@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Search, AlertCircle } from 'lucide-react';
-import { MOCK_MEMBERS, normalizeMember } from '../../mock/mockMembers';
-import { updateProject } from '../../services/projectService';
+import { normalizeMember } from '../../mock/mockMembers';
+import { updateProject, searchUsers } from '../../services/projectService';
 import '../TaskPopup/TaskPopup.css';
 import './projects.css';
 
@@ -20,10 +20,13 @@ export default function EditProjectModal({
   const [createdDate, setCreatedDate] = useState('');
   const [dueDate, setDueDate] = useState('');
   
-  // Members state
+  // Members state connected to searchUsers API
   const [members, setMembers] = useState([]);
   const [memberSearch, setMemberSearch] = useState('');
   const [showMemberDropdown, setShowMemberDropdown] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
+  const [searchError, setSearchError] = useState('');
   const memberSearchWrapRef = useRef(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,11 +57,54 @@ export default function EditProjectModal({
       setCreatedDate(parsedCreated);
       setDueDate(project.rawDueDate || getYYYYMMDD(project.dueDate));
       setMembers(Array.isArray(project.members) ? project.members.map(normalizeMember) : []);
+      setMemberSearch('');
+      setSearchResults([]);
+      setSearchError('');
       setError('');
       setIsSubmitting(false);
     }
   }, [project]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  // Debounced search for users via GET /api/users/search?q={query}
+  useEffect(() => {
+    if (!memberSearch || !memberSearch.trim()) {
+      setSearchResults([]);
+      setIsSearchingUsers(false);
+      setSearchError('');
+      return;
+    }
+
+    let isMounted = true;
+    setIsSearchingUsers(true);
+    setSearchError('');
+
+    const searchTimer = setTimeout(() => {
+      searchUsers(memberSearch)
+        .then(users => {
+          if (isMounted) {
+            setSearchResults(users || []);
+          }
+        })
+        .catch(err => {
+          if (isMounted) {
+            console.warn('User search error:', err.message);
+            setSearchError(err.message || 'Failed to search users');
+            setSearchResults([]);
+          }
+        })
+        .finally(() => {
+          if (isMounted) {
+            setIsSearchingUsers(false);
+          }
+        });
+    }, 300);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(searchTimer);
+    };
+  }, [memberSearch]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -80,16 +126,19 @@ export default function EditProjectModal({
 
   if (!isOpen || !project) return null;
 
-  const availableMembers = MOCK_MEMBERS.filter(m => 
-    !members.some(existing => existing.name === m.name) &&
-    (m.name.toLowerCase().includes(memberSearch.toLowerCase()) || 
-     m.role.toLowerCase().includes(memberSearch.toLowerCase()))
+  const availableMembers = searchResults.filter(user => 
+    !members.some(existing => 
+      (existing.id && String(existing.id) === String(user.id)) ||
+      (existing.userId && String(existing.userId) === String(user.id)) ||
+      (existing.name && user.name && existing.name.toLowerCase() === user.name.toLowerCase()) ||
+      (existing.email && user.email && existing.email.toLowerCase() === user.email.toLowerCase())
+    )
   );
 
   const addMember = (memberObj) => {
     const normalized = normalizeMember(memberObj);
-    if (!members.some(m => m.name === normalized.name)) {
-      setMembers([...members, normalized]);
+    if (!members.some(m => (m.id && m.id === normalized.id) || m.name === normalized.name)) {
+      setMembers(prev => [...prev, normalized]);
     }
     setMemberSearch('');
     setShowMemberDropdown(false);
@@ -305,52 +354,49 @@ export default function EditProjectModal({
                   )}
                 </div>
 
-                {showMemberDropdown && availableMembers.length > 0 && (
+                {showMemberDropdown && memberSearch.trim() && (
                   <div className="member-dropdown" style={{
                     position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 999,
-                    maxHeight: '180px', overflowY: 'auto',
+                    maxHeight: '200px', overflowY: 'auto',
                     background: theme === 'light' ? '#ffffff' : '#1a1a24',
                     border: theme === 'light' ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.18)',
                     borderRadius: '8px', boxShadow: '0 12px 32px rgba(0,0,0,0.7)', marginTop: '4px'
                   }}>
-                    {availableMembers.map(emp => (
-                      <div
-                        key={emp.id || emp.name}
-                        onClick={() => addMember(emp)}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: '10px',
-                          padding: '10px 12px', cursor: 'pointer',
-                          borderBottom: theme === 'light' ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.06)'
-                        }}
-                      >
-                        <div style={{
-                          width: '26px', height: '26px', borderRadius: '50%',
-                          background: emp.bg || '#3b82f6', color: '#fff',
-                          fontSize: '10px', fontWeight: '700',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          overflow: 'hidden'
-                        }}>
-                          {emp.avatar ? <img src={emp.avatar} alt={emp.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : emp.initials}
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ fontSize: '13px', fontWeight: '600', color: theme === 'light' ? '#0f172a' : '#f8fafc' }}>{emp.name}</span>
-                          <span style={{ fontSize: '11px', color: theme === 'light' ? '#64748b' : '#94a3b8' }}>{emp.role}</span>
-                        </div>
+                    {isSearchingUsers ? (
+                      <div style={{ padding: '12px', fontSize: '13px', color: 'var(--popup-text-muted)', textAlign: 'center' }}>
+                        Searching users...
                       </div>
-                    ))}
-                  </div>
-                )}
-
-                {showMemberDropdown && memberSearch && availableMembers.length === 0 && (
-                  <div style={{
-                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 999,
-                    background: theme === 'light' ? '#ffffff' : '#1a1a24',
-                    border: theme === 'light' ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.18)',
-                    borderRadius: '8px', padding: '10px 12px', marginTop: '4px',
-                    fontSize: '12px', color: theme === 'light' ? '#64748b' : '#94a3b8', textAlign: 'center',
-                    boxShadow: '0 12px 32px rgba(0,0,0,0.7)'
-                  }}>
-                    No matching team members found
+                    ) : availableMembers.length === 0 ? (
+                      <div style={{ padding: '12px', fontSize: '13px', color: 'var(--popup-text-muted)', textAlign: 'center' }}>
+                        No matching users found
+                      </div>
+                    ) : (
+                      availableMembers.map(emp => (
+                        <div
+                          key={emp.id || emp._id || emp.email}
+                          onClick={() => addMember(emp)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '10px',
+                            padding: '10px 12px', cursor: 'pointer',
+                            borderBottom: theme === 'light' ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.06)'
+                          }}
+                        >
+                          <div style={{
+                            width: '26px', height: '26px', borderRadius: '50%',
+                            background: emp.bg || '#3b82f6', color: '#fff',
+                            fontSize: '10px', fontWeight: '700',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            overflow: 'hidden', flexShrink: 0
+                          }}>
+                            {emp.avatar ? <img src={emp.avatar} alt={emp.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (emp.initials || (emp.name ? emp.name.slice(0, 2).toUpperCase() : 'U'))}
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                            <span style={{ fontSize: '13px', fontWeight: '600', color: theme === 'light' ? '#0f172a' : '#f8fafc', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{emp.name}</span>
+                            <span style={{ fontSize: '11px', color: theme === 'light' ? '#64748b' : '#94a3b8' }}>{emp.role || emp.email}</span>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 )}
               </div>

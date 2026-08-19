@@ -15,7 +15,9 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    exposedHeaders: ['Content-Disposition', 'Content-Type']
+}));
 app.use(express.json({ strict: false }));
 
 // Middleware to handle JSON parse errors

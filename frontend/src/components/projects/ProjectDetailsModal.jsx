@@ -383,8 +383,9 @@ export default function ProjectDetailsModal({
     }
   };
 
-  const downloadAtt = async (att) => {
-    if (!project?.id || downloadingAttId) return;
+  const downloadAtt = async (att, isBulk = false) => {
+    if (!project?.id) return;
+    if (!isBulk && downloadingAttId) return;
 
     const attachmentId = att.id || att._id;
     if (!attachmentId) {
@@ -392,7 +393,7 @@ export default function ProjectDetailsModal({
       return;
     }
 
-    setDownloadingAttId(attachmentId);
+    if (!isBulk) setDownloadingAttId(attachmentId);
     setAttachmentError('');
 
     try {
@@ -400,29 +401,55 @@ export default function ProjectDetailsModal({
       const { blob, filename } = await downloadAttachment(project.id, attachmentId);
       const downloadUrl = URL.createObjectURL(blob);
 
+      // Guarantee file extension on target download filename
+      const ext = (att.ext || '').toLowerCase();
+      let targetName = filename || att.filename;
+      if (!targetName) {
+        targetName = att.name ? (ext && ext !== 'file' ? `${att.name}.${ext}` : att.name) : `attachment_${attachmentId}`;
+      } else if (!targetName.includes('.') && ext && ext !== 'file') {
+        targetName = `${targetName}.${ext}`;
+      }
+
       const a = document.createElement('a');
       a.href = downloadUrl;
-      a.download = filename || att.filename || att.name || `attachment_${attachmentId}`;
+      a.download = targetName;
+      a.setAttribute('download', targetName);
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 2000);
     } catch (err) {
       console.error('Failed to download attachment:', err);
-      // Display error message from backend without removing attachment from UI
-      setAttachmentError(err.message || 'Failed to download attachment. Please try again.');
+      if (!isBulk) {
+        setAttachmentError(err.message || 'Failed to download attachment. Please try again.');
+      }
+      throw err;
     } finally {
-      setDownloadingAttId(null);
+      if (!isBulk) setDownloadingAttId(null);
     }
   };
 
-  const downloadAll = () => {
+  const downloadAll = async () => {
     if (!project.attachments || project.attachments.length === 0) return;
-    project.attachments.forEach((att, index) => {
-      setTimeout(() => {
-        downloadAtt(att);
-      }, index * 200);
-    });
+    setAttachmentError('');
+    let hasError = false;
+
+    for (let i = 0; i < project.attachments.length; i++) {
+      const att = project.attachments[i];
+      try {
+        await downloadAtt(att, true);
+      } catch (err) {
+        console.warn(`Bulk download failed for attachment ${att.id}:`, err);
+        hasError = true;
+      }
+      if (i < project.attachments.length - 1) {
+        await new Promise(res => setTimeout(res, 600));
+      }
+    }
+
+    if (hasError) {
+      setAttachmentError('Some attachments could not be downloaded.');
+    }
   };
 
   // Members functions

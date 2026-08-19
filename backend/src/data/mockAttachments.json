@@ -64,5 +64,38 @@
     "size": 36,
     "uploadedBy": "1786448728310",
     "uploadedAt": "2026-08-19T13:36:25.712Z"
+  },
+  {
+    "id": "att_1787161001148",
+    "projectId": "proj_1787145821897",
+    "filename": "f5 (2).png",
+    "url": "https://res.cloudinary.com/bpv9dfck/image/upload/v1787161000/collabboard/attachments/proj_1787145821897/att_1787161000342.png",
+    "publicId": "collabboard/attachments/proj_1787145821897/att_1787161000342",
+    "mimeType": "image/png",
+    "size": 20436,
+    "uploadedBy": "1786431927127",
+    "uploadedAt": "2026-08-19T17:36:41.148Z"
+  },
+  {
+    "id": "att_1787161050906",
+    "projectId": "proj_1787145821897",
+    "filename": "preview (5).webp",
+    "url": "https://res.cloudinary.com/bpv9dfck/image/upload/v1787161049/collabboard/attachments/proj_1787145821897/att_1787161045200.webp",
+    "publicId": "collabboard/attachments/proj_1787145821897/att_1787161045200",
+    "mimeType": "image/webp",
+    "size": 144696,
+    "uploadedBy": "1786431927127",
+    "uploadedAt": "2026-08-19T17:37:30.906Z"
+  },
+  {
+    "id": "att_1787161137601",
+    "projectId": "proj_1787145821897",
+    "filename": "Lecture 01 (9).pptx",
+    "url": "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+    "publicId": "collabboard/attachments/proj_1787145821897/att_1787161118946",
+    "mimeType": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "size": 16141060,
+    "uploadedBy": "1786431927127",
+    "uploadedAt": "2026-08-19T17:38:57.601Z"
   }
 ]
