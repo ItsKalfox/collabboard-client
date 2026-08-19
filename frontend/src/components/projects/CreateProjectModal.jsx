@@ -122,8 +122,22 @@ export default function CreateProjectModal({
     setMembers(members.filter(m => m.name !== memberName));
   };
 
+  const getTodayYYYYMMDD = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const handleSubmit = async () => {
     if (!name.trim() || isSubmitting) return;
+
+    const todayStr = getTodayYYYYMMDD();
+    if (dueDate && dueDate < todayStr) {
+      setError('Due date cannot precede the creation date.');
+      return;
+    }
 
     setIsSubmitting(true);
     setError('');
@@ -365,7 +379,11 @@ export default function CreateProjectModal({
                   type="date"
                   className="popup-mini-input popup-mini-input--wide"
                   value={dueDate}
-                  onChange={e => setDueDate(e.target.value)}
+                  min={getTodayYYYYMMDD()}
+                  onChange={e => {
+                    setDueDate(e.target.value);
+                    if (error) setError('');
+                  }}
                   style={{ colorScheme: theme === 'light' ? 'light' : 'dark' }}
                 />
               </div>

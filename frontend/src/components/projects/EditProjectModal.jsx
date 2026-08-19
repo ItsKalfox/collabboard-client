@@ -29,14 +29,30 @@ export default function EditProjectModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  const getYYYYMMDD = (dateInput) => {
+    if (!dateInput) return '';
+    if (typeof dateInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
+      return dateInput;
+    }
+    const d = new Date(dateInput);
+    if (!isNaN(d.getTime())) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+    return '';
+  };
+
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (project) {
       setName(project.name || '');
       setDescription(project.description || '');
       setOwner(project.owner || '');
-      setCreatedDate(project.rawCreatedDate || '');
-      setDueDate(project.rawDueDate || (project.dueDate && project.dueDate.includes('-') ? project.dueDate : ''));
+      const parsedCreated = getYYYYMMDD(project.rawCreatedDate || project.createdAt || project.createdDate);
+      setCreatedDate(parsedCreated);
+      setDueDate(project.rawDueDate || getYYYYMMDD(project.dueDate));
       setMembers(Array.isArray(project.members) ? project.members.map(normalizeMember) : []);
       setError('');
       setIsSubmitting(false);
@@ -86,6 +102,12 @@ export default function EditProjectModal({
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name.trim() || isSubmitting) return;
+
+    const minDueDate = getYYYYMMDD(project.rawCreatedDate || project.createdAt || project.createdDate);
+    if (dueDate && minDueDate && dueDate < minDueDate) {
+      setError('Due date cannot precede the project creation date.');
+      return;
+    }
 
     setIsSubmitting(true);
     setError('');
@@ -214,7 +236,7 @@ export default function EditProjectModal({
                 </div>
               </div>
 
-              {/* Created Date Picker */}
+              {/* Created Date (Read-only) */}
               <div className="popup-meta-row">
                 <div className="popup-meta-label">Created date</div>
                 <div className="popup-meta-val">
@@ -222,8 +244,9 @@ export default function EditProjectModal({
                     type="date"
                     className="popup-mini-input popup-mini-input--wide"
                     value={createdDate}
-                    onChange={(e) => setCreatedDate(e.target.value)}
-                    style={{ colorScheme: theme === 'light' ? 'light' : 'dark' }}
+                    readOnly
+                    disabled
+                    style={{ colorScheme: theme === 'light' ? 'light' : 'dark', cursor: 'not-allowed', opacity: 0.8 }}
                   />
                 </div>
               </div>
@@ -236,7 +259,11 @@ export default function EditProjectModal({
                     type="date"
                     className="popup-mini-input popup-mini-input--wide"
                     value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
+                    min={createdDate}
+                    onChange={(e) => {
+                      setDueDate(e.target.value);
+                      if (error) setError('');
+                    }}
                     style={{ colorScheme: theme === 'light' ? 'light' : 'dark' }}
                   />
                 </div>

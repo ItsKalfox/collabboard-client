@@ -102,22 +102,46 @@
     "color": "blue",
     "ownerId": "1786431927127",
     "coverImage": "https://res.cloudinary.com/bpv9dfck/image/upload/v1787145839/collabboard/covers/proj_1787145821897/cover_1787145836497.webp",
-    "dueDate": null,
+    "dueDate": "2026-08-28",
     "members": [
       {
         "userId": "usr-12",
-        "name": "Isuri Perera",
-        "email": "isuriupp@gmail.com",
+        "name": "Unknown User",
         "role": "Product Manager"
       },
       {
         "userId": "usr-1",
-        "name": "Alex Johnson",
+        "name": "Unknown User",
         "role": "Lead Designer"
+      },
+      {
+        "userId": "1786448728310",
+        "role": "Full Stack Developer",
+        "joinedAt": "2026-08-19T16:55:05.250Z"
       }
     ],
     "createdAt": "2026-08-19T13:23:41.897Z",
-    "updatedAt": "2026-08-19T13:24:00.563Z",
+    "updatedAt": "2026-08-19T16:55:05.250Z",
     "coverImagePublicId": "collabboard/covers/proj_1787145821897/cover_1787145836497"
+  },
+  {
+    "id": "proj_1787158309434",
+    "name": "Valid Project",
+    "description": "",
+    "status": "active",
+    "category": "Design Reviews",
+    "color": "blue",
+    "ownerId": "1787158084898",
+    "coverImage": null,
+    "dueDate": "2026-08-25",
+    "members": [
+      {
+        "userId": "1787158084898",
+        "name": "Test User",
+        "role": "Member"
+      }
+    ],
+    "createdAt": "2026-08-19T16:51:49.434Z",
+    "updatedAt": "2026-08-19T16:51:49.434Z"
   }
 ]

@@ -37,5 +37,12 @@
     "email": "dhachanu24@gmail.com",
     "password": "$2b$10$k.ikks7PknaLrnvEJVQsIeIA9yt84I1B7NdaaWG8Fq/Va0wqz80.6",
     "date": "2026-08-18T11:19:13.156Z"
+  },
+  {
+    "id": "1787158084898",
+    "name": "Test User",
+    "email": "test@company.com",
+    "password": "$2b$10$rqbq13it.8313.07B6hzlu1V0Df4ygJi17FogTeWUnWh0JmBe9xIa",
+    "date": "2026-08-19T16:48:04.898Z"
   }
 ]

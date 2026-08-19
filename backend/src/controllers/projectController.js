@@ -146,6 +146,18 @@ export const createProject = (req, res) => {
             });
         }
 
+        if (dueDate) {
+            const due = new Date(dueDate);
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+            if (!isNaN(due.getTime()) && due < todayStart) {
+                return res.status(400).json({
+                    status: 'error',
+                    message: 'Due date cannot precede the creation date'
+                });
+            }
+        }
+
         const projects = getMockProjects();
 
         const newProject = {
@@ -212,6 +224,18 @@ export const updateProject = (req, res) => {
                 status: 'error',
                 message: 'You are not authorized to update this project'
             });
+        }
+
+        if (dueDate) {
+            const due = new Date(dueDate);
+            const createdStart = project.createdAt ? new Date(project.createdAt) : (project.createdDate ? new Date(project.createdDate) : new Date(0));
+            createdStart.setHours(0, 0, 0, 0);
+            if (!isNaN(due.getTime()) && due < createdStart) {
+                return res.status(400).json({
+                    status: 'error',
+                    message: 'Due date cannot precede the project creation date'
+                });
+            }
         }
 
         // Apply updates — only update fields that were provided

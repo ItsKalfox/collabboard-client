@@ -736,8 +736,9 @@ export default function ProjectDetailsModal({
                   type="date"
                   className="popup-mini-input popup-mini-input--wide"
                   value={draft.rawCreatedDate || ''}
-                  onChange={e => setDraft(d => ({ ...d, rawCreatedDate: e.target.value }))}
-                  style={{ colorScheme: theme === 'light' ? 'light' : 'dark' }}
+                  readOnly
+                  disabled
+                  style={{ colorScheme: theme === 'light' ? 'light' : 'dark', cursor: 'not-allowed', opacity: 0.8 }}
                 />
               ) : (
                 <span className="popup-meta-text">{project.createdDate || '—'}</span>
@@ -757,6 +758,7 @@ export default function ProjectDetailsModal({
                   type="date"
                   className="popup-mini-input popup-mini-input--wide"
                   value={draft.rawDueDate || ''}
+                  min={draft.rawCreatedDate || ''}
                   onChange={e => setDraft(d => ({ ...d, rawDueDate: e.target.value }))}
                   style={{ colorScheme: theme === 'light' ? 'light' : 'dark' }}
                 />
