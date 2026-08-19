@@ -84,8 +84,8 @@ export default function KanbanBoard({ projectId, refreshKey }) {
           // If network fetch fails, fallback to local mock data
         }
 
-        // If no tasks returned from API, check INITIAL_PROJECTS
-        if (tasks.length === 0) {
+        // If no tasks returned from API, check INITIAL_PROJECTS only if projectId is a mock ID starting with proj-
+        if (tasks.length === 0 && String(projectId).startsWith('proj-')) {
           const foundProj = INITIAL_PROJECTS.find(p => p.id === projectId);
           if (foundProj && foundProj.tasks && foundProj.tasks.length > 0) {
             tasks = foundProj.tasks.map(t => ({

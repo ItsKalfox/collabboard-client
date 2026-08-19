@@ -50,6 +50,10 @@ const saveMockProjects = (data) => {
     fs.writeFileSync(mockProjectsPath, JSON.stringify(data, null, 2));
 };
 
+const saveMockTasks = (data) => {
+    fs.writeFileSync(mockTasksPath, JSON.stringify(data, null, 2));
+};
+
 const getMockAttachments = () => {
     if (!fs.existsSync(mockAttachmentsPath)) {
         return [];
@@ -137,7 +141,7 @@ export const getProjectById = (req, res) => {
 // POST /api/projects
 export const createProject = (req, res) => {
     try {
-        const { name, description, status, category, members, dueDate, coverImage, color } = req.body;
+        const { name, description, status, category, members, dueDate, coverImage, color, tasks } = req.body;
 
         if (!name) {
             return res.status(400).json({
@@ -183,6 +187,32 @@ export const createProject = (req, res) => {
 
         projects.push(newProject);
         saveMockProjects(projects);
+
+        if (tasks && Array.isArray(tasks) && tasks.length > 0) {
+            const allTasks = getMockTasks();
+            const now = new Date().toISOString();
+            tasks.forEach((t, idx) => {
+                const newTaskObj = {
+                    id: `task_${Date.now()}_${idx}`,
+                    projectId: newProject.id,
+                    title: t.title,
+                    description: t.description || '',
+                    status: t.status || 'todo',
+                    priority: t.priority || 'medium',
+                    assigneeId: req.user.id,
+                    dueDate: dueDate || null,
+                    subtasks: (t.subtasks || []).map((s, sIdx) => ({
+                        id: `sub_${Date.now()}_${sIdx}`,
+                        title: s.title || s.label || '',
+                        completed: Boolean(s.completed || s.done)
+                    })),
+                    createdAt: now,
+                    updatedAt: now
+                };
+                allTasks.push(newTaskObj);
+            });
+            saveMockTasks(allTasks);
+        }
 
         res.status(201).json({
             status: 'success',

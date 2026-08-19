@@ -8,11 +8,9 @@ import './Board.css';
 
 export default function Board({ initialProjectId, selectedProject, onSelectProject }) {
   const [projects, setProjects] = useState(() => {
-    const list = [...INITIAL_PROJECTS];
+    const list = [];
     if (selectedProject && typeof selectedProject === 'object') {
-      if (!list.some(p => p.id === selectedProject.id)) {
-        list.unshift(selectedProject);
-      }
+      list.push(selectedProject);
     }
     return list;
   });
@@ -20,7 +18,7 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
   const [selectedProjectId, setSelectedProjectId] = useState(() => {
     if (selectedProject) return typeof selectedProject === 'object' ? selectedProject.id : selectedProject;
     if (initialProjectId) return typeof initialProjectId === 'object' ? initialProjectId.id : initialProjectId;
-    return INITIAL_PROJECTS[0]?.id || null;
+    return null;
   });
 
   const [loading, setLoading] = useState(false);
@@ -70,13 +68,15 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
             const apiProjects = data.data.projects;
             setProjects(prev => {
               const map = new Map();
-              // Add API projects first
+              // Add API projects
               apiProjects.forEach(p => map.set(p.id, p));
-              // Add mock initial projects
-              INITIAL_PROJECTS.forEach(p => {
-                if (!map.has(p.id)) map.set(p.id, p);
-              });
-              // Add any dynamically added/selected projects
+              // Fallback to mock initial projects only if API returns no projects
+              if (apiProjects.length === 0) {
+                INITIAL_PROJECTS.forEach(p => {
+                  if (!map.has(p.id)) map.set(p.id, p);
+                });
+              }
+              // Add any dynamically selected project
               prev.forEach(p => {
                 if (!map.has(p.id)) map.set(p.id, p);
               });
@@ -91,6 +91,13 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
             const targetId = typeof target === 'object' ? target?.id : target;
             if (targetId) {
               setSelectedProjectId(targetId);
+            } else if (apiProjects.length > 0) {
+              setSelectedProjectId(prev => {
+                if (!prev || !apiProjects.some(p => p.id === prev)) {
+                  return apiProjects[0].id;
+                }
+                return prev;
+              });
             }
           }
         }

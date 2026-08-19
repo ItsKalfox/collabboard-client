@@ -1,5 +1,28 @@
 [
   {
+    "id": "proj_001",
+    "name": "Website Redesign",
+    "description": "Company website overhaul with new branding and improved user experience.",
+    "category": "Design Reviews",
+    "status": "active",
+    "ownerId": "1786340518154",
+    "coverImage": null,
+    "members": [
+      {
+        "userId": "1786340518154",
+        "role": "owner",
+        "joinedAt": "2026-08-10T08:00:00.000Z"
+      },
+      {
+        "userId": "1786356291453",
+        "role": "member",
+        "joinedAt": "2026-08-10T08:00:00.000Z"
+      }
+    ],
+    "createdAt": "2026-08-10T08:00:00.000Z",
+    "updatedAt": "2026-08-11T10:00:00.000Z"
+  },
+  {
     "id": "proj_002",
     "name": "Architecture & Infrastructure",
     "description": "System architecture and cloud setup",
@@ -148,5 +171,365 @@
     ],
     "createdAt": "2026-08-19T16:51:49.434Z",
     "updatedAt": "2026-08-19T16:51:49.434Z"
+  },
+  {
+    "id": "proj_1787162574938",
+    "name": "Project with Tasks Test",
+    "description": "",
+    "status": "active",
+    "category": "Design Reviews",
+    "color": "blue",
+    "ownerId": "1786340518154",
+    "coverImage": null,
+    "dueDate": null,
+    "members": [
+      {
+        "userId": "1786340518154",
+        "name": "Test",
+        "role": "Member"
+      }
+    ],
+    "createdAt": "2026-08-19T18:02:54.938Z",
+    "updatedAt": "2026-08-19T18:02:54.938Z"
+  },
+  {
+    "id": "proj_1787162899092",
+    "name": "Kanban Task Test Project",
+    "description": "",
+    "status": "active",
+    "category": "Design Reviews",
+    "color": "blue",
+    "ownerId": "1786340518154",
+    "coverImage": null,
+    "dueDate": null,
+    "members": [
+      {
+        "userId": "1786340518154",
+        "name": "Test",
+        "role": "Member"
+      }
+    ],
+    "createdAt": "2026-08-19T18:08:19.092Z",
+    "updatedAt": "2026-08-19T18:08:19.092Z"
+  },
+  {
+    "id": "proj_1787162973712",
+    "name": "sbgsgb",
+    "description": "sgbdbfd",
+    "status": "active",
+    "category": "Design Reviews",
+    "color": "blue",
+    "ownerId": "1786431927127",
+    "coverImage": "https://res.cloudinary.com/bpv9dfck/image/upload/v1787162976/collabboard/covers/proj_1787162973712/cover_1787162973721.webp",
+    "dueDate": "2026-08-25",
+    "members": [
+      {
+        "userId": "usr-12",
+        "name": "Isuri Perera",
+        "email": "isuriupp@gmail.com",
+        "role": "Product Manager"
+      },
+      {
+        "userId": "1786356291453",
+        "name": "Nipun Manusha",
+        "email": "nipunmanusha2003@gmail.com",
+        "role": "Member"
+      },
+      {
+        "userId": "1786448728310",
+        "name": "sathsarani Perera",
+        "email": "sathsaraniperera16@gmail.com",
+        "role": "Full Stack Developer"
+      },
+      {
+        "userId": "1787051953156",
+        "name": "Cherry",
+        "email": "dhachanu24@gmail.com",
+        "role": "Member"
+      }
+    ],
+    "createdAt": "2026-08-19T18:09:33.712Z",
+    "updatedAt": "2026-08-19T18:09:38.504Z",
+    "coverImagePublicId": "collabboard/covers/proj_1787162973712/cover_1787162973721"
+  },
+  {
+    "id": "proj_1787163310378",
+    "name": "Initial Tasks Sync Project",
+    "description": "",
+    "status": "active",
+    "category": "Design Reviews",
+    "color": "blue",
+    "ownerId": "1786340518154",
+    "coverImage": null,
+    "dueDate": null,
+    "members": [
+      {
+        "userId": "1786340518154",
+        "name": "Test",
+        "role": "Member"
+      }
+    ],
+    "createdAt": "2026-08-19T18:15:10.378Z",
+    "updatedAt": "2026-08-19T18:15:10.378Z"
+  },
+  {
+    "id": "proj_1787163633105",
+    "name": "Subtask Sync Test Project",
+    "description": "",
+    "status": "active",
+    "category": "Design Reviews",
+    "color": "blue",
+    "ownerId": "1786340518154",
+    "coverImage": null,
+    "dueDate": null,
+    "members": [
+      {
+        "userId": "1786340518154",
+        "name": "Test",
+        "role": "Member"
+      }
+    ],
+    "createdAt": "2026-08-19T18:20:33.105Z",
+    "updatedAt": "2026-08-19T18:20:33.105Z"
+  },
+  {
+    "id": "proj_1787163946592",
+    "name": "API Direct Project",
+    "description": "",
+    "status": "active",
+    "category": "Design Reviews",
+    "color": "blue",
+    "ownerId": "1786340518154",
+    "coverImage": null,
+    "dueDate": null,
+    "members": [
+      {
+        "userId": "1786340518154",
+        "role": "owner",
+        "joinedAt": "2026-08-19T18:25:46.592Z"
+      }
+    ],
+    "createdAt": "2026-08-19T18:25:46.592Z",
+    "updatedAt": "2026-08-19T18:25:46.592Z"
+  },
+  {
+    "id": "proj_1787163976532",
+    "name": "API Direct Project 2",
+    "description": "",
+    "status": "active",
+    "category": "Design Reviews",
+    "color": "blue",
+    "ownerId": "1786340518154",
+    "coverImage": null,
+    "dueDate": null,
+    "members": [
+      {
+        "userId": "1786340518154",
+        "role": "owner",
+        "joinedAt": "2026-08-19T18:26:16.532Z"
+      }
+    ],
+    "createdAt": "2026-08-19T18:26:16.532Z",
+    "updatedAt": "2026-08-19T18:26:16.532Z"
+  },
+  {
+    "id": "proj_1787164180241",
+    "name": "Kanban Board Sync Project",
+    "description": "",
+    "status": "active",
+    "category": "Design Reviews",
+    "color": "blue",
+    "ownerId": "1786340518154",
+    "coverImage": null,
+    "dueDate": null,
+    "members": [
+      {
+        "userId": "1786340518154",
+        "name": "Test",
+        "role": "Member"
+      }
+    ],
+    "createdAt": "2026-08-19T18:29:40.241Z",
+    "updatedAt": "2026-08-19T18:29:40.241Z"
+  },
+  {
+    "id": "proj_1787164410147",
+    "name": "API Test Project 3",
+    "description": "",
+    "status": "active",
+    "category": "Design Reviews",
+    "color": "blue",
+    "ownerId": "1786340518154",
+    "coverImage": null,
+    "dueDate": null,
+    "members": [
+      {
+        "userId": "1786340518154",
+        "role": "owner",
+        "joinedAt": "2026-08-19T18:33:30.147Z"
+      }
+    ],
+    "createdAt": "2026-08-19T18:33:30.147Z",
+    "updatedAt": "2026-08-19T18:33:30.147Z"
+  },
+  {
+    "id": "proj_1787164760075",
+    "name": "API Test Project 4",
+    "description": "",
+    "status": "active",
+    "category": "Design Reviews",
+    "color": "blue",
+    "ownerId": "1786340518154",
+    "coverImage": null,
+    "dueDate": null,
+    "members": [
+      {
+        "userId": "1786340518154",
+        "role": "owner",
+        "joinedAt": "2026-08-19T18:39:20.075Z"
+      }
+    ],
+    "createdAt": "2026-08-19T18:39:20.075Z",
+    "updatedAt": "2026-08-19T18:39:20.075Z"
+  },
+  {
+    "id": "proj_1787165009224",
+    "name": "API Test Project Fresh Server",
+    "description": "",
+    "status": "active",
+    "category": "Design Reviews",
+    "color": "blue",
+    "ownerId": "1786340518154",
+    "coverImage": null,
+    "dueDate": null,
+    "members": [
+      {
+        "userId": "1786340518154",
+        "role": "owner",
+        "joinedAt": "2026-08-19T18:43:29.224Z"
+      }
+    ],
+    "createdAt": "2026-08-19T18:43:29.224Z",
+    "updatedAt": "2026-08-19T18:43:29.224Z"
+  },
+  {
+    "id": "proj_1787165940031",
+    "name": "Persisted Task Test Project",
+    "description": "",
+    "status": "active",
+    "category": "Design Reviews",
+    "color": "blue",
+    "ownerId": "1786340518154",
+    "coverImage": null,
+    "dueDate": null,
+    "members": [
+      {
+        "userId": "1786340518154",
+        "name": "Test",
+        "role": "Member"
+      }
+    ],
+    "createdAt": "2026-08-19T18:59:00.031Z",
+    "updatedAt": "2026-08-19T18:59:00.031Z"
+  },
+  {
+    "id": "proj_1787166206670",
+    "name": "Persisted Task Test Project 2",
+    "description": "",
+    "status": "active",
+    "category": "Design Reviews",
+    "color": "blue",
+    "ownerId": "1786340518154",
+    "coverImage": null,
+    "dueDate": null,
+    "members": [
+      {
+        "userId": "1786340518154",
+        "name": "Test",
+        "role": "Member"
+      }
+    ],
+    "createdAt": "2026-08-19T19:03:26.670Z",
+    "updatedAt": "2026-08-19T19:03:26.670Z"
+  },
+  {
+    "id": "proj_1787166568534",
+    "name": "Persisted Task Project",
+    "description": "",
+    "status": "active",
+    "category": "Design Reviews",
+    "color": "blue",
+    "ownerId": "1786340518154",
+    "coverImage": null,
+    "dueDate": null,
+    "members": [
+      {
+        "userId": "1786340518154",
+        "name": "Test",
+        "role": "Member"
+      }
+    ],
+    "createdAt": "2026-08-19T19:09:28.534Z",
+    "updatedAt": "2026-08-19T19:09:28.534Z"
+  },
+  {
+    "id": "proj_1787166964240",
+    "name": "Watch Test Project",
+    "description": "",
+    "status": "active",
+    "category": "Design Reviews",
+    "color": "blue",
+    "ownerId": "1786340518154",
+    "coverImage": null,
+    "dueDate": null,
+    "members": [
+      {
+        "userId": "1786340518154",
+        "name": "Test",
+        "role": "Member"
+      }
+    ],
+    "createdAt": "2026-08-19T19:16:04.240Z",
+    "updatedAt": "2026-08-19T19:16:04.240Z"
+  },
+  {
+    "id": "proj_1787167804480",
+    "name": "sdv",
+    "description": "sdv a",
+    "status": "active",
+    "category": "Design Reviews",
+    "color": "blue",
+    "ownerId": "1786431927127",
+    "coverImage": "https://res.cloudinary.com/bpv9dfck/image/upload/v1787167808/collabboard/covers/proj_1787167804480/cover_1787167804499.webp",
+    "dueDate": "2026-08-28",
+    "members": [
+      {
+        "userId": "usr-12",
+        "name": "Isuri Perera",
+        "email": "isuriupp@gmail.com",
+        "role": "Product Manager"
+      },
+      {
+        "userId": "1786448728310",
+        "name": "sathsarani Perera",
+        "email": "sathsaraniperera16@gmail.com",
+        "role": "Full Stack Developer"
+      },
+      {
+        "userId": "1786356291453",
+        "name": "Nipun Manusha",
+        "email": "nipunmanusha2003@gmail.com",
+        "role": "Member"
+      },
+      {
+        "userId": "1787051953156",
+        "name": "Cherry",
+        "email": "dhachanu24@gmail.com",
+        "role": "Member"
+      }
+    ],
+    "createdAt": "2026-08-19T19:30:04.480Z",
+    "updatedAt": "2026-08-19T19:30:10.044Z",
+    "coverImagePublicId": "collabboard/covers/proj_1787167804480/cover_1787167804499"
   }
 ]

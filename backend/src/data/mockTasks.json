@@ -75,5 +75,66 @@
     ],
     "createdAt": "2026-08-11T09:00:00.000Z",
     "updatedAt": "2026-08-11T09:00:00.000Z"
+  },
+  {
+    "id": "1787162269478",
+    "projectId": "proj_1787162098250",
+    "title": "gvmh",
+    "description": "",
+    "status": "todo",
+    "assignee": null,
+    "reviews": [],
+    "createdAt": "2026-08-19T17:57:49.478Z"
+  },
+  {
+    "id": "task_1787165009225_0",
+    "projectId": "proj_1787165009224",
+    "title": "Fresh Server Initial Task",
+    "description": "",
+    "status": "todo",
+    "priority": "medium",
+    "assigneeId": "1786340518154",
+    "dueDate": null,
+    "subtasks": [
+      {
+        "id": "sub_1787165009225_0_0",
+        "title": "Subtask 1",
+        "completed": false
+      }
+    ],
+    "createdAt": "2026-08-19T18:43:29.225Z",
+    "updatedAt": "2026-08-19T18:43:29.225Z"
+  },
+  {
+    "id": "task_1787167804483_0",
+    "projectId": "proj_1787167804480",
+    "title": "hgvhbkjk",
+    "description": "",
+    "status": "todo",
+    "priority": "medium",
+    "assigneeId": "1786431927127",
+    "dueDate": "2026-08-28",
+    "subtasks": [
+      {
+        "id": "sub_1787167804483_0",
+        "title": "fc vb",
+        "completed": false
+      }
+    ],
+    "createdAt": "2026-08-19T19:30:04.483Z",
+    "updatedAt": "2026-08-19T19:30:04.483Z"
+  },
+  {
+    "id": "task_1787167804483_1",
+    "projectId": "proj_1787167804480",
+    "title": "fgvhbj",
+    "description": "",
+    "status": "todo",
+    "priority": "medium",
+    "assigneeId": "1786431927127",
+    "dueDate": "2026-08-28",
+    "subtasks": [],
+    "createdAt": "2026-08-19T19:30:04.483Z",
+    "updatedAt": "2026-08-19T19:30:04.483Z"
   }
 ]

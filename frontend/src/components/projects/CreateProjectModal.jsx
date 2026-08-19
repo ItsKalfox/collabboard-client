@@ -201,6 +201,12 @@ export default function CreateProjectModal({
         finalMembers.unshift(ownerMember);
       }
 
+      // Auto-commit any pending task title in newTaskTitle field
+      let finalTasks = [...tasks];
+      if (newTaskTitle.trim()) {
+        finalTasks.push({ id: `t-${Date.now()}`, title: newTaskTitle.trim(), subtasks: [] });
+      }
+
       // Format display date if date picker date is provided (e.g. YYYY-MM-DD -> DD MMM YYYY)
       let formattedDueDate = dueDate;
       if (dueDate && dueDate.includes('-')) {
@@ -222,6 +228,11 @@ export default function CreateProjectModal({
           name: m.name,
           email: m.email || undefined,
           role: m.role || 'member'
+        })),
+        tasks: finalTasks.map(t => ({
+          title: t.title,
+          status: 'todo',
+          subtasks: t.subtasks || []
         }))
       };
 
@@ -269,7 +280,7 @@ export default function CreateProjectModal({
         documents: documents,
         status: createdProject?.status || 'active',
         progress: 0,
-        tasks: tasks
+        tasks: finalTasks
       };
 
       onCreate(projectForUI);
