@@ -3,14 +3,14 @@ import './TaskPopup.css';
 
 /* ─── Dummy employee pool ───────────────────────────────────── */
 const ALL_EMPLOYEES = [
-  { id: 1, name: 'Amanda Black',  role: 'Designer',       initials: 'AB' },
-  { id: 2, name: 'Jake Wilson',   role: 'Front-End Dev',  initials: 'JW' },
-  { id: 3, name: 'Sara Johnson',  role: 'Product Manager',initials: 'SJ' },
-  { id: 4, name: 'Mike Chen',     role: 'Back-End Dev',   initials: 'MC' },
-  { id: 5, name: 'Priya Patel',   role: 'UI Designer',    initials: 'PP' },
-  { id: 6, name: 'Alex Turner',   role: 'QA Engineer',    initials: 'AT' },
-  { id: 7, name: 'Dana Lee',      role: 'Full-Stack Dev', initials: 'DL' },
-  { id: 8, name: 'Chris Brown',   role: 'Marketing',      initials: 'CB' },
+  { id: 1, name: 'Amanda Black', role: 'Designer', initials: 'AB' },
+  { id: 2, name: 'Jake Wilson', role: 'Front-End Dev', initials: 'JW' },
+  { id: 3, name: 'Sara Johnson', role: 'Product Manager', initials: 'SJ' },
+  { id: 4, name: 'Mike Chen', role: 'Back-End Dev', initials: 'MC' },
+  { id: 5, name: 'Priya Patel', role: 'UI Designer', initials: 'PP' },
+  { id: 6, name: 'Alex Turner', role: 'QA Engineer', initials: 'AT' },
+  { id: 7, name: 'Dana Lee', role: 'Full-Stack Dev', initials: 'DL' },
+  { id: 8, name: 'Chris Brown', role: 'Marketing', initials: 'CB' },
 ];
 
 /* ─── Helpers ───────────────────────────────────────────────── */
@@ -52,8 +52,8 @@ export default function TaskPopup({ task: prop, onClose }) {
       comments: s.comments || [],
     })),
     attachments: prop.attachments || [
-      { id: 'a1', name: 'Design Brief',  ext: 'PDF', size: '2.45 MB', url: null },
-      { id: 'a2', name: 'Company Info',  ext: 'PDF', size: '5.25 MB', url: null },
+      { id: 'a1', name: 'Design Brief', ext: 'PDF', size: '2.45 MB', url: null },
+      { id: 'a2', name: 'Company Info', ext: 'PDF', size: '5.25 MB', url: null },
     ],
     generalComments: prop.generalComments || [],
     activities: prop.activities || [
@@ -62,22 +62,44 @@ export default function TaskPopup({ task: prop, onClose }) {
   }));
 
   /* ── Edit mode ── */
-  const [isEditing, setIsEditing]   = useState(false);
-  const [draft,     setDraft]       = useState({});
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState({});
 
   const startEdit = () => {
     setDraft({
-      title:       task.title,
+      title: task.title,
       description: task.description,
-      status:      task.status,
-      dueDate:     task.dueDate,
-      priority:    task.priority,
-      progress:    task.progress,
+      status: task.status,
+      dueDate: task.dueDate,
+      priority: task.priority,
+      progress: task.progress,
     });
     setIsEditing(true);
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const token = localStorage.getItem('token');
+      await fetch(`${apiUrl}/tasks/${task.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: draft.title,
+          description: draft.description,
+          status: draft.status,
+          priority: draft.priority,
+          dueDate: draft.dueDate,
+          progress: draft.progress
+        })
+      });
+    } catch (e) {
+      console.error('Failed to update task', e);
+    }
+    
     setTask(t => ({
       ...t,
       ...draft,
@@ -89,12 +111,28 @@ export default function TaskPopup({ task: prop, onClose }) {
     setIsEditing(false);
   };
 
+  const deleteFullTask = async () => {
+    if (!window.confirm("Are you sure you want to delete this task completely?")) return;
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const token = localStorage.getItem('token');
+      await fetch(`${apiUrl}/tasks/${task.id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      onClose(); // Close modal
+      window.location.reload(); // Refresh the board
+    } catch (e) {
+      console.error('Failed to delete task', e);
+    }
+  };
+
   /* ── Tab ── */
   const [activeTab, setActiveTab] = useState('subtasks');
 
   /* ── Invite ── */
-  const [showInvite,      setShowInvite]      = useState(false);
-  const [inviteSearch,    setInviteSearch]    = useState('');
+  const [showInvite, setShowInvite] = useState(false);
+  const [inviteSearch, setInviteSearch] = useState('');
   const [pendingInvitees, setPendingInvitees] = useState([]);
 
   const filteredEmployees = ALL_EMPLOYEES.filter(e =>
@@ -140,10 +178,7 @@ export default function TaskPopup({ task: prop, onClose }) {
       const token = localStorage.getItem('token');
       await fetch(`${apiUrl}/subtasks/${targetSub.id}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ completed: newCompleted })
       });
     } catch (e) {
@@ -151,18 +186,75 @@ export default function TaskPopup({ task: prop, onClose }) {
     }
 
     setTask(t => {
-      const subs  = t.subtasks.map((s, idx) => idx === i ? { ...s, completed: newCompleted } : s);
-      const verb  = newCompleted ? 'completed' : 'reopened';
+      const subs = t.subtasks.map((s, idx) => idx === i ? { ...s, completed: newCompleted } : s);
+      const verb = newCompleted ? 'completed' : 'reopened';
       return {
         ...t,
         subtasks: subs,
-        activities: [
-          { text: `Subtask "${subs[i].title}" ${verb}`, timestamp: fmtNow() },
-          ...t.activities,
-        ],
+        activities: [{ text: `Subtask "${subs[i].title}" ${verb}`, timestamp: fmtNow() }, ...t.activities],
       };
     });
   };
+
+  const deleteSubtask = async (i) => {
+    const targetSub = task.subtasks[i];
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const token = localStorage.getItem('token');
+      await fetch(`${apiUrl}/subtasks/${targetSub.id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+    } catch (e) {
+      console.error('Failed to delete subtask', e);
+    }
+
+    setTask(t => ({
+      ...t,
+      subtasks: t.subtasks.filter((_, idx) => idx !== i),
+      activities: [{ text: `Subtask "${targetSub.title}" deleted`, timestamp: fmtNow() }, ...t.activities],
+    }));
+  };
+
+  /* ── Activities – add subtask ── */
+  const [newSubInput, setNewSubInput] = useState('');
+
+  const addSubtaskFromActivities = async () => {
+    const title = newSubInput.trim();
+    if (!title) return;
+
+    let subData = { title, completed: false, comments: [] };
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${apiUrl}/tasks/${task.id}/subtasks`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ title, completed: false })
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        const newApiSubtask = data.data.subtask;
+        subData = { ...subData, id: newApiSubtask.id };
+      }
+    } catch (e) {
+      console.error('Failed to add subtask', e);
+    }
+
+    setTask(t => ({
+      ...t,
+      subtasks: [...t.subtasks, subData],
+      activities: [{ text: `New subtask added: "${title}"`, timestamp: fmtNow() }, ...t.activities],
+    }));
+    setNewSubInput('');
+  };
+
+
 
   const deleteSubtask = async (i) => {
     const targetSub = task.subtasks[i];
@@ -197,7 +289,7 @@ export default function TaskPopup({ task: prop, onClose }) {
     const text = (subInputs[i] || '').trim();
     if (!text) return;
     const comment = {
-      author:    task.assignees[0]?.name || 'You',
+      author: task.assignees[0]?.name || 'You',
       text,
       timestamp: fmtNow(),
     };
@@ -262,30 +354,59 @@ export default function TaskPopup({ task: prop, onClose }) {
   };
 
   /* ── Attachments ── */
-  const handleFileAdd = e => {
+  const handleFileAdd = async (e) => {
     const files = Array.from(e.target.files);
-    const newAtts = files.map(f => ({
-      id:   Date.now() + Math.random(),
-      name: f.name.replace(/\.[^.]+$/, ''),
-      ext:  f.name.split('.').pop().toUpperCase(),
-      size: (f.size / (1024 * 1024)).toFixed(2) + ' MB',
-      url:  URL.createObjectURL(f),
-    }));
-    setTask(t => ({
-      ...t,
-      attachments: [...t.attachments, ...newAtts],
-      activities: [
-        { text: `${files.length} attachment(s) added`, timestamp: fmtNow() },
-        ...t.activities,
-      ],
-    }));
-    e.target.value = '';
+    e.target.value = ''; // Reset immediately
+    
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const token = localStorage.getItem('token');
+      
+      const uploadPromises = files.map(async (f) => {
+        const formData = new FormData();
+        formData.append('file', f);
+        
+        const res = await fetch(`${apiUrl}/tasks/${task.id}/attachments`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+        
+        const data = await res.json();
+        if (data.status === 'success') {
+          return data.data.attachment;
+        }
+        return null;
+      });
+
+      const uploadedAtts = await Promise.all(uploadPromises);
+      const successfulUploads = uploadedAtts.filter(a => a !== null).map(apiAtt => ({
+        id: apiAtt.id,
+        name: apiAtt.filename ? apiAtt.filename.replace(/\.[^.]+$/, '') : 'Attachment',
+        ext: apiAtt.filename ? apiAtt.filename.split('.').pop().toUpperCase() : 'FILE',
+        size: apiAtt.size ? (apiAtt.size / (1024 * 1024)).toFixed(2) + ' MB' : 'Unknown',
+        url: apiAtt.url
+      }));
+      
+      if (successfulUploads.length > 0) {
+        setTask(t => ({
+          ...t,
+          attachments: [...t.attachments, ...successfulUploads],
+          activities: [
+            { text: `${successfulUploads.length} attachment(s) added`, timestamp: fmtNow() },
+            ...t.activities,
+          ],
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to upload attachment(s)', err);
+    }
   };
 
   const downloadAtt = att => {
     if (!att.url) return;
     const a = document.createElement('a');
-    a.href     = att.url;
+    a.href = att.url;
     a.download = `${att.name}.${att.ext.toLowerCase()}`;
     a.click();
   };
@@ -307,10 +428,10 @@ export default function TaskPopup({ task: prop, onClose }) {
   /* ── Derived values ── */
   const priorityColor =
     task.priority >= 7 ? '#ef4444' :
-    task.priority >= 4 ? '#f59e0b' : '#22c55e';
+      task.priority >= 4 ? '#f59e0b' : '#22c55e';
 
-  const totalSubs   = task.subtasks.length;
-  const doneSubs    = task.subtasks.filter(s => s.completed).length;
+  const totalSubs = task.subtasks.length;
+  const doneSubs = task.subtasks.filter(s => s.completed).length;
   const commentCount = task.generalComments.length +
     task.subtasks.reduce((a, s) => a + s.comments.length, 0);
 
@@ -337,7 +458,7 @@ export default function TaskPopup({ task: prop, onClose }) {
           <div className="popup-header-actions">
             {isEditing ? (
               <>
-                <button className="popup-save-btn"   onClick={saveEdit}>Save</button>
+                <button className="popup-save-btn" onClick={saveEdit}>Save</button>
                 <button className="popup-cancel-btn" onClick={() => setIsEditing(false)}>Cancel</button>
               </>
             ) : (
@@ -345,8 +466,17 @@ export default function TaskPopup({ task: prop, onClose }) {
                 {/* Edit */}
                 <button className="popup-icon-btn" onClick={startEdit} aria-label="Edit">
                   <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                </button>
+                {/* Delete Task */}
+                <button className="popup-icon-btn popup-icon-btn--danger" onClick={deleteFullTask} aria-label="Delete Task" style={{ color: '#ef4444' }}>
+                  <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6V20a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
                   </svg>
                 </button>
               </>
@@ -357,10 +487,10 @@ export default function TaskPopup({ task: prop, onClose }) {
         {/* Title */}
         {isEditing
           ? <input
-              className="popup-title-input"
-              value={draft.title}
-              onChange={e => setDraft(d => ({ ...d, title: e.target.value }))}
-            />
+            className="popup-title-input"
+            value={draft.title}
+            onChange={e => setDraft(d => ({ ...d, title: e.target.value }))}
+          />
           : <h2 className="popup-title">{task.title}</h2>
         }
 
@@ -370,20 +500,20 @@ export default function TaskPopup({ task: prop, onClose }) {
           {/* Priority */}
           <div className="popup-meta-row">
             <div className="popup-meta-label">
-              <Icon d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+              <Icon d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
               Priority
             </div>
             <div className="popup-meta-val">
               {isEditing
                 ? <input type="number" min="1" max="9"
-                    className="popup-mini-input"
-                    value={draft.priority}
-                    style={{ width: 48, color: priorityColor }}
-                    onChange={e => setDraft(d => ({ ...d, priority: +e.target.value }))}
-                  />
+                  className="popup-mini-input"
+                  value={draft.priority}
+                  style={{ width: 48, color: priorityColor }}
+                  onChange={e => setDraft(d => ({ ...d, priority: +e.target.value }))}
+                />
                 : <span className="popup-priority-badge" style={{ backgroundColor: priorityColor }}>
-                    {task.priority}
-                  </span>
+                  {task.priority}
+                </span>
               }
             </div>
           </div>
@@ -391,15 +521,15 @@ export default function TaskPopup({ task: prop, onClose }) {
           {/* Status */}
           <div className="popup-meta-row">
             <div className="popup-meta-label">
-              <Icon d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0-18v8l3 3"/>
+              <Icon d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0-18v8l3 3" />
               Status
             </div>
             <div className="popup-meta-val">
               {isEditing
                 ? <input className="popup-mini-input popup-mini-input--wide"
-                    value={draft.status}
-                    onChange={e => setDraft(d => ({ ...d, status: e.target.value }))}
-                  />
+                  value={draft.status}
+                  onChange={e => setDraft(d => ({ ...d, status: e.target.value }))}
+                />
                 : <span className="popup-status-chip">{task.status}</span>
               }
             </div>
@@ -408,7 +538,7 @@ export default function TaskPopup({ task: prop, onClose }) {
           {/* Created date (read-only always) */}
           <div className="popup-meta-row">
             <div className="popup-meta-label">
-              <Icon d="M3 4h18v2H3zm0 7h18v2H3zm0 7h18v2H3z"/>
+              <Icon d="M3 4h18v2H3zm0 7h18v2H3zm0 7h18v2H3z" />
               Created date
             </div>
             <div className="popup-meta-val popup-meta-text">{task.createdDate}</div>
@@ -417,15 +547,15 @@ export default function TaskPopup({ task: prop, onClose }) {
           {/* Due date */}
           <div className="popup-meta-row">
             <div className="popup-meta-label">
-              <Icon d="M3 4h18v2H3zm0 7h18v2H3zm0 7h18v2H3z"/>
+              <Icon d="M3 4h18v2H3zm0 7h18v2H3zm0 7h18v2H3z" />
               Due date
             </div>
             <div className="popup-meta-val">
               {isEditing
                 ? <input className="popup-mini-input popup-mini-input--wide"
-                    value={draft.dueDate}
-                    onChange={e => setDraft(d => ({ ...d, dueDate: e.target.value }))}
-                  />
+                  value={draft.dueDate}
+                  onChange={e => setDraft(d => ({ ...d, dueDate: e.target.value }))}
+                />
                 : <span className="popup-meta-text">{task.dueDate}</span>
               }
             </div>
@@ -434,19 +564,19 @@ export default function TaskPopup({ task: prop, onClose }) {
           {/* Progress */}
           <div className="popup-meta-row">
             <div className="popup-meta-label">
-              <Icon d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm0 2v8l5 3"/>
+              <Icon d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm0 2v8l5 3" />
               Progress
             </div>
             <div className="popup-meta-val popup-meta-val--progress">
               {isEditing
                 ? <input type="range" min="0" max="100"
-                    className="popup-progress-range"
-                    value={draft.progress}
-                    onChange={e => setDraft(d => ({ ...d, progress: +e.target.value }))}
-                  />
+                  className="popup-progress-range"
+                  value={draft.progress}
+                  onChange={e => setDraft(d => ({ ...d, progress: +e.target.value }))}
+                />
                 : <div className="popup-progress-bar">
-                    <div className="popup-progress-fill" style={{ width: `${task.progress}%` }}/>
-                  </div>
+                  <div className="popup-progress-fill" style={{ width: `${task.progress}%` }} />
+                </div>
               }
               <span className="popup-progress-label">
                 {isEditing ? draft.progress : task.progress}%
@@ -457,7 +587,7 @@ export default function TaskPopup({ task: prop, onClose }) {
           {/* Assignees */}
           <div className="popup-meta-row popup-meta-row--assignees">
             <div className="popup-meta-label">
-              <Icon d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+              <Icon d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
               Assignees
             </div>
             <div className="popup-meta-val popup-meta-val--assignees">
@@ -471,10 +601,10 @@ export default function TaskPopup({ task: prop, onClose }) {
                 onClick={() => setShowInvite(true)}
               >
                 <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" strokeWidth="2.5" fill="none">
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                  <circle cx="8.5" cy="7" r="4"/>
-                  <line x1="20" y1="8" x2="20" y2="14"/>
-                  <line x1="23" y1="11" x2="17" y2="11"/>
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="8.5" cy="7" r="4" />
+                  <line x1="20" y1="8" x2="20" y2="14" />
+                  <line x1="23" y1="11" x2="17" y2="11" />
                 </svg>
                 Invite
               </button>
@@ -486,31 +616,31 @@ export default function TaskPopup({ task: prop, onClose }) {
         {/* Description */}
         {isEditing
           ? <textarea
-              className="popup-desc-textarea"
-              value={draft.description}
-              onChange={e => setDraft(d => ({ ...d, description: e.target.value }))}
-            />
+            className="popup-desc-textarea"
+            value={draft.description}
+            onChange={e => setDraft(d => ({ ...d, description: e.target.value }))}
+          />
           : task.description && (
-              <p className="popup-description">{task.description}</p>
-            )
+            <p className="popup-description">{task.description}</p>
+          )
         }
 
-        <hr className="popup-divider"/>
+        <hr className="popup-divider" />
 
         {/* ── Attachments ── */}
         <div className="popup-att-section">
           <div className="popup-att-header">
             <span className="popup-att-title">
               <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round">
-                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
               </svg>
               Attachments
             </span>
             <button className="popup-download-all-btn" onClick={downloadAll}>
               <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
               Download All
             </button>
@@ -526,8 +656,8 @@ export default function TaskPopup({ task: prop, onClose }) {
               >
                 <div className="popup-att-icon">
                   <svg viewBox="0 0 24 24" width="20" height="20" stroke="#ef4444" strokeWidth="2" fill="none" strokeLinecap="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
                   </svg>
                 </div>
                 <div className="popup-att-info">
@@ -536,9 +666,9 @@ export default function TaskPopup({ task: prop, onClose }) {
                 </div>
                 {att.url && (
                   <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" className="popup-att-dl-icon">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="7 10 12 15 17 10"/>
-                    <line x1="12" y1="15" x2="12" y2="3"/>
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
                   </svg>
                 )}
               </div>
@@ -551,7 +681,7 @@ export default function TaskPopup({ task: prop, onClose }) {
               title="Add attachment"
             >
               <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
               </svg>
             </button>
             <input
@@ -564,13 +694,13 @@ export default function TaskPopup({ task: prop, onClose }) {
           </div>
         </div>
 
-        <hr className="popup-divider"/>
+        <hr className="popup-divider" />
 
         {/* ── Tabs ── */}
         <div className="popup-tabs">
           {[
-            { key: 'subtasks',   label: 'Subtasks',   count: totalSubs },
-            { key: 'comments',   label: 'Comments',   count: commentCount },
+            { key: 'subtasks', label: 'Subtasks', count: totalSubs },
+            { key: 'comments', label: 'Comments', count: commentCount },
             { key: 'activities', label: 'Activities', count: null },
           ].map(t => (
             <button
@@ -652,8 +782,8 @@ export default function TaskPopup({ task: prop, onClose }) {
                     aria-label="Send comment"
                   >
                     <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
-                      <line x1="22" y1="2" x2="11" y2="13"/>
-                      <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                      <line x1="22" y1="2" x2="11" y2="13" />
+                      <polygon points="22 2 15 22 11 13 2 9 22 2" />
                     </svg>
                   </button>
                 </div>
@@ -711,8 +841,8 @@ export default function TaskPopup({ task: prop, onClose }) {
                 <button className="popup-send-btn" onClick={addGeneralComment}>
                   Send
                   <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
-                    <line x1="22" y1="2" x2="11" y2="13"/>
-                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
                   </svg>
                 </button>
               </div>
@@ -726,7 +856,7 @@ export default function TaskPopup({ task: prop, onClose }) {
             {/* Add subtask from here */}
             <div className="popup-add-subtask-bar">
               <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
               </svg>
               <input
                 className="popup-add-subtask-input"
@@ -744,7 +874,7 @@ export default function TaskPopup({ task: prop, onClose }) {
             <div className="popup-activity-list">
               {task.activities.map((a, i) => (
                 <div key={i} className="popup-activity-item">
-                  <div className="popup-activity-dot"/>
+                  <div className="popup-activity-dot" />
                   <div className="popup-activity-content">
                     <p className="popup-activity-text">{a.text}</p>
                     <span className="popup-activity-time">{a.timestamp}</span>
@@ -764,7 +894,7 @@ export default function TaskPopup({ task: prop, onClose }) {
             <h3 className="popup-invite-title">Invite Members</h3>
             <button className="popup-close-btn" onClick={() => setShowInvite(false)}>
               <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
-                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
           </div>
@@ -772,7 +902,7 @@ export default function TaskPopup({ task: prop, onClose }) {
           {/* Search */}
           <div className="popup-invite-search-wrap">
             <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             <input
               className="popup-invite-search"
@@ -786,7 +916,7 @@ export default function TaskPopup({ task: prop, onClose }) {
           {/* Employee list */}
           <div className="popup-invite-list">
             {filteredEmployees.map(emp => {
-              const isAdded    = !!task.assignees.find(a => a.name === emp.name);
+              const isAdded = !!task.assignees.find(a => a.name === emp.name);
               const isSelected = !!pendingInvitees.find(p => p.id === emp.id);
               return (
                 <div
