@@ -62,7 +62,7 @@ export const getTasksByProject = async (req, res) => {
 export const createTask = async (req, res) => {
     try {
         const { projectId } = req.params;
-        const { title, description, status, assignee } = req.body;
+        const { title, description, status, assignee, priority, dueDate, progress, assignees, subtasks, attachments } = req.body;
         
         if (!title) {
             return res.status(400).json({ status: 'error', message: 'Title is required' });
@@ -76,6 +76,12 @@ export const createTask = async (req, res) => {
             description: description || '',
             status: status || 'todo',
             assignee: assignee || null,
+            assignees: assignees || [],
+            priority: priority !== undefined ? priority : 7,
+            dueDate: dueDate || null,
+            progress: progress || 0,
+            subtasks: subtasks || [],
+            attachments: attachments || [],
             reviews: [],
             createdAt: new Date().toISOString()
         };
@@ -116,7 +122,7 @@ export const getTaskById = async (req, res) => {
 export const updateTask = async (req, res) => {
     try {
         const { taskId } = req.params;
-        const { title, description, status, assignee } = req.body;
+        const { title, description, status, assignee, priority, dueDate, progress, assignees } = req.body;
         
         const tasks = getMockTasks();
         const taskIndex = tasks.findIndex(t => t.id === taskId);
@@ -129,6 +135,10 @@ export const updateTask = async (req, res) => {
         if (description !== undefined) tasks[taskIndex].description = description;
         if (status !== undefined) tasks[taskIndex].status = status;
         if (assignee !== undefined) tasks[taskIndex].assignee = assignee;
+        if (assignees !== undefined) tasks[taskIndex].assignees = assignees;
+        if (priority !== undefined) tasks[taskIndex].priority = priority;
+        if (dueDate !== undefined) tasks[taskIndex].dueDate = dueDate;
+        if (progress !== undefined) tasks[taskIndex].progress = progress;
         
         saveMockTasks(tasks);
         
