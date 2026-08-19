@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, ArrowRight, ChevronDown, ChevronRight, UserPlus, Trash2, Calendar, Search, AlertCircle, Loader2 } from 'lucide-react';
+import { X, ArrowRight, ChevronDown, ChevronRight, UserPlus, Trash2, Calendar, Search, AlertCircle, Loader2, RefreshCw, Clock, CheckSquare } from 'lucide-react';
 import { MOCK_MEMBERS, normalizeMember } from '../../mock/mockMembers';
-import { uploadCoverImage, getAttachments, uploadAttachment, deleteAttachment, getProjectMembers, searchUsers, addProjectMember, removeProjectMember } from '../../services/projectService';
+import { uploadCoverImage, getAttachments, uploadAttachment, deleteAttachment, getProjectMembers, searchUsers, addProjectMember, removeProjectMember, getProjectTasks, getProjectTimeline, refreshProjectTimeline } from '../../services/projectService';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import '../TaskPopup/TaskPopup.css';
 import './projects.css';
@@ -94,6 +94,17 @@ export default function ProjectDetailsModal({
   const [isSearchingUsers, setIsSearchingUsers] = useState(false);
   const [searchError, setSearchError] = useState('');
 
+  // API State for Tasks and Activity Timeline
+  const [apiTasks, setApiTasks] = useState([]);
+  const [isLoadingTasks, setIsLoadingTasks] = useState(false);
+  const [tasksError, setTasksError] = useState('');
+
+  const [apiTimeline, setApiTimeline] = useState([]);
+  const [isLoadingTimeline, setIsLoadingTimeline] = useState(false);
+  const [isRefreshingTimeline, setIsRefreshingTimeline] = useState(false);
+  const [timelineError, setTimelineError] = useState('');
+  const [lastRefreshedAt, setLastRefreshedAt] = useState(null);
+
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (propProject && isOpen) {
@@ -109,6 +120,12 @@ export default function ProjectDetailsModal({
       setSearchError('');
       setMemberSearch('');
       setSearchResults([]);
+
+      setTasksError('');
+      setTimelineError('');
+      setApiTasks([]);
+      setApiTimeline([]);
+      setLastRefreshedAt(null);
 
       // Fetch live attachments from backend API
       if (propProject.id) {
@@ -144,6 +161,41 @@ export default function ProjectDetailsModal({
           })
           .finally(() => {
             setIsLoadingMembers(false);
+          });
+
+        // Fetch live project tasks via GET /api/projects/:id/tasks
+        setIsLoadingTasks(true);
+        getProjectTasks(propProject.id)
+          .then(tasksData => {
+            if (Array.isArray(tasksData)) {
+              setApiTasks(tasksData);
+            }
+          })
+          .catch(err => {
+            console.warn('Could not fetch tasks from API:', err.message);
+            setTasksError(err.message || 'Failed to load project tasks');
+          })
+          .finally(() => {
+            setIsLoadingTasks(false);
+          });
+
+        // Fetch live project timeline via GET /api/projects/:id/timeline
+        setIsLoadingTimeline(true);
+        getProjectTimeline(propProject.id)
+          .then(timelineData => {
+            if (Array.isArray(timelineData)) {
+              setApiTimeline(timelineData);
+              if (timelineData.length > 0) {
+                setLastRefreshedAt(timelineData[0].timestamp || new Date().toISOString());
+              }
+            }
+          })
+          .catch(err => {
+            console.warn('Could not fetch timeline from API:', err.message);
+            setTimelineError(err.message || 'Failed to load activity timeline');
+          })
+          .finally(() => {
+            setIsLoadingTimeline(false);
           });
       }
     }
@@ -461,6 +513,36 @@ export default function ProjectDetailsModal({
       setMemberToRemove(null);
     } finally {
       setIsRemovingMember(false);
+    }
+  };
+
+  const handleRefreshTimeline = async () => {
+    if (!project?.id || isRefreshingTimeline) return;
+
+    setIsRefreshingTimeline(true);
+    setTimelineError('');
+
+    try {
+      const sinceParam = lastRefreshedAt || (apiTimeline.length > 0 ? apiTimeline[0].timestamp : undefined);
+      const resData = await refreshProjectTimeline(project.id, sinceParam);
+      const newActivities = resData.newActivities || [];
+
+      if (newActivities.length > 0) {
+        setApiTimeline(prev => {
+          const existingIds = new Set(prev.map(item => item.id || `${item.timestamp}-${item.action}`));
+          const uniqueNew = newActivities.filter(item => !existingIds.has(item.id || `${item.timestamp}-${item.action}`));
+          return [...uniqueNew, ...prev];
+        });
+      }
+
+      if (resData.lastRefreshedAt) {
+        setLastRefreshedAt(resData.lastRefreshedAt);
+      }
+    } catch (err) {
+      console.warn('Failed to refresh timeline:', err.message);
+      setTimelineError(err.message || 'Failed to refresh activity timeline');
+    } finally {
+      setIsRefreshingTimeline(false);
     }
   };
 
@@ -840,7 +922,7 @@ export default function ProjectDetailsModal({
 
         {/* Tabs */}
         <div className="popup-tabs" style={{ display: 'flex', gap: '16px', borderBottom: 'var(--popup-divider)', marginBottom: '20px' }}>
-          {['tasks', 'members'].map(t => (
+          {['tasks', 'members', 'timeline'].map(t => (
             <button
               key={t}
               onClick={() => setActiveTab(t)}
@@ -857,7 +939,7 @@ export default function ProjectDetailsModal({
                 transition: 'all 0.2s'
               }}
             >
-              {t === 'tasks' ? 'Tasks & Subtasks' : 'Team Members'}
+              {t === 'tasks' ? 'Tasks & Subtasks' : t === 'members' ? 'Team Members' : 'Activity Timeline'}
             </button>
           ))}
         </div>
@@ -868,14 +950,31 @@ export default function ProjectDetailsModal({
           {/* Tasks & Subtasks Tab */}
           {activeTab === 'tasks' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {(project.tasks || []).length === 0 ? (
+              {tasksError && (
+                <div style={{
+                  background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.35)',
+                  color: theme === 'light' ? '#b91c1c' : '#fca5a5', padding: '8px 12px',
+                  borderRadius: '8px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px'
+                }}>
+                  <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                  <span>{tasksError}</span>
+                </div>
+              )}
+
+              {isLoadingTasks ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--popup-text-muted)', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                  <span>Loading project tasks...</span>
+                </div>
+              ) : (apiTasks.length > 0 ? apiTasks : (project.tasks || [])).length === 0 ? (
                 <div style={{ padding: '16px', textAlign: 'center', color: 'var(--popup-text-muted)', fontSize: '13px' }}>
                   No tasks recorded for this project yet. Open the Project Board to create and manage tasks.
                 </div>
               ) : (
-                project.tasks.map(t => {
+                (apiTasks.length > 0 ? apiTasks : (project.tasks || [])).map(t => {
                   const isExpanded = expandedTasks[t.id];
                   const subtasks = t.subtasks || [];
+                  const isCompleted = t.completed || t.status === 'Completed' || t.status === 'Done';
                   return (
                     <div key={t.id} style={{ border: 'var(--popup-card-border)', background: 'var(--popup-card-bg)', borderRadius: '12px', overflow: 'hidden' }}>
                       <div 
@@ -883,10 +982,10 @@ export default function ProjectDetailsModal({
                         style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: 'var(--popup-checkbox-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.completed ? '#6366f1' : 'transparent' }}>
-                            {t.completed && <svg viewBox="0 0 24 24" width={10} height={10} stroke="#fff" strokeWidth="3" fill="none"><polyline points="20 6 9 17 4 12"/></svg>}
+                          <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: 'var(--popup-checkbox-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isCompleted ? '#6366f1' : 'transparent' }}>
+                            {isCompleted && <svg viewBox="0 0 24 24" width={10} height={10} stroke="#fff" strokeWidth="3" fill="none"><polyline points="20 6 9 17 4 12"/></svg>}
                           </div>
-                          <span style={{ fontSize: '14px', color: 'var(--popup-text-main)', textDecoration: t.completed ? 'line-through' : 'none' }}>
+                          <span style={{ fontSize: '14px', color: 'var(--popup-text-main)', textDecoration: isCompleted ? 'line-through' : 'none' }}>
                             {t.title}
                           </span>
                         </div>
@@ -908,6 +1007,73 @@ export default function ProjectDetailsModal({
                           ))}
                         </div>
                       )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+
+          {/* Activity Timeline Tab */}
+          {activeTab === 'timeline' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontSize: '13px', color: 'var(--popup-text-main)', fontWeight: '600' }}>
+                  {apiTimeline.length} Activities
+                </span>
+                <button
+                  type="button"
+                  onClick={handleRefreshTimeline}
+                  disabled={isRefreshingTimeline}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    background: 'var(--popup-btn-bg)', border: 'var(--popup-btn-border)',
+                    color: 'var(--popup-text-main)', padding: '6px 12px', borderRadius: '8px',
+                    cursor: isRefreshingTimeline ? 'not-allowed' : 'pointer', fontSize: '12px', fontWeight: '500'
+                  }}
+                  title="Check for new activity"
+                >
+                  <RefreshCw size={13} style={{ animation: isRefreshingTimeline ? 'spin 1s linear infinite' : 'none' }} />
+                  <span>{isRefreshingTimeline ? 'Refreshing...' : 'Refresh'}</span>
+                </button>
+              </div>
+
+              {timelineError && (
+                <div style={{
+                  background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.35)',
+                  color: theme === 'light' ? '#b91c1c' : '#fca5a5', padding: '8px 12px',
+                  borderRadius: '8px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px'
+                }}>
+                  <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                  <span>{timelineError}</span>
+                </div>
+              )}
+
+              {isLoadingTimeline ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--popup-text-muted)', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                  <span>Loading activity timeline...</span>
+                </div>
+              ) : apiTimeline.length === 0 ? (
+                <div style={{ padding: '16px', textAlign: 'center', color: 'var(--popup-text-muted)', fontSize: '13px' }}>
+                  No timeline history recorded for this project yet.
+                </div>
+              ) : (
+                apiTimeline.map((item, idx) => {
+                  const actorName = typeof item.actor === 'string' ? item.actor : (item.actor?.name || item.user || 'Team Member');
+                  const timeFormatted = item.timestamp ? new Date(item.timestamp).toLocaleString() : 'Just now';
+                  return (
+                    <div key={item.id || idx} style={{ display: 'flex', gap: '12px', padding: '12px', background: 'var(--popup-card-bg)', border: 'var(--popup-card-border)', borderRadius: '12px', alignItems: 'flex-start' }}>
+                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(99, 102, 241, 0.15)', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px' }}>
+                        <Clock size={15} />
+                      </div>
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <div style={{ fontSize: '13px', color: 'var(--popup-text-main)' }}>
+                          <strong style={{ fontWeight: '600' }}>{actorName}</strong> {item.action || 'updated project'} {item.target ? <span style={{ color: '#6366f1' }}>"{item.target}"</span> : ''}
+                        </div>
+                        {item.details && <div style={{ fontSize: '12px', color: 'var(--popup-text-muted)' }}>{item.details}</div>}
+                        <div style={{ fontSize: '11px', color: 'var(--popup-text-muted)', marginTop: '2px' }}>{timeFormatted}</div>
+                      </div>
                     </div>
                   );
                 })

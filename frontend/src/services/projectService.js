@@ -284,5 +284,67 @@ export const removeProjectMember = async (projectId, userId) => {
   return data;
 };
 
+/**
+ * Fetch project tasks & subtasks via GET /api/projects/:id/tasks
+ * @param {string} projectId
+ * @returns {Promise<Array>} List of project tasks
+ */
+export const getProjectTasks = async (projectId) => {
+  const response = await fetch(`${API_URL}/projects/${projectId}/tasks`, {
+    method: 'GET',
+    headers: getAuthHeaders(true)
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch project tasks');
+  }
+
+  return data.data?.tasks || [];
+};
+
+/**
+ * Fetch project timeline history via GET /api/projects/:id/timeline
+ * @param {string} projectId
+ * @param {number} [limit]
+ * @returns {Promise<Array>} List of timeline activities
+ */
+export const getProjectTimeline = async (projectId, limit) => {
+  const query = limit ? `?limit=${limit}` : '';
+  const response = await fetch(`${API_URL}/projects/${projectId}/timeline${query}`, {
+    method: 'GET',
+    headers: getAuthHeaders(true)
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch project timeline');
+  }
+
+  return data.data?.timeline || [];
+};
+
+/**
+ * Refresh project timeline via GET /api/projects/:id/timeline/refresh?since={since}
+ * @param {string} projectId
+ * @param {string|number} [since]
+ * @returns {Promise<Object>} Object with newActivities array and lastRefreshedAt
+ */
+export const refreshProjectTimeline = async (projectId, since) => {
+  const query = since ? `?since=${encodeURIComponent(since)}` : '';
+  const response = await fetch(`${API_URL}/projects/${projectId}/timeline/refresh${query}`, {
+    method: 'GET',
+    headers: getAuthHeaders(true)
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to refresh project timeline');
+  }
+
+  return data.data || { newActivities: [], lastRefreshedAt: new Date().toISOString() };
+};
+
+
 
 
