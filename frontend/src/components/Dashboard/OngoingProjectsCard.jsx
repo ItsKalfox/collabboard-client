@@ -1,11 +1,40 @@
+import { useOngoingProjects } from '../../hooks/useDashboardData';
+import { Loader2, AlertCircle } from 'lucide-react';
 import './OngoingProjectsCard.css';
 
+const CATEGORY_COLORS = ['#111827', '#4b5563', '#9ca3af', '#6b7280', '#374151'];
+
 export default function OngoingProjectsCard() {
-  const categories = [
-    { label: 'Finance', value: '148,800', color: '#111827' },
-    { label: 'Design Reviews', value: '15,200', color: '#4b5563' },
-    { label: 'Other', value: '00,00', color: '#9ca3af' },
-  ];
+  const { data: response, loading, error, refetch } = useOngoingProjects();
+  const data = response?.data;
+
+  // Fallback if loading to prevent layout shift
+  if (loading) {
+    return (
+      <div className="ongoing-projects-card" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+        <Loader2 className="animate-spin" style={{ color: '#6b7280' }} />
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="ongoing-projects-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#ef4444', minHeight: '400px' }}>
+        <AlertCircle style={{ marginBottom: '8px' }} />
+        <p style={{ margin: 0, fontSize: '0.875rem' }}>{error}</p>
+        <button 
+          onClick={refetch} 
+          style={{ marginTop: '12px', padding: '6px 12px', backgroundColor: '#e5e7eb', borderRadius: '4px', color: '#374151', cursor: 'pointer', border: 'none' }}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  const overallProgress = data?.overallProgress ?? 0;
+  const categories = data?.categories || [];
 
   return (
     <div className="ongoing-projects-card">
@@ -24,8 +53,8 @@ export default function OngoingProjectsCard() {
 
       {/* Main Stat Section */}
       <div className="ongoing-stat-section">
-        <span className="ongoing-subtitle">Sales trend</span>
-        <div className="ongoing-percentage">68,5%</div>
+        <span className="ongoing-subtitle">Overall Progress</span>
+        <div className="ongoing-percentage">{overallProgress}%</div>
         <span className="ongoing-compare">Compared to last month</span>
       </div>
 
@@ -58,15 +87,20 @@ export default function OngoingProjectsCard() {
 
       {/* Breakdown Category List */}
       <div className="ongoing-categories-list">
-        {categories.map((cat) => (
-          <div key={cat.label} className="ongoing-category-item">
+        {categories.map((cat, idx) => (
+          <div key={cat.name} className="ongoing-category-item">
             <div className="ongoing-cat-left">
-              <span className="ongoing-cat-dot" style={{ backgroundColor: cat.color }} />
-              <span className="ongoing-cat-label">{cat.label}</span>
+              <span className="ongoing-cat-dot" style={{ backgroundColor: CATEGORY_COLORS[idx % CATEGORY_COLORS.length] }} />
+              <span className="ongoing-cat-label">{cat.name}</span>
             </div>
-            <span className="ongoing-cat-value">{cat.value}</span>
+            <span className="ongoing-cat-value">{cat.completedTasks}/{cat.totalTasks} Tasks</span>
           </div>
         ))}
+        {categories.length === 0 && (
+           <div className="ongoing-category-item" style={{ justifyContent: 'center', color: '#9ca3af' }}>
+             No data available
+           </div>
+        )}
       </div>
     </div>
   );
