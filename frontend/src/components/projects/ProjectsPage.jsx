@@ -83,7 +83,7 @@ export default function ProjectsPage({ theme = 'dark', currentUser, onOpenBoard 
     if (idx !== -1) {
       INITIAL_PROJECTS.splice(idx, 1);
     }
-    setProjects(projects.filter((p) => p.id !== projectId));
+    setProjects(prev => prev.filter((p) => p.id !== projectId));
     if (selectedDetailsProject && selectedDetailsProject.id === projectId) {
       setSelectedDetailsProject(null);
     }

@@ -42,15 +42,23 @@ export default function DeleteConfirmModal({
       // Send DELETE /projects/:id
       await deleteProject(project.id);
 
-      // Only on backend success: update UI and close modal
+      // On backend success: update UI and close modal
       if (onDeleteConfirm) {
         onDeleteConfirm(project.id);
       }
       onClose();
     } catch (err) {
       console.error('Delete project failed:', err);
+      // If the project is a local/mock project that does not exist in backend database ('not found'),
+      // still allow the owner to remove it from the UI & mock list as requested
+      if (err.message && err.message.toLowerCase().includes('not found')) {
+        if (onDeleteConfirm) {
+          onDeleteConfirm(project.id);
+        }
+        onClose();
+        return;
+      }
       setError(err.message || 'Failed to delete project. Please try again.');
-      // Do NOT remove the project from the UI
     } finally {
       setIsDeleting(false);
     }
