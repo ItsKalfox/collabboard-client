@@ -203,7 +203,11 @@ export default function TaskPopup({ task: prop, onClose }) {
     });
   };
 
-  const deleteSubtask = async (i) => {
+  const deleteSubtask = (i) => {
+    setConfirmState({ isOpen: true, type: 'subtask', payload: i });
+  };
+
+  const performDeleteSubtask = async (i) => {
     const targetSub = task.subtasks[i];
 
     try {
@@ -384,12 +388,17 @@ export default function TaskPopup({ task: prop, onClose }) {
       <ConfirmModal
         isOpen={confirmState.isOpen}
         onClose={() => setConfirmState({ isOpen: false, type: null, payload: null })}
-        title={confirmState.type === 'task' ? 'Delete Task' : 'Confirm'}
-        message={confirmState.type === 'task' ? 'Are you sure you want to delete this task completely? This action cannot be undone.' : 'Are you sure?'}
+        title={confirmState.type === 'task' ? 'Delete Task' : confirmState.type === 'subtask' ? 'Delete Subtask' : 'Confirm'}
+        message={
+          confirmState.type === 'task' ? 'Are you sure you want to delete this task completely? This action cannot be undone.' :
+          confirmState.type === 'subtask' ? 'Are you sure you want to delete this subtask?' : 'Are you sure?'
+        }
         confirmText="Delete"
         onConfirm={async () => {
           if (confirmState.type === 'task') {
             await performDeleteFullTask();
+          } else if (confirmState.type === 'subtask') {
+            await performDeleteSubtask(confirmState.payload);
           }
           setConfirmState({ isOpen: false, type: null, payload: null });
         }}
