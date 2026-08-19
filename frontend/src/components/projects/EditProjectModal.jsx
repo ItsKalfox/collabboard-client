@@ -148,8 +148,8 @@ export default function EditProjectModal({
   };
 
   return (
-    <div className="popup-backdrop" onClick={onClose}>
-      <div className={`popup-panel${lightCls}`} onClick={(e) => e.stopPropagation()}>
+    <div className="popup-backdrop" style={{ zIndex: 110 }} onClick={onClose}>
+      <div className={`popup-panel${lightCls}`} style={{ zIndex: 111 }} onClick={(e) => e.stopPropagation()}>
         
         {/* Header */}
         <div className="popup-header">

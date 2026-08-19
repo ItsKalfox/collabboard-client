@@ -181,6 +181,16 @@ export default function ProjectsPage({ theme = 'dark', currentUser, onOpenBoard 
         </div>
       )}
 
+      <ProjectDetailsModal 
+        isOpen={!!selectedDetailsProject} 
+        onClose={() => setSelectedDetailsProject(null)} 
+        project={selectedDetailsProject} 
+        onSaveProject={handleSaveEdit}
+        onDeleteProject={handleDeleteConfirm}
+        onOpenBoard={onOpenBoard} 
+        onEdit={(p) => setEditingProject(p)}
+        theme={theme} 
+      />
       <CreateProjectModal 
         isOpen={isCreateOpen} 
         onClose={() => setIsCreateOpen(false)} 
@@ -200,16 +210,6 @@ export default function ProjectsPage({ theme = 'dark', currentUser, onOpenBoard 
         onClose={() => setDeletingProject(null)} 
         project={deletingProject} 
         onDeleteConfirm={handleDeleteConfirm} 
-        theme={theme} 
-      />
-      <ProjectDetailsModal 
-        isOpen={!!selectedDetailsProject} 
-        onClose={() => setSelectedDetailsProject(null)} 
-        project={selectedDetailsProject} 
-        onSaveProject={handleSaveEdit}
-        onDeleteProject={handleDeleteConfirm}
-        onOpenBoard={onOpenBoard} 
-        onEdit={(p) => setEditingProject(p)}
         theme={theme} 
       />
     </div>
