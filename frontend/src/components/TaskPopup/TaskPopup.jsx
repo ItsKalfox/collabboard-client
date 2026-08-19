@@ -131,19 +131,63 @@ export default function TaskPopup({ task: prop, onClose }) {
   };
 
   /* ── Subtasks ── */
-  const toggleSubtask = i => {
+  const toggleSubtask = async (i) => {
+    const targetSub = task.subtasks[i];
+    const newCompleted = !targetSub.completed;
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const token = localStorage.getItem('token');
+      await fetch(`${apiUrl}/subtasks/${targetSub.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ completed: newCompleted })
+      });
+    } catch (e) {
+      console.error('Failed to toggle subtask', e);
+    }
+
     setTask(t => {
-      const subs  = t.subtasks.map((s, idx) => idx === i ? { ...s, done: !s.done } : s);
-      const verb  = subs[i].done ? 'completed' : 'reopened';
+      const subs  = t.subtasks.map((s, idx) => idx === i ? { ...s, completed: newCompleted } : s);
+      const verb  = newCompleted ? 'completed' : 'reopened';
       return {
         ...t,
         subtasks: subs,
         activities: [
-          { text: `Subtask "${subs[i].label}" ${verb}`, timestamp: fmtNow() },
+          { text: `Subtask "${subs[i].title}" ${verb}`, timestamp: fmtNow() },
           ...t.activities,
         ],
       };
     });
+  };
+
+  const deleteSubtask = async (i) => {
+    const targetSub = task.subtasks[i];
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const token = localStorage.getItem('token');
+      await fetch(`${apiUrl}/subtasks/${targetSub.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+    } catch (e) {
+      console.error('Failed to delete subtask', e);
+    }
+
+    setTask(t => ({
+      ...t,
+      subtasks: t.subtasks.filter((_, idx) => idx !== i),
+      activities: [
+        { text: `Subtask "${targetSub.title}" deleted`, timestamp: fmtNow() },
+        ...t.activities,
+      ],
+    }));
   };
 
   /* ── Subtask comments ── */
@@ -180,14 +224,37 @@ export default function TaskPopup({ task: prop, onClose }) {
   /* ── Activities – add subtask ── */
   const [newSubInput, setNewSubInput] = useState('');
 
-  const addSubtaskFromActivities = () => {
-    const label = newSubInput.trim();
-    if (!label) return;
+  const addSubtaskFromActivities = async () => {
+    const title = newSubInput.trim();
+    if (!title) return;
+
+    let subData = { title, completed: false, comments: [] };
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${apiUrl}/tasks/${task.id}/subtasks`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ title, completed: false })
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        const newApiSubtask = data.data.subtask;
+        subData = { ...subData, id: newApiSubtask.id };
+      }
+    } catch (e) {
+      console.error('Failed to add subtask', e);
+    }
+
     setTask(t => ({
       ...t,
-      subtasks: [...t.subtasks, { label, done: false, comments: [] }],
+      subtasks: [...t.subtasks, subData],
       activities: [
-        { text: `New subtask added: "${label}"`, timestamp: fmtNow() },
+        { text: `New subtask added: "${title}"`, timestamp: fmtNow() },
         ...t.activities,
       ],
     }));
@@ -243,7 +310,7 @@ export default function TaskPopup({ task: prop, onClose }) {
     task.priority >= 4 ? '#f59e0b' : '#22c55e';
 
   const totalSubs   = task.subtasks.length;
-  const doneSubs    = task.subtasks.filter(s => s.done).length;
+  const doneSubs    = task.subtasks.filter(s => s.completed).length;
   const commentCount = task.generalComments.length +
     task.subtasks.reduce((a, s) => a + s.comments.length, 0);
 
@@ -530,15 +597,26 @@ export default function TaskPopup({ task: prop, onClose }) {
                 {/* Row */}
                 <div className="popup-subtask-row">
                   <button
-                    className={`popup-checkbox ${sub.done ? 'checked' : ''}`}
+                    className={`popup-checkbox ${sub.completed ? 'checked' : ''}`}
                     onClick={() => toggleSubtask(i)}
-                    aria-label={sub.done ? 'Mark undone' : 'Mark done'}
+                    aria-label={sub.completed ? 'Mark undone' : 'Mark done'}
                   >
-                    {sub.done && <CheckIcon />}
+                    {sub.completed && <CheckIcon />}
                   </button>
-                  <span className={`popup-subtask-label ${sub.done ? 'done' : ''}`}>
-                    {sub.label}
+                  <span className={`popup-subtask-label ${sub.completed ? 'done' : ''}`}>
+                    {sub.title}
                   </span>
+                  <button
+                    className="popup-subtask-del-btn"
+                    onClick={() => deleteSubtask(i)}
+                    aria-label="Delete subtask"
+                    style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}
+                  >
+                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6V20a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
                 </div>
 
                 {/* Subtask comment thread */}
