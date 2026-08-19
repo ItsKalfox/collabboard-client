@@ -1,16 +1,10 @@
+import { useTeamProgress } from '../../hooks/useDashboardData';
+import { Loader2, AlertCircle } from 'lucide-react';
 import './TeamCard.css';
 
 export default function TeamCard() {
-  const uxAvatars = [
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80',
-  ];
-
-  const mktAvatars = [
-    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&auto=format&fit=crop&q=80',
-  ];
+  const { data: response, loading, error, refetch } = useTeamProgress();
+  const teamsData = response?.data || [];
 
   const devBarHeights = [35, 55, 40, 70, 60, 90, 75, 100];
 
@@ -88,100 +82,87 @@ export default function TeamCard() {
 
       {/* Inner Dark Panel */}
       <div className="team-dark-panel">
-        <div className="team-columns-grid">
-          {/* Column 1: UX UI Design */}
-          <div className="team-dept-col">
-            <div className="dept-info">
-              <h4 className="dept-name">UX UI Design</h4>
-              <span className="dept-sub">Design and creative</span>
-            </div>
-
-            <div className="dept-avatars">
-              {uxAvatars.map((url, i) => (
-                <img key={i} src={url} alt="Team member" className="dept-avatar" />
-              ))}
-            </div>
-
-            <div className="dept-progress-block">
-              <div className="progress-labels">
-                <span>PROGRESS</span>
-                <span>GOAL</span>
-              </div>
-              <div className="progress-bar-track">
-                <div className="progress-bar-fill" style={{ width: '68%' }} />
-              </div>
-            </div>
-
-            <div className="dept-actions">
-              <button className="dept-action-btn">
-                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none">
-                  <circle cx="12" cy="12" r="3"></circle>
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                </svg>
-              </button>
-              <button className="dept-action-btn">
-                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="9" cy="7" r="4"></circle>
-                </svg>
-              </button>
-            </div>
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
+            <Loader2 className="animate-spin" style={{ color: '#9ca3af' }} />
           </div>
-
-          {/* Column 2: Marketing */}
-          <div className="team-dept-col">
-            <div className="dept-info">
-              <h4 className="dept-name">Marketing</h4>
-              <span className="dept-sub">Design and creative</span>
-            </div>
-
-            <div className="dept-avatars">
-              {mktAvatars.map((url, i) => (
-                <img key={i} src={url} alt="Team member" className="dept-avatar" />
-              ))}
-            </div>
-
-            <div className="dept-progress-block">
-              <div className="progress-labels">
-                <span>PROGRESS</span>
-                <span>GOAL</span>
-              </div>
-              <div className="progress-bar-track">
-                <div className="progress-bar-fill" style={{ width: '45%' }} />
-              </div>
-            </div>
-
-            <div className="dept-actions">
-              <button className="dept-action-btn">
-                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none">
-                  <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-              </button>
-              <button className="dept-action-btn">
-                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="9" cy="7" r="4"></circle>
-                </svg>
-              </button>
-            </div>
+        ) : error ? (
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#ef4444', minHeight: '200px' }}>
+            <AlertCircle style={{ marginBottom: '8px' }} />
+            <p style={{ margin: 0, fontSize: '0.875rem' }}>{error}</p>
+            <button 
+              onClick={refetch} 
+              style={{ marginTop: '12px', padding: '6px 12px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '4px', color: '#f3f4f6', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.2)' }}
+            >
+              Retry
+            </button>
           </div>
+        ) : (
+          <div className="team-columns-grid">
+            {teamsData.map((team) => {
+              const isDev = team.teamName.toLowerCase().includes('development') || team.teamName.toLowerCase().includes('tech');
 
-          {/* Column 3: Development / Activity Chart */}
-          <div className="team-dept-col chart-col">
-            <div className="dept-info">
-              <h4 className="dept-name">Development</h4>
-              <span className="dept-sub">Tech & Engineering</span>
-            </div>
+              return (
+                <div key={team.teamName} className={`team-dept-col ${isDev ? 'chart-col' : ''}`}>
+                  <div className="dept-info">
+                    <h4 className="dept-name">{team.teamName}</h4>
+                    <span className="dept-sub">{isDev ? 'Tech & Engineering' : 'Design and creative'}</span>
+                  </div>
 
-            <div className="dev-chart-container">
-              {devBarHeights.map((h, i) => (
-                <div key={i} className="dev-chart-bar-wrapper">
-                  <div className="dev-chart-bar" style={{ height: `${h}%` }} />
+                  {!isDev && (
+                    <div className="dept-avatars">
+                      {team.members?.map((member) => (
+                        <img key={member.id} src={member.avatar} alt={member.name} title={member.name} className="dept-avatar" />
+                      ))}
+                    </div>
+                  )}
+
+                  {!isDev ? (
+                    <div className="dept-progress-block">
+                      <div className="progress-labels">
+                        <span>PROGRESS</span>
+                        <span>GOAL</span>
+                      </div>
+                      <div className="progress-bar-track">
+                        <div className="progress-bar-fill" style={{ width: `${team.progress}%` }} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="dev-chart-container">
+                      {devBarHeights.map((h, i) => (
+                        <div key={i} className="dev-chart-bar-wrapper">
+                          <div className="dev-chart-bar" style={{ height: `${h}%` }} title={`Activity ${h}%`} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {!isDev && (
+                    <div className="dept-actions">
+                      <button className="dept-action-btn">
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none">
+                          <circle cx="12" cy="12" r="3"></circle>
+                          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                      </button>
+                      <button className="dept-action-btn">
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none">
+                          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                          <circle cx="9" cy="7" r="4"></circle>
+                        </svg>
+                      </button>
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
+              );
+            })}
+            {teamsData.length === 0 && (
+               <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '32px', color: '#9ca3af' }}>
+                 No team data available.
+               </div>
+            )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

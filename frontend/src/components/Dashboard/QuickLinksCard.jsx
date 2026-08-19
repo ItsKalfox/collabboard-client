@@ -1,35 +1,25 @@
 import { useState } from 'react';
+import { useRecentFiles } from '../../hooks/useDashboardData';
+import { Loader2, AlertCircle } from 'lucide-react';
 import './QuickLinksCard.css';
-
-const QUICK_FILES = [
-  {
-    id: '1',
-    name: 'Licence on Figma templates.pdf',
-    type: 'pdf',
-    color: '#ef4444',
-  },
-  {
-    id: '2',
-    name: 'Devspire_18-48.fig',
-    type: 'figma',
-    color: '#a855f7',
-  },
-  {
-    id: '3',
-    name: 'Devspire redesign.word',
-    type: 'word',
-    color: '#3b82f6',
-  },
-  {
-    id: '4',
-    name: 'National Bank.fig',
-    type: 'figma',
-    color: '#a855f7',
-  },
-];
 
 export default function QuickLinksCard() {
   const [activeCategory] = useState('All files');
+  const { data: response, loading, error, refetch } = useRecentFiles();
+  const filesData = response?.data || [];
+
+  const getFileDetails = (filename) => {
+    const lowerName = filename.toLowerCase();
+    if (lowerName.endsWith('.pdf')) {
+      return { type: 'pdf', color: '#ef4444' };
+    } else if (lowerName.endsWith('.doc') || lowerName.endsWith('.docx')) {
+      return { type: 'word', color: '#3b82f6' };
+    } else if (lowerName.endsWith('.fig')) {
+      return { type: 'figma', color: '#a855f7' };
+    } else {
+      return { type: 'other', color: '#6b7280' };
+    }
+  };
 
   const getFileIcon = (type) => {
     switch (type) {
@@ -91,15 +81,50 @@ export default function QuickLinksCard() {
       </div>
 
       {/* File Quick Link Items */}
-      <div className="quick-links-list">
-        {QUICK_FILES.map((file) => (
-          <div key={file.id} className="quick-file-pill">
-            <div className="file-icon-badge" style={{ color: file.color }}>
-              {getFileIcon(file.type)}
-            </div>
-            <span className="file-title">{file.name}</span>
+      <div className="quick-links-list" style={{ minHeight: '150px', position: 'relative' }}>
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', width: '100%', position: 'absolute' }}>
+            <Loader2 className="animate-spin" style={{ color: '#9ca3af' }} />
           </div>
-        ))}
+        ) : error ? (
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100%', width: '100%', position: 'absolute', color: '#ef4444' }}>
+            <AlertCircle style={{ marginBottom: '8px' }} />
+            <p style={{ margin: 0, fontSize: '0.875rem' }}>{error}</p>
+            <button 
+              onClick={refetch} 
+              style={{ marginTop: '8px', padding: '4px 8px', backgroundColor: '#e5e7eb', borderRadius: '4px', color: '#374151', cursor: 'pointer', border: 'none', fontSize: '12px' }}
+            >
+              Retry
+            </button>
+          </div>
+        ) : (
+          <>
+            {filesData.map((file) => {
+              const details = getFileDetails(file.filename);
+              return (
+                <a 
+                  key={file.id} 
+                  href={file.url || '#'} 
+                  target={file.url ? '_blank' : '_self'}
+                  rel="noopener noreferrer"
+                  style={{ textDecoration: 'none', color: 'inherit' }}
+                >
+                  <div className="quick-file-pill">
+                    <div className="file-icon-badge" style={{ color: details.color }}>
+                      {getFileIcon(details.type)}
+                    </div>
+                    <span className="file-title">{file.filename}</span>
+                  </div>
+                </a>
+              );
+            })}
+            {filesData.length === 0 && (
+               <div style={{ textAlign: 'center', padding: '32px', color: '#9ca3af', width: '100%' }}>
+                 No recent files.
+               </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
