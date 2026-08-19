@@ -43,7 +43,7 @@ const CheckIcon = ({ size = 13 }) => (
 );
 
 /* ─── Main component ────────────────────────────────────────── */
-export default function TaskPopup({ task: prop, onClose }) {
+export default function TaskPopup({ task: prop, onClose, onUpdate }) {
   const fileInputRef = useRef();
 
   /* Initialise local task state from prop */
@@ -109,6 +109,7 @@ export default function TaskPopup({ task: prop, onClose }) {
         ...t.activities,
       ],
     }));
+    if (onUpdate) onUpdate();
     setIsEditing(false);
   };
 
@@ -127,8 +128,8 @@ export default function TaskPopup({ task: prop, onClose }) {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (onUpdate) onUpdate();
       onClose(); // Close modal
-      window.location.reload(); // Refresh the board
     } catch (e) {
       console.error('Failed to delete task', e);
     }
@@ -201,6 +202,7 @@ export default function TaskPopup({ task: prop, onClose }) {
         activities: [{ text: `Subtask "${subs[i].title}" ${verb}`, timestamp: fmtNow() }, ...t.activities],
       };
     });
+    if (onUpdate) onUpdate();
   };
 
   const deleteSubtask = (i) => {
@@ -226,6 +228,7 @@ export default function TaskPopup({ task: prop, onClose }) {
       subtasks: t.subtasks.filter((_, idx) => idx !== i),
       activities: [{ text: `Subtask "${targetSub.title}" deleted`, timestamp: fmtNow() }, ...t.activities],
     }));
+    if (onUpdate) onUpdate();
   };
 
   /* ── Activities – add subtask ── */
@@ -263,6 +266,7 @@ export default function TaskPopup({ task: prop, onClose }) {
       activities: [{ text: `New subtask added: "${title}"`, timestamp: fmtNow() }, ...t.activities],
     }));
     setNewSubInput('');
+    if (onUpdate) onUpdate();
   };
 
 
@@ -342,6 +346,7 @@ export default function TaskPopup({ task: prop, onClose }) {
             ...t.activities,
           ],
         }));
+        if (onUpdate) onUpdate();
       }
     } catch (err) {
       console.error('Failed to upload attachment(s)', err);
@@ -378,6 +383,7 @@ export default function TaskPopup({ task: prop, onClose }) {
       attachments: t.attachments.filter(a => a.id !== attId),
       activities: [{ text: `Attachment deleted`, timestamp: fmtNow() }, ...t.activities],
     }));
+    if (onUpdate) onUpdate();
   };
 
   /* ── Keyboard close ── */
