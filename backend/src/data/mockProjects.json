@@ -1,57 +1,5 @@
 [
   {
-    "id": "proj_001",
-    "name": "Website Design",
-    "description": "Redesign the company website with a modern look and feel.",
-    "category": "Design Reviews",
-    "status": "active",
-    "ownerId": "1786340518154",
-    "coverImage": null,
-    "members": [
-      {
-        "userId": "1786340518154",
-        "role": "owner",
-        "joinedAt": "2026-08-10T05:41:58.154Z"
-      },
-      {
-        "userId": "1786356291453",
-        "role": "member",
-        "joinedAt": "2026-08-10T06:00:00.000Z"
-      },
-      {
-        "userId": "1786431927127",
-        "role": "member",
-        "joinedAt": "2026-08-11T07:05:27.127Z"
-      }
-    ],
-    "createdAt": "2026-08-10T05:41:58.154Z",
-    "updatedAt": "2026-08-10T05:41:58.154Z"
-  },
-  {
-    "id": "proj_002",
-    "name": "Mobile App Development",
-    "description": "Develop mobile app for iOS and Android platforms.",
-    "category": "Mobile Development",
-    "status": "active",
-    "ownerId": "1786340518154",
-    "coverImage": "https://res.cloudinary.com/bpv9dfck/image/upload/v1787129056/collabboard/covers/proj_002/cover_1787129054064.jpg",
-    "members": [
-      {
-        "userId": "1786340518154",
-        "role": "owner",
-        "joinedAt": "2026-08-11T05:00:00.000Z"
-      },
-      {
-        "userId": "1786356291453",
-        "role": "member",
-        "joinedAt": "2026-08-11T06:00:00.000Z"
-      }
-    ],
-    "createdAt": "2026-08-11T05:00:00.000Z",
-    "updatedAt": "2026-08-19T08:44:17.900Z",
-    "coverImagePublicId": "collabboard/covers/proj_002/cover_1787129054064"
-  },
-  {
     "id": "proj_003",
     "name": "Design System",
     "description": "Create a unified design system and component library.",
