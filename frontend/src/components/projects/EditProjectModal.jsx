@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Search } from 'lucide-react';
+import { X, Search, AlertCircle } from 'lucide-react';
 import { MOCK_MEMBERS, normalizeMember } from '../../mock/mockMembers';
+import { updateProject } from '../../services/projectService';
 import '../TaskPopup/TaskPopup.css';
 import './projects.css';
 
@@ -25,6 +26,9 @@ export default function EditProjectModal({
   const [showMemberDropdown, setShowMemberDropdown] = useState(false);
   const memberSearchWrapRef = useRef(null);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (project) {
@@ -32,8 +36,10 @@ export default function EditProjectModal({
       setDescription(project.description || '');
       setOwner(project.owner || '');
       setCreatedDate(project.rawCreatedDate || '');
-      setDueDate(project.rawDueDate || '');
+      setDueDate(project.rawDueDate || (project.dueDate && project.dueDate.includes('-') ? project.dueDate : ''));
       setMembers(Array.isArray(project.members) ? project.members.map(normalizeMember) : []);
+      setError('');
+      setIsSubmitting(false);
     }
   }, [project]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -77,9 +83,12 @@ export default function EditProjectModal({
     setMembers(members.filter(m => m.name !== memberName));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || isSubmitting) return;
+
+    setIsSubmitting(true);
+    setError('');
 
     let formattedCreated = project.createdDate;
     if (createdDate && createdDate.includes('-')) {
@@ -99,18 +108,43 @@ export default function EditProjectModal({
       }
     }
 
-    onSave({
-      ...project,
+    const updatePayload = {
       name: name.trim(),
       description: description.trim(),
-      owner: owner.trim() || project.owner,
-      createdDate: formattedCreated,
-      dueDate: formattedDue,
-      rawCreatedDate: createdDate,
-      rawDueDate: dueDate,
-      members: members
-    });
-    onClose();
+      dueDate: dueDate || null,
+      status: project.status || 'active',
+      members: members.map(m => ({
+        userId: m.id || m.userId || undefined,
+        name: m.name,
+        email: m.email || undefined,
+        role: m.role || 'member'
+      }))
+    };
+
+    try {
+      const updatedBackend = await updateProject(project.id, updatePayload);
+      
+      const updatedProject = {
+        ...project,
+        ...updatedBackend,
+        name: updatedBackend?.name || name.trim(),
+        description: updatedBackend?.description || description.trim(),
+        owner: owner.trim() || project.owner,
+        createdDate: formattedCreated,
+        dueDate: formattedDue,
+        rawCreatedDate: createdDate,
+        rawDueDate: dueDate,
+        members: members
+      };
+
+      onSave(updatedProject);
+      onClose();
+    } catch (err) {
+      console.error('Error updating project:', err);
+      setError(err.message || 'Failed to update project. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -130,6 +164,25 @@ export default function EditProjectModal({
         <form onSubmit={handleSubmit}>
           <div className="popup-content" style={{ overflowY: 'auto', padding: '0 20px 20px', maxHeight: 'calc(100vh - 140px)' }}>
             
+            {/* Error Message */}
+            {error && (
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid rgba(239, 68, 68, 0.35)',
+                color: theme === 'light' ? '#b91c1c' : '#fca5a5',
+                padding: '10px 14px',
+                borderRadius: '8px',
+                fontSize: '13px',
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                <span>{error}</span>
+              </div>
+            )}
+
             {/* Title */}
             <input
               className="popup-title-input"
@@ -310,11 +363,11 @@ export default function EditProjectModal({
 
           {/* Footer */}
           <div style={{ padding: '16px 20px', display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: 'var(--popup-divider)' }}>
-            <button type="button" className="popup-cancel-btn" onClick={onClose}>
+            <button type="button" className="popup-cancel-btn" onClick={onClose} disabled={isSubmitting}>
               Cancel
             </button>
-            <button type="submit" className="popup-save-btn" disabled={!name.trim()}>
-              Save Changes
+            <button type="submit" className="popup-save-btn" disabled={!name.trim() || isSubmitting}>
+              {isSubmitting ? 'Saving Changes...' : 'Save Changes'}
             </button>
           </div>
         </form>

@@ -209,6 +209,7 @@ export default function ProjectsPage({ theme = 'dark', currentUser, onOpenBoard 
         onSaveProject={handleSaveEdit}
         onDeleteProject={handleDeleteConfirm}
         onOpenBoard={onOpenBoard} 
+        onEdit={(p) => setEditingProject(p)}
         theme={theme} 
       />
     </div>

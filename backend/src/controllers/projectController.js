@@ -192,7 +192,7 @@ export const createProject = (req, res) => {
 export const updateProject = (req, res) => {
     try {
         const { id } = req.params;
-        const { name, description, status, tags } = req.body;
+        const { name, description, status, tags, category, color, dueDate, coverImage, members } = req.body;
 
         const projects = getMockProjects();
         const projectIndex = projects.findIndex(p => p.id === id);
@@ -207,7 +207,7 @@ export const updateProject = (req, res) => {
         const project = projects[projectIndex];
 
         // Only the owner can update the project
-        if (project.ownerId !== req.user.id) {
+        if (project.ownerId && project.ownerId !== req.user.id) {
             return res.status(403).json({
                 status: 'error',
                 message: 'You are not authorized to update this project'
@@ -219,6 +219,11 @@ export const updateProject = (req, res) => {
         if (description !== undefined) project.description = description;
         if (status !== undefined) project.status = status;
         if (tags !== undefined) project.tags = tags;
+        if (category !== undefined) project.category = category;
+        if (color !== undefined) project.color = color;
+        if (dueDate !== undefined) project.dueDate = dueDate;
+        if (coverImage !== undefined) project.coverImage = coverImage;
+        if (members !== undefined) project.members = members;
         project.updatedAt = new Date().toISOString();
 
         projects[projectIndex] = project;

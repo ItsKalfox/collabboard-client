@@ -107,20 +107,41 @@ export const getProjects = async (searchQuery = '') => {
 };
 
 /**
- * Fetch a single project by ID via GET /api/projects/:id
+ * Update an existing project via PUT /api/projects/:id
  * @param {string} projectId
- * @returns {Promise<Object>} Project details
+ * @param {Object} updateData
+ * @returns {Promise<Object>} Updated project object from backend
  */
-export const getProjectById = async (projectId) => {
+export const updateProject = async (projectId, updateData) => {
   const response = await fetch(`${API_URL}/projects/${projectId}`, {
-    method: 'GET',
+    method: 'PUT',
+    headers: getAuthHeaders(true),
+    body: JSON.stringify(updateData)
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to update project');
+  }
+
+  return data.data?.project || data.project;
+};
+
+/**
+ * Delete a project via DELETE /api/projects/:id
+ * @param {string} projectId
+ * @returns {Promise<Object>} Success response
+ */
+export const deleteProject = async (projectId) => {
+  const response = await fetch(`${API_URL}/projects/${projectId}`, {
+    method: 'DELETE',
     headers: getAuthHeaders(true)
   });
 
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to fetch project');
+    throw new Error(data.message || 'Failed to delete project');
   }
 
-  return data.data?.project;
+  return data;
 };
