@@ -345,11 +345,7 @@ export default function TimelineTable() {
           backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999
         }} onClick={() => setActiveTask(null)}>
-          <div style={{
-            backgroundColor: '#1a1d24', border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: '16px', padding: '24px', width: '90%', maxWidth: '400px',
-            color: 'var(--text-primary, #fff)', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.7)'
-          }} onClick={e => e.stopPropagation()}>
+          <div className="timeline-task-modal" onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h2 style={{ margin: 0, fontSize: '18px' }}>{activeTask.title}</h2>
               <button onClick={() => setActiveTask(null)} style={{ background: 'transparent', border: 'none', color: '#9ca3af', cursor: 'pointer' }}>

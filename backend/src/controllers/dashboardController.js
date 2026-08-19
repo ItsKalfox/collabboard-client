@@ -100,6 +100,11 @@ export const getOngoingProjectsStats = async (req, res) => {
                 if (task.subtasks && task.subtasks.length > 0) {
                     totalSubtasks += task.subtasks.length;
                     completedSubtasks += task.subtasks.filter(s => s.completed).length;
+                } else {
+                    totalSubtasks += 1;
+                    if (task.status === 'completed' || task.status === 'done') {
+                        completedSubtasks += 1;
+                    }
                 }
             });
 
@@ -217,8 +222,12 @@ export const getTeamProgress = async (req, res) => {
             overallTotalTasks += team.totalTasks;
             overallCompletedTasks += team.completedTasks;
             
-            // Generate some dynamic activity data for the dev chart
-            const devBarHeights = Array.from({ length: 8 }, () => Math.floor(Math.random() * 60) + 20 + (team.completedTasks * 2));
+            // Bind deterministically to team activity instead of Math.random
+            const baseHeight = 20 + (team.completedTasks * 10) + (team.totalTasks * 5);
+            const devBarHeights = Array.from({ length: 8 }, (_, i) => {
+                 const pseudoRandom = ((team.teamName.charCodeAt(0) || 0) + i) * 17 % 50;
+                 return Math.min(100, Math.max(10, baseHeight + pseudoRandom - 25));
+            });
             overallActivity = devBarHeights.map((h, i) => Math.min(100, Math.max(overallActivity[i] || 0, h)));
 
             const progress = team.totalTasks === 0 ? 0 : Number(((team.completedTasks / team.totalTasks) * 100).toFixed(1));

@@ -36,9 +36,11 @@ function App() {
     if (next) {
       document.documentElement.classList.remove('light-mode');
       document.body.classList.remove('light-mode');
+      document.documentElement.setAttribute('data-theme', 'dark');
     } else {
       document.documentElement.classList.add('light-mode');
       document.body.classList.add('light-mode');
+      document.documentElement.setAttribute('data-theme', 'light');
     }
   };
 
