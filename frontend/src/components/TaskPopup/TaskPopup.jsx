@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { formatDate } from '../../utils/dateUtils';
+import ConfirmModal from '../Board/ConfirmModal';
 import './TaskPopup.css';
 
 /* ─── Dummy employee pool ───────────────────────────────────── */
@@ -112,8 +113,14 @@ export default function TaskPopup({ task: prop, onClose }) {
     setIsEditing(false);
   };
 
-  const deleteFullTask = async () => {
-    if (!window.confirm("Are you sure you want to delete this task completely?")) return;
+  /* ── Confirm Modal State ── */
+  const [confirmState, setConfirmState] = useState({ isOpen: false, type: null, payload: null });
+
+  const deleteFullTask = () => {
+    setConfirmState({ isOpen: true, type: 'task' });
+  };
+
+  const performDeleteFullTask = async () => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       const token = localStorage.getItem('token');
@@ -373,6 +380,20 @@ export default function TaskPopup({ task: prop, onClose }) {
   /* ════════════════════════════════════════════════════════════ */
   return (
     <>
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        onClose={() => setConfirmState({ isOpen: false, type: null, payload: null })}
+        title={confirmState.type === 'task' ? 'Delete Task' : 'Confirm'}
+        message={confirmState.type === 'task' ? 'Are you sure you want to delete this task completely? This action cannot be undone.' : 'Are you sure?'}
+        confirmText="Delete"
+        onConfirm={async () => {
+          if (confirmState.type === 'task') {
+            await performDeleteFullTask();
+          }
+          setConfirmState({ isOpen: false, type: null, payload: null });
+        }}
+      />
+
       {/* Backdrop */}
       <div
         className="popup-backdrop"
