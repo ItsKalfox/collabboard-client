@@ -203,3 +203,43 @@ export const deleteAttachment = async (projectId, attachmentId) => {
 
   return data;
 };
+
+/**
+ * Fetch project members via GET /api/projects/:id/members
+ * @param {string} projectId
+ * @returns {Promise<Array>} List of project members
+ */
+export const getProjectMembers = async (projectId) => {
+  const response = await fetch(`${API_URL}/projects/${projectId}/members`, {
+    method: 'GET',
+    headers: getAuthHeaders(true)
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch project members');
+  }
+
+  return data.data?.members || [];
+};
+
+/**
+ * Search users via GET /api/users/search?q={query}
+ * @param {string} query
+ * @returns {Promise<Array>} List of matching users
+ */
+export const searchUsers = async (query) => {
+  if (!query || !query.trim()) return [];
+  const response = await fetch(`${API_URL}/users/search?q=${encodeURIComponent(query.trim())}`, {
+    method: 'GET',
+    headers: getAuthHeaders(true)
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to search users');
+  }
+
+  return data.data?.users || [];
+};
+

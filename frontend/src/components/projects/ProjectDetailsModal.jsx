@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, ArrowRight, ChevronDown, ChevronRight, UserPlus, Trash2, Calendar, Search, AlertCircle, Loader2 } from 'lucide-react';
 import { MOCK_MEMBERS, normalizeMember } from '../../mock/mockMembers';
-import { uploadCoverImage, getAttachments, uploadAttachment, deleteAttachment } from '../../services/projectService';
+import { uploadCoverImage, getAttachments, uploadAttachment, deleteAttachment, getProjectMembers, searchUsers } from '../../services/projectService';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import '../TaskPopup/TaskPopup.css';
 import './projects.css';
@@ -84,6 +84,13 @@ export default function ProjectDetailsModal({
   const [memberSearch, setMemberSearch] = useState('');
   const memberSearchWrapRef = useRef(null);
 
+  // API State for members loading and user search
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+  const [membersError, setMembersError] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
+  const [searchError, setSearchError] = useState('');
+
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (propProject && isOpen) {
@@ -95,6 +102,10 @@ export default function ProjectDetailsModal({
       setIsEditing(false);
       setAttachmentError('');
       setCoverError('');
+      setMembersError('');
+      setSearchError('');
+      setMemberSearch('');
+      setSearchResults([]);
 
       // Fetch live attachments from backend API
       if (propProject.id) {
@@ -111,10 +122,70 @@ export default function ProjectDetailsModal({
           .catch(err => {
             console.warn('Could not fetch attachments from API:', err.message);
           });
+
+        // Fetch live project members via GET /api/projects/:id/members
+        setIsLoadingMembers(true);
+        getProjectMembers(propProject.id)
+          .then(membersData => {
+            if (Array.isArray(membersData)) {
+              const formatted = membersData.map(normalizeMember);
+              setProject(prev => ({
+                ...prev,
+                members: formatted
+              }));
+            }
+          })
+          .catch(err => {
+            console.warn('Could not fetch members from API:', err.message);
+            setMembersError(err.message || 'Failed to load project members');
+          })
+          .finally(() => {
+            setIsLoadingMembers(false);
+          });
       }
     }
   }, [propProject, isOpen]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  // Search users via GET /api/users/search?q={query}
+  useEffect(() => {
+    if (!memberSearch || !memberSearch.trim()) {
+      setSearchResults([]);
+      setIsSearchingUsers(false);
+      setSearchError('');
+      return;
+    }
+
+    let isMounted = true;
+    setIsSearchingUsers(true);
+    setSearchError('');
+
+    const searchTimer = setTimeout(() => {
+      searchUsers(memberSearch)
+        .then(users => {
+          if (isMounted) {
+            setSearchResults(users || []);
+          }
+        })
+        .catch(err => {
+          if (isMounted) {
+            console.warn('User search error:', err.message);
+            setSearchError(err.message || 'Failed to search users');
+            setSearchResults([]);
+          }
+        })
+        .finally(() => {
+          if (isMounted) {
+            setIsSearchingUsers(false);
+          }
+        });
+    }, 300);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(searchTimer);
+    };
+  }, [memberSearch]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -780,6 +851,24 @@ export default function ProjectDetailsModal({
                 </button>
               </div>
 
+              {/* Members Loading Error message */}
+              {membersError && (
+                <div style={{
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid rgba(239, 68, 68, 0.35)',
+                  color: theme === 'light' ? '#b91c1c' : '#fca5a5',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                  <span>{membersError}</span>
+                </div>
+              )}
+
               {/* Member Search & Select Dropdown */}
               {showAddMemberSearch && (
                 <div ref={memberSearchWrapRef} style={{ position: 'relative', marginBottom: '12px' }}>
@@ -788,13 +877,15 @@ export default function ProjectDetailsModal({
                     <input
                       type="text"
                       className="popup-mini-input"
-                      style={{ width: '100%', paddingLeft: '32px', paddingRight: memberSearch ? '32px' : '10px', fontSize: '13px', height: '34px', boxSizing: 'border-box' }}
-                      placeholder="Search existing members by name or role..."
+                      style={{ width: '100%', paddingLeft: '32px', paddingRight: (memberSearch || isSearchingUsers) ? '32px' : '10px', fontSize: '13px', height: '34px', boxSizing: 'border-box' }}
+                      placeholder="Search users by name or email..."
                       value={memberSearch}
                       onChange={e => setMemberSearch(e.target.value)}
                       autoFocus
                     />
-                    {memberSearch && (
+                    {isSearchingUsers ? (
+                      <Loader2 size={14} style={{ position: 'absolute', right: '10px', top: '10px', color: 'var(--popup-text-muted)', animation: 'spin 1s linear infinite' }} />
+                    ) : memberSearch ? (
                       <button
                         type="button"
                         onClick={() => setMemberSearch('')}
@@ -802,10 +893,21 @@ export default function ProjectDetailsModal({
                       >
                         <X size={14} />
                       </button>
-                    )}
+                    ) : null}
                   </div>
 
-                  {availableMembers.length > 0 && (
+                  {searchError && (
+                    <div style={{
+                      position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 99,
+                      background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.35)',
+                      borderRadius: '8px', padding: '8px 12px', marginTop: '4px',
+                      fontSize: '12px', color: theme === 'light' ? '#b91c1c' : '#fca5a5', textAlign: 'center'
+                    }}>
+                      {searchError}
+                    </div>
+                  )}
+
+                  {memberSearch && !isSearchingUsers && searchResults.length > 0 && (
                     <div style={{
                       position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 999,
                       maxHeight: '160px', overflowY: 'auto',
@@ -813,70 +915,84 @@ export default function ProjectDetailsModal({
                       border: theme === 'light' ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.18)',
                       borderRadius: '8px', boxShadow: '0 12px 32px rgba(0,0,0,0.7)', marginTop: '4px'
                     }}>
-                      {availableMembers.map(emp => (
-                        <div
-                          key={emp.id || emp.name}
-                          onClick={() => addMemberToProject(emp)}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: '10px',
-                            padding: '10px 12px', cursor: 'pointer',
-                            borderBottom: theme === 'light' ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.06)'
-                          }}
-                        >
-                          <div style={{
-                            width: '26px', height: '26px', borderRadius: '50%',
-                            background: emp.bg || '#3b82f6', color: '#fff',
-                            fontSize: '10px', fontWeight: '700',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            overflow: 'hidden'
-                          }}>
-                            {emp.avatar ? <img src={emp.avatar} alt={emp.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : emp.initials}
+                      {searchResults.map(user => {
+                        const emp = normalizeMember(user);
+                        return (
+                          <div
+                            key={user.id || user._id || emp.name}
+                            onClick={() => addMemberToProject(emp)}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: '10px',
+                              padding: '10px 12px', cursor: 'pointer',
+                              borderBottom: theme === 'light' ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.06)'
+                            }}
+                          >
+                            <div style={{
+                              width: '26px', height: '26px', borderRadius: '50%',
+                              background: emp.bg || COLOR_HEX.blue, color: '#fff',
+                              fontSize: '10px', fontWeight: '700',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              overflow: 'hidden', flexShrink: 0
+                            }}>
+                              {emp.avatar ? <img src={emp.avatar} alt={emp.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : emp.initials}
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontSize: '13px', fontWeight: '600', color: theme === 'light' ? '#0f172a' : '#f8fafc' }}>{emp.name}</span>
+                              <span style={{ fontSize: '11px', color: theme === 'light' ? '#64748b' : '#94a3b8' }}>{user.email || emp.role || 'User'}</span>
+                            </div>
                           </div>
-                          <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontSize: '13px', fontWeight: '600', color: theme === 'light' ? '#0f172a' : '#f8fafc' }}>{emp.name}</span>
-                            <span style={{ fontSize: '11px', color: theme === 'light' ? '#64748b' : '#94a3b8' }}>{emp.role}</span>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
 
-                  {memberSearch && availableMembers.length === 0 && (
+                  {memberSearch && !isSearchingUsers && searchResults.length === 0 && !searchError && (
                     <div style={{
                       position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 99,
                       background: 'var(--popup-card-bg)', border: 'var(--popup-card-border)',
                       borderRadius: '8px', padding: '8px 12px', marginTop: '4px',
                       fontSize: '12px', color: 'var(--popup-text-muted)', textAlign: 'center'
                     }}>
-                      No matching team members found
+                      No matching registered users found
                     </div>
                   )}
                 </div>
               )}
 
-              {project.members.map((m, idx) => {
-                const norm = normalizeMember(m);
-                return (
-                  <div key={norm.name || idx} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'var(--popup-card-bg)', border: 'var(--popup-card-border)', borderRadius: '12px' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: norm.bg || COLOR_HEX.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '12px', fontWeight: '700', overflow: 'hidden', flexShrink: 0 }}>
-                      {norm.avatar ? <img src={norm.avatar} alt={norm.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (norm.initials || norm.name.substring(0, 2))}
+              {isLoadingMembers ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--popup-text-muted)', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                  <span>Loading project members...</span>
+                </div>
+              ) : project.members.length === 0 ? (
+                <div style={{ padding: '16px', textAlign: 'center', color: 'var(--popup-text-muted)', fontSize: '13px' }}>
+                  No members found in this project.
+                </div>
+              ) : (
+                project.members.map((m, idx) => {
+                  const norm = normalizeMember(m);
+                  return (
+                    <div key={norm.userId || norm.name || idx} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'var(--popup-card-bg)', border: 'var(--popup-card-border)', borderRadius: '12px' }}>
+                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: norm.bg || COLOR_HEX.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '12px', fontWeight: '700', overflow: 'hidden', flexShrink: 0 }}>
+                        {norm.avatar ? <img src={norm.avatar} alt={norm.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (norm.initials || (norm.name && norm.name.substring(0, 2)) || 'U')}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '14px', fontWeight: '500', color: 'var(--popup-text-main)' }}>{norm.name}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--popup-text-muted)' }}>{project.owner === norm.name ? 'Owner' : norm.role || 'Member'}</div>
+                      </div>
+                      {project.owner !== norm.name && (
+                        <button 
+                          onClick={() => removeMember(idx)}
+                          style={{ background: 'var(--popup-btn-bg)', border: 'var(--popup-btn-border)', color: '#ef4444', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex' }}
+                          title="Remove member"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '14px', fontWeight: '500', color: 'var(--popup-text-main)' }}>{norm.name}</div>
-                      <div style={{ fontSize: '12px', color: 'var(--popup-text-muted)' }}>{project.owner === norm.name ? 'Owner' : norm.role || 'Member'}</div>
-                    </div>
-                    {project.owner !== norm.name && (
-                      <button 
-                        onClick={() => removeMember(idx)}
-                        style={{ background: 'var(--popup-btn-bg)', border: 'var(--popup-btn-border)', color: '#ef4444', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex' }}
-                        title="Remove member"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           )}
 
