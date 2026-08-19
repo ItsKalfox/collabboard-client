@@ -128,19 +128,39 @@ export const updateProject = async (projectId, updateData) => {
 };
 
 /**
- * Delete a project via DELETE /api/projects/:id
+ * Fetch attachments for a project via GET /api/projects/:id/attachments
  * @param {string} projectId
+ * @returns {Promise<Array>} List of attachments
+ */
+export const getAttachments = async (projectId) => {
+  const response = await fetch(`${API_URL}/projects/${projectId}/attachments`, {
+    method: 'GET',
+    headers: getAuthHeaders(true)
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch attachments');
+  }
+
+  return data.data?.attachments || [];
+};
+
+/**
+ * Delete an attachment from a project via DELETE /api/projects/:id/attachments/:attachmentId
+ * @param {string} projectId
+ * @param {string} attachmentId
  * @returns {Promise<Object>} Success response
  */
-export const deleteProject = async (projectId) => {
-  const response = await fetch(`${API_URL}/projects/${projectId}`, {
+export const deleteAttachment = async (projectId, attachmentId) => {
+  const response = await fetch(`${API_URL}/projects/${projectId}/attachments/${attachmentId}`, {
     method: 'DELETE',
     headers: getAuthHeaders(true)
   });
 
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to delete project');
+    throw new Error(data.message || 'Failed to delete attachment');
   }
 
   return data;

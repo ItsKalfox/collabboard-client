@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, ArrowRight, ChevronDown, ChevronRight, UserPlus, Trash2, Calendar, Search, AlertCircle } from 'lucide-react';
+import { X, ArrowRight, ChevronDown, ChevronRight, UserPlus, Trash2, Calendar, Search, AlertCircle, Loader2 } from 'lucide-react';
 import { MOCK_MEMBERS, normalizeMember } from '../../mock/mockMembers';
-import { uploadCoverImage } from '../../services/projectService';
+import { uploadCoverImage, getAttachments, uploadAttachment, deleteAttachment } from '../../services/projectService';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import '../TaskPopup/TaskPopup.css';
 import './projects.css';
@@ -38,15 +38,38 @@ export default function ProjectDetailsModal({
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [coverError, setCoverError] = useState('');
+  const [isUploadingAtt, setIsUploadingAtt] = useState(false);
+  const [deletingAttId, setDeletingAttId] = useState(null);
+  const [attachmentError, setAttachmentError] = useState('');
+
+  const formatAttachment = (att) => {
+    const filename = att.filename || att.name || 'document';
+    const ext = att.ext || (filename.includes('.') ? filename.split('.').pop().toUpperCase() : 'FILE');
+    const name = att.filename ? filename.replace(/\.[^.]+$/, '') : (att.name || filename);
+    let sizeStr = '—';
+    if (typeof att.size === 'number') {
+      sizeStr = att.size > 1024 * 1024 
+        ? (att.size / (1024 * 1024)).toFixed(2) + ' MB' 
+        : (att.size / 1024).toFixed(1) + ' KB';
+    } else if (typeof att.size === 'string') {
+      sizeStr = att.size;
+    }
+
+    return {
+      id: att.id,
+      name,
+      ext,
+      size: sizeStr,
+      url: att.url,
+      filename: filename
+    };
+  };
 
   // Local state initialized from props
   const [project, setProject] = useState(() => ({
     ...propProject,
     members: Array.isArray(propProject?.members) ? propProject.members.map(normalizeMember) : [],
-    attachments: propProject?.attachments || [
-      { id: 'a1', name: 'Project Brief', ext: 'PDF', size: '1.2 MB', url: null },
-      { id: 'a2', name: 'UI Mockups', ext: 'FIG', size: '14.5 MB', url: null },
-    ]
+    attachments: Array.isArray(propProject?.attachments) ? propProject.attachments.map(formatAttachment) : []
   }));
 
   const [activeTab, setActiveTab] = useState('tasks');
@@ -63,18 +86,34 @@ export default function ProjectDetailsModal({
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    if (propProject) {
+    if (propProject && isOpen) {
       setProject({
         ...propProject,
         members: Array.isArray(propProject.members) ? propProject.members.map(normalizeMember) : [],
-        attachments: propProject.attachments || [
-          { id: 'a1', name: 'Project Brief', ext: 'PDF', size: '1.2 MB', url: null },
-          { id: 'a2', name: 'UI Mockups', ext: 'FIG', size: '14.5 MB', url: null },
-        ]
+        attachments: Array.isArray(propProject.attachments) ? propProject.attachments.map(formatAttachment) : []
       });
       setIsEditing(false);
+      setAttachmentError('');
+      setCoverError('');
+
+      // Fetch live attachments from backend API
+      if (propProject.id) {
+        getAttachments(propProject.id)
+          .then(apiAtts => {
+            if (Array.isArray(apiAtts) && apiAtts.length > 0) {
+              const formatted = apiAtts.map(formatAttachment);
+              setProject(prev => ({
+                ...prev,
+                attachments: formatted
+              }));
+            }
+          })
+          .catch(err => {
+            console.warn('Could not fetch attachments from API:', err.message);
+          });
+      }
     }
-  }, [propProject]);
+  }, [propProject, isOpen]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
@@ -154,26 +193,67 @@ export default function ProjectDetailsModal({
   };
 
   // Attachment functions
-  const handleFileAdd = e => {
-    const files = Array.from(e.target.files);
-    const newAtts = files.map(f => ({
-      id: Date.now() + Math.random(),
-      name: f.name.replace(/\.[^.]+$/, ''),
-      ext: f.name.split('.').pop().toUpperCase(),
-      size: (f.size / (1024 * 1024)).toFixed(2) + ' MB',
-      url: URL.createObjectURL(f),
-    }));
-    const updated = { ...project, attachments: [...project.attachments, ...newAtts] };
-    setProject(updated);
-    if (onSaveProject) onSaveProject(updated);
-    e.target.value = '';
+  const handleFileAdd = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setIsUploadingAtt(true);
+    setAttachmentError('');
+
+    try {
+      const newFormattedList = [];
+      for (const file of files) {
+        const uploaded = await uploadAttachment(project.id, file);
+        if (uploaded) {
+          newFormattedList.push(formatAttachment(uploaded));
+        }
+      }
+
+      const updated = {
+        ...project,
+        attachments: [...(project.attachments || []), ...newFormattedList]
+      };
+
+      setProject(updated);
+      if (onSaveProject) {
+        onSaveProject(updated);
+      }
+    } catch (err) {
+      console.error('Failed to upload attachment:', err);
+      setAttachmentError(err.message || 'Failed to upload attachment. Please try again.');
+    } finally {
+      setIsUploadingAtt(false);
+      if (e.target) e.target.value = '';
+    }
   };
 
-  const removeAttachment = (attId, e) => {
+  const removeAttachment = async (attId, e) => {
     e.stopPropagation();
-    const updated = { ...project, attachments: project.attachments.filter(a => a.id !== attId) };
-    setProject(updated);
-    if (onSaveProject) onSaveProject(updated);
+    if (deletingAttId) return;
+
+    setDeletingAttId(attId);
+    setAttachmentError('');
+
+    try {
+      // Send DELETE /projects/:id/attachments/:attachmentId
+      await deleteAttachment(project.id, attId);
+
+      // Only remove from UI if backend deletion succeeds
+      const updated = {
+        ...project,
+        attachments: (project.attachments || []).filter(a => a.id !== attId)
+      };
+      setProject(updated);
+      if (onSaveProject) {
+        onSaveProject(updated);
+      }
+    } catch (err) {
+      console.error('Failed to delete attachment:', err);
+      setAttachmentError(err.message || 'Failed to delete attachment. Please try again.');
+      // Do NOT remove attachment from UI if backend fails
+    } finally {
+      setDeletingAttId(null);
+    }
   };
 
   const downloadAtt = att => {
@@ -181,7 +261,7 @@ export default function ProjectDetailsModal({
     let createdTempUrl = false;
 
     if (!downloadUrl) {
-      const mockContent = `Mock attachment file content for ${att.name}.${att.ext.toLowerCase()}\nProject: ${project.name}\nSize: ${att.size}`;
+      const mockContent = `Mock attachment file content for ${att.name}.${att.ext?.toLowerCase() || 'txt'}\nProject: ${project.name}\nSize: ${att.size}`;
       const blob = new Blob([mockContent], { type: 'text/plain;charset=utf-8' });
       downloadUrl = URL.createObjectURL(blob);
       createdTempUrl = true;
@@ -189,7 +269,8 @@ export default function ProjectDetailsModal({
 
     const a = document.createElement('a');
     a.href = downloadUrl;
-    a.download = `${att.name}.${att.ext.toLowerCase()}`;
+    a.target = '_blank';
+    a.download = att.filename || `${att.name}.${att.ext?.toLowerCase() || 'pdf'}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -510,6 +591,25 @@ export default function ProjectDetailsModal({
             </button>
           </div>
 
+          {/* Attachment Error message */}
+          {attachmentError && (
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.15)',
+              border: '1px solid rgba(239, 68, 68, 0.35)',
+              color: theme === 'light' ? '#b91c1c' : '#fca5a5',
+              padding: '8px 12px',
+              borderRadius: '8px',
+              fontSize: '12px',
+              marginBottom: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <AlertCircle size={14} style={{ flexShrink: 0 }} />
+              <span>{attachmentError}</span>
+            </div>
+          )}
+
           <div className="popup-att-list">
             {project.attachments && project.attachments.map(att => (
               <div
@@ -530,20 +630,34 @@ export default function ProjectDetailsModal({
                   <span className="popup-att-meta">{att.ext} • {att.size}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
-                  <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" className="popup-att-dl-icon" style={{ flexShrink: 0, position: 'relative', right: 'auto', top: 'auto', opacity: 1, transform: 'none' }}>
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="7 10 12 15 17 10"/>
-                    <line x1="12" y1="15" x2="12" y2="3"/>
-                  </svg>
-                  {isEditing && (
-                    <button 
-                      onClick={(e) => removeAttachment(att.id, e)}
-                      style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px', display: 'flex' }}
-                      title="Remove attachment"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
+                  <button 
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      downloadAtt(att);
+                    }}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--popup-text-muted)', cursor: 'pointer', padding: '4px', display: 'flex' }}
+                    title="Download attachment"
+                  >
+                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                      <polyline points="7 10 12 15 17 10"/>
+                      <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={(e) => removeAttachment(att.id, e)}
+                    disabled={deletingAttId === att.id}
+                    style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: deletingAttId === att.id ? 'not-allowed' : 'pointer', padding: '4px', display: 'flex' }}
+                    title="Delete attachment"
+                  >
+                    {deletingAttId === att.id ? (
+                      <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
+                    ) : (
+                      <Trash2 size={13} />
+                    )}
+                  </button>
                 </div>
               </div>
             ))}
@@ -551,12 +665,18 @@ export default function ProjectDetailsModal({
             {/* Add file button */}
             <button
               className="popup-att-add-btn"
-              onClick={() => fileInputRef.current.click()}
-              title="Add attachment"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploadingAtt}
+              title={isUploadingAtt ? 'Uploading...' : 'Add attachment'}
+              style={{ opacity: isUploadingAtt ? 0.6 : 1, cursor: isUploadingAtt ? 'not-allowed' : 'pointer' }}
             >
-              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
+              {isUploadingAtt ? (
+                <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+              ) : (
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+              )}
             </button>
             <input
               ref={fileInputRef}
