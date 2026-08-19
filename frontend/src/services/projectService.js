@@ -243,3 +243,25 @@ export const searchUsers = async (query) => {
   return data.data?.users || [];
 };
 
+/**
+ * Add a member to a project via POST /api/projects/:id/members
+ * @param {string} projectId
+ * @param {Object} memberData - { userId, email, role }
+ * @returns {Promise<Object>} Added member object
+ */
+export const addProjectMember = async (projectId, memberData) => {
+  const response = await fetch(`${API_URL}/projects/${projectId}/members`, {
+    method: 'POST',
+    headers: getAuthHeaders(true),
+    body: JSON.stringify(memberData)
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to add project member');
+  }
+
+  return data.data?.member;
+};
+
+

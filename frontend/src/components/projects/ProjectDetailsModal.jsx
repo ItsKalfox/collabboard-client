@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, ArrowRight, ChevronDown, ChevronRight, UserPlus, Trash2, Calendar, Search, AlertCircle, Loader2 } from 'lucide-react';
 import { MOCK_MEMBERS, normalizeMember } from '../../mock/mockMembers';
-import { uploadCoverImage, getAttachments, uploadAttachment, deleteAttachment, getProjectMembers, searchUsers } from '../../services/projectService';
+import { uploadCoverImage, getAttachments, uploadAttachment, deleteAttachment, getProjectMembers, searchUsers, addProjectMember } from '../../services/projectService';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import '../TaskPopup/TaskPopup.css';
 import './projects.css';
@@ -86,6 +86,7 @@ export default function ProjectDetailsModal({
 
   // API State for members loading and user search
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+  const [isAddingMember, setIsAddingMember] = useState(false);
   const [membersError, setMembersError] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearchingUsers, setIsSearchingUsers] = useState(false);
@@ -367,15 +368,59 @@ export default function ProjectDetailsModal({
      m.role.toLowerCase().includes(memberSearch.toLowerCase()))
   );
 
-  const addMemberToProject = (memberObj) => {
-    const normalized = normalizeMember(memberObj);
-    if (!project.members.some(m => m.name === normalized.name)) {
-      const updated = { ...project, members: [...project.members, normalized] };
+  const addMemberToProject = async (userObj) => {
+    if (!project?.id || isAddingMember) return;
+
+    const userId = userObj.id || userObj._id || userObj.userId;
+    const userEmail = userObj.email;
+
+    // Check if already a member locally to prevent duplicate calls
+    const alreadyExists = (project.members || []).some(
+      m => (userId && (m.userId === userId || m.id === userId)) ||
+           (userEmail && m.email && m.email.toLowerCase() === userEmail.toLowerCase())
+    );
+
+    if (alreadyExists) {
+      setMembersError('User is already a member of this project');
+      return;
+    }
+
+    setIsAddingMember(true);
+    setMembersError('');
+
+    try {
+      // POST /api/projects/:id/members
+      const newMemberData = await addProjectMember(project.id, {
+        userId: userId,
+        email: userEmail,
+        role: userObj.role || 'member'
+      });
+
+      const normalized = normalizeMember(newMemberData || {
+        userId: userId,
+        name: userObj.name,
+        email: userEmail,
+        role: userObj.role || 'member'
+      });
+
+      const updated = {
+        ...project,
+        members: [...(project.members || []), normalized]
+      };
+
       setProject(updated);
       if (onSaveProject) onSaveProject(updated);
+
+      setMemberSearch('');
+      setSearchResults([]);
+      setShowAddMemberSearch(false);
+    } catch (err) {
+      console.error('Failed to add project member:', err);
+      // Display backend error message without modifying project members in UI
+      setMembersError(err.message || 'Failed to add project member');
+    } finally {
+      setIsAddingMember(false);
     }
-    setMemberSearch('');
-    setShowAddMemberSearch(false);
   };
 
   const removeMember = (idx) => {
