@@ -264,4 +264,25 @@ export const addProjectMember = async (projectId, memberData) => {
   return data.data?.member;
 };
 
+/**
+ * Remove a member from a project via DELETE /api/projects/:id/members/:userId
+ * @param {string} projectId
+ * @param {string} userId
+ * @returns {Promise<Object>} Response data
+ */
+export const removeProjectMember = async (projectId, userId) => {
+  const response = await fetch(`${API_URL}/projects/${projectId}/members/${userId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(true)
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to remove project member');
+  }
+
+  return data;
+};
+
+
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, ArrowRight, ChevronDown, ChevronRight, UserPlus, Trash2, Calendar, Search, AlertCircle, Loader2 } from 'lucide-react';
 import { MOCK_MEMBERS, normalizeMember } from '../../mock/mockMembers';
-import { uploadCoverImage, getAttachments, uploadAttachment, deleteAttachment, getProjectMembers, searchUsers, addProjectMember } from '../../services/projectService';
+import { uploadCoverImage, getAttachments, uploadAttachment, deleteAttachment, getProjectMembers, searchUsers, addProjectMember, removeProjectMember } from '../../services/projectService';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import '../TaskPopup/TaskPopup.css';
 import './projects.css';
@@ -84,9 +84,11 @@ export default function ProjectDetailsModal({
   const [memberSearch, setMemberSearch] = useState('');
   const memberSearchWrapRef = useRef(null);
 
-  // API State for members loading and user search
+  // API State for members loading, user search, and member removal
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [isAddingMember, setIsAddingMember] = useState(false);
+  const [isRemovingMember, setIsRemovingMember] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState(null);
   const [membersError, setMembersError] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearchingUsers, setIsSearchingUsers] = useState(false);
@@ -423,13 +425,43 @@ export default function ProjectDetailsModal({
     }
   };
 
-  const removeMember = (idx) => {
-    const updated = {
-      ...project,
-      members: project.members.filter((_, i) => i !== idx)
-    };
-    setProject(updated);
-    if (onSaveProject) onSaveProject(updated);
+  const handleConfirmRemoveMember = async () => {
+    if (!memberToRemove || !project?.id || isRemovingMember) return;
+
+    const targetUserId = memberToRemove.userId || memberToRemove.id || memberToRemove._id;
+    setIsRemovingMember(true);
+    setMembersError('');
+
+    try {
+      // DELETE /api/projects/:id/members/:userId
+      await removeProjectMember(project.id, targetUserId);
+
+      // On backend API success, update UI list immediately
+      const updatedMembers = (project.members || []).filter(m => {
+        const norm = normalizeMember(m);
+        const normTarget = normalizeMember(memberToRemove);
+        const mId = norm.userId || norm.id;
+        const targetId = normTarget.userId || normTarget.id;
+        if (mId && targetId && mId === targetId) return false;
+        return norm.name !== normTarget.name;
+      });
+
+      const updated = {
+        ...project,
+        members: updatedMembers
+      };
+
+      setProject(updated);
+      if (onSaveProject) onSaveProject(updated);
+      setMemberToRemove(null);
+    } catch (err) {
+      console.error('Failed to remove project member:', err);
+      // Display error message from backend without removing member from UI
+      setMembersError(err.message || 'Failed to remove project member');
+      setMemberToRemove(null);
+    } finally {
+      setIsRemovingMember(false);
+    }
   };
 
   const handleCoverImageChange = async (e) => {
@@ -1027,7 +1059,7 @@ export default function ProjectDetailsModal({
                       </div>
                       {project.owner !== norm.name && (
                         <button 
-                          onClick={() => removeMember(idx)}
+                          onClick={() => setMemberToRemove(norm)}
                           style={{ background: 'var(--popup-btn-bg)', border: 'var(--popup-btn-border)', color: '#ef4444', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex' }}
                           title="Remove member"
                         >
@@ -1083,6 +1115,76 @@ export default function ProjectDetailsModal({
           </button>
         </div>
       </div>
+
+      {/* Confirmation Modal for Removing Project Member */}
+      {memberToRemove && (
+        <div 
+          style={{
+            position: 'fixed', inset: 0,
+            backgroundColor: theme === 'light' ? 'rgba(0,0,0,0.45)' : 'rgba(0,0,0,0.75)',
+            backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+            zIndex: 1600, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+          }} 
+          onClick={() => !isRemovingMember && setMemberToRemove(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: theme === 'light' ? '#ffffff' : '#1a1a24',
+              border: theme === 'light' ? '1px solid rgba(0,0,0,0.12)' : '1px solid rgba(255,255,255,0.15)',
+              borderRadius: '16px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.8)',
+              maxWidth: '400px', width: '100%', padding: '24px', textAlign: 'center',
+              color: theme === 'light' ? '#111827' : '#ffffff'
+            }}
+          >
+            <div style={{
+              width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.12)',
+              color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px'
+            }}>
+              <Trash2 size={24} />
+            </div>
+
+            <h3 style={{ fontSize: '17px', fontWeight: '700', marginBottom: '8px' }}>
+              Remove Member?
+            </h3>
+            
+            <p style={{ fontSize: '13px', color: theme === 'light' ? '#4b5563' : '#9ca3af', lineHeight: '1.5', marginBottom: '20px' }}>
+              Are you sure you want to remove <strong>"{memberToRemove.name}"</strong> from this project?
+            </p>
+
+            <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
+              <button
+                type="button"
+                onClick={() => setMemberToRemove(null)}
+                disabled={isRemovingMember}
+                style={{
+                  flex: 1, padding: '9px 14px',
+                  background: theme === 'light' ? '#f3f4f6' : 'rgba(255, 255, 255, 0.08)',
+                  border: theme === 'light' ? '1px solid #e5e7eb' : '1px solid rgba(255, 255, 255, 0.1)',
+                  color: theme === 'light' ? '#374151' : '#e5e7eb',
+                  borderRadius: '8px', fontWeight: '600', fontSize: '13px', cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRemoveMember}
+                disabled={isRemovingMember}
+                style={{
+                  flex: 1, padding: '9px 14px', background: '#ef4444', color: '#ffffff',
+                  border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '13px',
+                  cursor: isRemovingMember ? 'not-allowed' : 'pointer', opacity: isRemovingMember ? 0.7 : 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                }}
+              >
+                {isRemovingMember ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : null}
+                <span>{isRemovingMember ? 'Removing...' : 'Remove'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <DeleteConfirmModal
         isOpen={isDeleteConfirmOpen}
