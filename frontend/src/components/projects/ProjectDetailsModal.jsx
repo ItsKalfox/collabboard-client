@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { X, ArrowRight, ChevronDown, ChevronRight, UserPlus, Trash2, Calendar, Search, AlertCircle, Loader2, RefreshCw, Clock, CheckSquare } from 'lucide-react';
 import { MOCK_MEMBERS, normalizeMember } from '../../mock/mockMembers';
 import { uploadCoverImage, getAttachments, uploadAttachment, deleteAttachment, getProjectMembers, searchUsers, addProjectMember, removeProjectMember, getProjectTasks, getProjectTimeline, refreshProjectTimeline, downloadAttachment } from '../../services/projectService';
+import { calculateProjectProgress } from '../../utils/projectUtils';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import '../TaskPopup/TaskPopup.css';
 import './projects.css';
@@ -612,7 +613,8 @@ export default function ProjectDetailsModal({
     }
   };
 
-  const progressPercent = project.progress || 0;
+  const activeTasksList = apiTasks.length > 0 ? apiTasks : (project.tasks || []);
+  const progressPercent = calculateProjectProgress(project, activeTasksList);
 
   return (
     <div className="popup-backdrop" onClick={() => !isEditing && onClose()}>
@@ -1015,36 +1017,110 @@ export default function ProjectDetailsModal({
                   No tasks recorded for this project yet. Open the Project Board to create and manage tasks.
                 </div>
               ) : (
-                (apiTasks.length > 0 ? apiTasks : (project.tasks || [])).map(t => {
+                activeTasksList.map(t => {
                   const isExpanded = expandedTasks[t.id];
                   const subtasks = t.subtasks || [];
-                  const isCompleted = t.completed || t.status === 'Completed' || t.status === 'Done';
+                  const isCompleted = Boolean(
+                    t.completed || 
+                    t.done || 
+                    t.status === 'done' || 
+                    t.status === 'completed' || 
+                    t.status === 'Done' || 
+                    t.status === 'Completed'
+                  );
+
+                  let statusLabel = 'To Do';
+                  let statusBg = 'rgba(59, 130, 246, 0.15)';
+                  let statusColor = '#3b82f6';
+                  let statusBorder = '1px solid rgba(59, 130, 246, 0.3)';
+
+                  const st = (t.status || '').toLowerCase();
+                  if (st === 'done' || st === 'completed' || isCompleted) {
+                    statusLabel = 'Done';
+                    statusBg = 'rgba(16, 185, 129, 0.15)';
+                    statusColor = '#10b981';
+                    statusBorder = '1px solid rgba(16, 185, 129, 0.3)';
+                  } else if (st === 'in_progress' || st === 'in-progress' || st === 'progress') {
+                    statusLabel = 'In Progress';
+                    statusBg = 'rgba(245, 158, 11, 0.15)';
+                    statusColor = '#f59e0b';
+                    statusBorder = '1px solid rgba(245, 158, 11, 0.3)';
+                  } else if (st === 'review' || st === 'need_review' || st === 'in_review') {
+                    statusLabel = 'Review';
+                    statusBg = 'rgba(168, 85, 247, 0.15)';
+                    statusColor = '#a855f7';
+                    statusBorder = '1px solid rgba(168, 85, 247, 0.3)';
+                  }
+
                   return (
-                    <div key={t.id} style={{ border: 'var(--popup-card-border)', background: 'var(--popup-card-bg)', borderRadius: '12px', overflow: 'hidden' }}>
+                    <div 
+                      key={t.id} 
+                      style={{ 
+                        border: isCompleted ? '1px solid rgba(16, 185, 129, 0.25)' : 'var(--popup-card-border)', 
+                        background: 'var(--popup-card-bg)', 
+                        borderRadius: '12px', 
+                        overflow: 'hidden',
+                        opacity: isCompleted ? 0.9 : 1
+                      }}
+                    >
                       <div 
                         onClick={() => toggleTask(t.id)}
                         style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: 'var(--popup-checkbox-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isCompleted ? '#6366f1' : 'transparent' }}>
-                            {isCompleted && <svg viewBox="0 0 24 24" width={10} height={10} stroke="#fff" strokeWidth="3" fill="none"><polyline points="20 6 9 17 4 12"/></svg>}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
+                          <div style={{ 
+                            width: '18px', 
+                            height: '18px', 
+                            borderRadius: '4px', 
+                            border: isCompleted ? '1px solid #10b981' : 'var(--popup-checkbox-border)', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            background: isCompleted ? '#10b981' : 'transparent',
+                            flexShrink: 0
+                          }}>
+                            {isCompleted && <svg viewBox="0 0 24 24" width={12} height={12} stroke="#fff" strokeWidth="3" fill="none"><polyline points="20 6 9 17 4 12"/></svg>}
                           </div>
-                          <span style={{ fontSize: '14px', color: 'var(--popup-text-main)', textDecoration: isCompleted ? 'line-through' : 'none' }}>
+                          <span style={{ 
+                            fontSize: '14px', 
+                            color: isCompleted ? 'var(--popup-text-muted)' : 'var(--popup-text-main)', 
+                            textDecoration: isCompleted ? 'line-through' : 'none',
+                            fontWeight: isCompleted ? '400' : '500',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
                             {t.title}
                           </span>
                         </div>
-                        <button style={{ background: 'transparent', border: 'none', color: 'var(--popup-text-muted)', cursor: 'pointer', padding: 0, display: 'flex' }}>
-                          {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                        </button>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: '12px', flexShrink: 0 }}>
+                          <span style={{
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            background: statusBg,
+                            color: statusColor,
+                            border: statusBorder,
+                            textTransform: 'capitalize'
+                          }}>
+                            {statusLabel}
+                          </span>
+
+                          <button style={{ background: 'transparent', border: 'none', color: 'var(--popup-text-muted)', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                            {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                          </button>
+                        </div>
                       </div>
                       {isExpanded && subtasks.length > 0 && (
-                        <div style={{ padding: '0 16px 16px 42px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div style={{ padding: '0 16px 16px 44px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                           {subtasks.map((sub, idx) => (
                             <div key={sub.id || idx} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                              <div style={{ width: '14px', height: '14px', borderRadius: '3px', border: 'var(--popup-checkbox-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: (sub.done || sub.completed) ? '#6366f1' : 'transparent' }}>
+                              <div style={{ width: '14px', height: '14px', borderRadius: '3px', border: (sub.done || sub.completed) ? '1px solid #10b981' : 'var(--popup-checkbox-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: (sub.done || sub.completed) ? '#10b981' : 'transparent' }}>
                                 {(sub.done || sub.completed) && <svg viewBox="0 0 24 24" width={8} height={8} stroke="#fff" strokeWidth="3" fill="none"><polyline points="20 6 9 17 4 12"/></svg>}
                               </div>
-                              <span style={{ fontSize: '13px', color: 'var(--popup-text-label)', textDecoration: (sub.done || sub.completed) ? 'line-through' : 'none' }}>
+                              <span style={{ fontSize: '13px', color: (sub.done || sub.completed) ? 'var(--popup-text-muted)' : 'var(--popup-text-label)', textDecoration: (sub.done || sub.completed) ? 'line-through' : 'none' }}>
                                 {sub.label || sub.title}
                               </span>
                             </div>

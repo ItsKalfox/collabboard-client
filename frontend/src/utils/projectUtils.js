@@ -1,11 +1,12 @@
-export function calculateProjectProgress(project) {
-  if (!project || !project.tasks || project.tasks.length === 0) {
+export function calculateProjectProgress(project, tasksOverride) {
+  const activeTasks = tasksOverride || project?.tasks || [];
+  if (!activeTasks || activeTasks.length === 0) {
     return project?.progress || 0;
   }
   let totalItems = 0;
   let completedItems = 0;
 
-  project.tasks.forEach(t => {
+  activeTasks.forEach(t => {
     const subtasks = t.subtasks || [];
     if (subtasks.length > 0) {
       subtasks.forEach(s => {
@@ -14,11 +15,12 @@ export function calculateProjectProgress(project) {
       });
     } else {
       totalItems++;
-      if (t.done || t.completed) completedItems++;
+      const isDone = Boolean(t.done || t.completed || t.status === 'done' || t.status === 'completed' || t.status === 'Done' || t.status === 'Completed');
+      if (isDone) completedItems++;
     }
   });
 
-  if (totalItems === 0) return project.progress || 0;
+  if (totalItems === 0) return project?.progress || 0;
   return Math.round((completedItems / totalItems) * 100);
 }
 

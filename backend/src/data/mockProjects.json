@@ -1,8 +1,8 @@
 [
   {
     "id": "proj_001",
-    "name": "Website Redesign",
-    "description": "Company website overhaul with new branding and improved user experience.",
+    "name": "Updated Website Design",
+    "description": "Updated description for the project",
     "category": "Design Reviews",
     "status": "active",
     "ownerId": "1786340518154",
@@ -17,10 +17,15 @@
         "userId": "1786356291453",
         "role": "member",
         "joinedAt": "2026-08-10T08:00:00.000Z"
+      },
+      {
+        "userId": "1786431927127",
+        "role": "member",
+        "joinedAt": "2026-08-19T19:38:04.339Z"
       }
     ],
     "createdAt": "2026-08-10T08:00:00.000Z",
-    "updatedAt": "2026-08-11T10:00:00.000Z"
+    "updatedAt": "2026-08-19T19:39:02.078Z"
   },
   {
     "id": "proj_002",
@@ -531,5 +536,25 @@
     "createdAt": "2026-08-19T19:30:04.480Z",
     "updatedAt": "2026-08-19T19:30:10.044Z",
     "coverImagePublicId": "collabboard/covers/proj_1787167804480/cover_1787167804499"
+  },
+  {
+    "id": "proj_1787168346708",
+    "name": "New Project",
+    "description": "A brand new project",
+    "status": "active",
+    "category": "Design Reviews",
+    "color": "blue",
+    "ownerId": "1786340518154",
+    "coverImage": null,
+    "dueDate": null,
+    "members": [
+      {
+        "userId": "1786340518154",
+        "role": "owner",
+        "joinedAt": "2026-08-19T19:39:06.708Z"
+      }
+    ],
+    "createdAt": "2026-08-19T19:39:06.708Z",
+    "updatedAt": "2026-08-19T19:39:06.708Z"
   }
 ]
