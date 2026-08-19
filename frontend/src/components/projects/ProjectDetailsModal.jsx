@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, ArrowRight, ChevronDown, ChevronRight, UserPlus, Trash2, Calendar, Search } from 'lucide-react';
+import { X, ArrowRight, ChevronDown, ChevronRight, UserPlus, Trash2, Calendar, Search, AlertCircle } from 'lucide-react';
 import { MOCK_MEMBERS, normalizeMember } from '../../mock/mockMembers';
+import { uploadCoverImage } from '../../services/projectService';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import '../TaskPopup/TaskPopup.css';
 import './projects.css';
@@ -16,7 +17,7 @@ const COLOR_HEX = {
 const Icon = ({ d, size = 16 }) => (
   <svg viewBox="0 0 24 24" width={size} height={size} stroke="currentColor"
     strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-    <path d={d} />
+  <path d={d} />
   </svg>
 );
 
@@ -32,8 +33,11 @@ export default function ProjectDetailsModal({
 }) {
   const lightCls = theme === 'light' ? ' light' : '';
   const fileInputRef = useRef();
+  const coverImageInputRef = useRef();
 
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [coverError, setCoverError] = useState('');
 
   // Local state initialized from props
   const [project, setProject] = useState(() => ({
@@ -231,6 +235,35 @@ export default function ProjectDetailsModal({
     if (onSaveProject) onSaveProject(updated);
   };
 
+  const handleCoverImageChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingCover(true);
+    setCoverError('');
+
+    try {
+      const uploadedUrl = await uploadCoverImage(project.id, file);
+
+      const updated = {
+        ...project,
+        coverImage: uploadedUrl,
+        image: uploadedUrl
+      };
+
+      setProject(updated);
+      if (onSaveProject) {
+        onSaveProject(updated);
+      }
+    } catch (err) {
+      console.error('Cover image upload failed:', err);
+      setCoverError(err.message || 'Failed to upload cover image. Please try again.');
+    } finally {
+      setIsUploadingCover(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
   const progressPercent = project.progress || 0;
 
   return (
@@ -269,6 +302,70 @@ export default function ProjectDetailsModal({
             )}
           </div>
         </div>
+
+        {/* Error message */}
+        {coverError && (
+          <div style={{
+            background: 'rgba(239, 68, 68, 0.15)',
+            border: '1px solid rgba(239, 68, 68, 0.35)',
+            color: theme === 'light' ? '#b91c1c' : '#fca5a5',
+            padding: '10px 14px',
+            borderRadius: '8px',
+            fontSize: '13px',
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <AlertCircle size={16} style={{ flexShrink: 0 }} />
+            <span>{coverError}</span>
+          </div>
+        )}
+
+        {/* Cover Image Banner if present */}
+        {(project.coverImage || project.image) && (
+          <div style={{ 
+            position: 'relative', 
+            width: '100%', 
+            maxHeight: '180px', 
+            borderRadius: '12px', 
+            overflow: 'hidden', 
+            marginBottom: '20px', 
+            border: theme === 'light' ? '1px solid rgba(0,0,0,0.12)' : '1px solid rgba(255,255,255,0.12)' 
+          }}>
+            <img 
+              src={project.coverImage || project.image} 
+              alt={project.name} 
+              style={{ width: '100%', height: '180px', objectFit: 'cover', display: 'block' }}
+            />
+            <div style={{ position: 'absolute', bottom: '10px', right: '10px', display: 'flex', gap: '8px' }}>
+              <input 
+                type="file" 
+                hidden 
+                ref={coverImageInputRef} 
+                onChange={handleCoverImageChange} 
+                accept="image/*" 
+              />
+              <button
+                type="button"
+                className="popup-save-btn"
+                onClick={() => coverImageInputRef.current?.click()}
+                disabled={isUploadingCover}
+                style={{ 
+                  padding: '5px 12px', 
+                  fontSize: '12px', 
+                  background: 'rgba(0,0,0,0.75)', 
+                  color: '#ffffff', 
+                  border: '1px solid rgba(255,255,255,0.25)', 
+                  backdropFilter: 'blur(6px)',
+                  cursor: isUploadingCover ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {isUploadingCover ? 'Uploading...' : 'Change Cover'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Title */}
         {isEditing ? (
@@ -345,6 +442,33 @@ export default function ProjectDetailsModal({
               ) : (
                 <span className="popup-meta-text">{project.dueDate || 'Ongoing'}</span>
               )}
+            </div>
+          </div>
+
+          {/* Cover Image row in meta-grid (if not yet uploaded or to upload easily) */}
+          <div className="popup-meta-row">
+            <div className="popup-meta-label">
+              <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" style={{ marginRight: '6px' }}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+              Cover Image
+            </div>
+            <div className="popup-meta-val" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input 
+                type="file" 
+                hidden 
+                ref={coverImageInputRef} 
+                onChange={handleCoverImageChange} 
+                accept="image/*" 
+              />
+              <button 
+                type="button"
+                className="popup-save-btn" 
+                onClick={() => coverImageInputRef.current?.click()}
+                disabled={isUploadingCover}
+                style={{ padding: '4px 10px', fontSize: '12px', background: 'var(--popup-btn-bg)', color: 'var(--popup-text-main)', border: 'var(--popup-btn-border)' }}
+              >
+                {isUploadingCover ? 'Uploading...' : ((project.coverImage || project.image) ? 'Change Image' : 'Upload Image')}
+              </button>
+              {isUploadingCover && <span style={{ fontSize: '12px', color: 'var(--popup-text-muted)' }}>Uploading...</span>}
             </div>
           </div>
 
