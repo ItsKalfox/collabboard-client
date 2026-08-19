@@ -94,8 +94,7 @@ export default function TaskPopup({ task: prop, onClose }) {
           description: draft.description,
           status: draft.status,
           priority: draft.priority,
-          dueDate: draft.dueDate,
-          progress: draft.progress
+          dueDate: draft.dueDate
         })
       });
     } catch (e) {
@@ -374,6 +373,8 @@ export default function TaskPopup({ task: prop, onClose }) {
 
   const totalSubs = task.subtasks.length;
   const doneSubs = task.subtasks.filter(s => s.completed).length;
+  const derivedProgress = totalSubs > 0 ? Math.round((doneSubs / totalSubs) * 100) : 0;
+  
   const commentCount = task.generalComments.length +
     task.subtasks.reduce((a, s) => a + s.comments.length, 0);
 
@@ -527,18 +528,11 @@ export default function TaskPopup({ task: prop, onClose }) {
               Progress
             </div>
             <div className="popup-meta-val popup-meta-val--progress">
-              {isEditing
-                ? <input type="range" min="0" max="100"
-                  className="popup-progress-range"
-                  value={draft.progress}
-                  onChange={e => setDraft(d => ({ ...d, progress: +e.target.value }))}
-                />
-                : <div className="popup-progress-bar">
-                  <div className="popup-progress-fill" style={{ width: `${task.progress}%` }} />
-                </div>
-              }
+              <div className="popup-progress-bar">
+                <div className="popup-progress-fill" style={{ width: `${derivedProgress}%` }} />
+              </div>
               <span className="popup-progress-label">
-                {isEditing ? draft.progress : task.progress}%
+                {derivedProgress}%
               </span>
             </div>
           </div>
