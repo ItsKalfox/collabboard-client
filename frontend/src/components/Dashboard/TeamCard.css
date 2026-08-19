@@ -118,11 +118,13 @@
 }
 
 .team-columns-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr);
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
   gap: 18px;
   height: 100%;
   align-items: stretch;
+  width: 100%;
 }
 
 .team-dept-col {
@@ -130,6 +132,7 @@
   flex-direction: column;
   justify-content: space-between;
   gap: 10px;
+  flex: 1;
   min-width: 0;
 }
 
@@ -261,7 +264,7 @@
 /* Responsive Rules */
 @media (max-width: 900px) {
   .team-columns-grid {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
 
   .chart-col {

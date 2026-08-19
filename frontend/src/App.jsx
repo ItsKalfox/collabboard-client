@@ -83,7 +83,25 @@ function App() {
     updateDateTime();
     const interval = setInterval(updateDateTime, 60000);
 
-    return () => clearInterval(interval);
+    const handlePopState = () => {
+      const path = window.location.pathname.replace('/', '');
+      if (authRoutes.includes(path)) {
+        setActiveTab(path);
+      } else if (path) {
+        const capitalized = path.charAt(0).toUpperCase() + path.slice(1);
+        if (['Dashboard', 'Board', 'Projects', 'Settings'].includes(capitalized)) {
+          setActiveTab(capitalized);
+        }
+      } else {
+        setActiveTab('Dashboard');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('popstate', handlePopState);
+    };
   }, []);
 
   const handleTabClick = (tab) => {

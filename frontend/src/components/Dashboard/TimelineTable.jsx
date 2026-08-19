@@ -1,51 +1,84 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useDashboardTimeline } from '../../hooks/useDashboardData';
 import { Loader2, AlertCircle } from 'lucide-react';
 import './TimelineTable.css';
 
-const TIME_SLOTS = [
-  '1 PM',
-  '2 PM',
-  '3 PM',
-  '4 PM',
-  '5 PM',
-  '6 PM',
-  '7 PM',
-  '8 PM',
-];
-
-// Start time is 1 PM (13:00) and End time is 8 PM (20:00) => 7 hours = 420 mins
-const START_HOUR_MINS = 13 * 60;
-const END_HOUR_MINS = 20 * 60;
-const TOTAL_SPAN_MINS = 7 * 60;
-
-function timeToMinutes(timeStr) {
-  const [h, m] = timeStr.split(':').map(Number);
-  return h * 60 + m;
+function getScaleConfig(filter) {
+  switch (filter) {
+    case 'Day':
+      return {
+        slots: ['9 AM', '10 AM', '11 AM', '12 PM', '1 PM', '2 PM', '3 PM', '4 PM', '5 PM', '6 PM'],
+        minBound: 9 * 60,
+        maxBound: 18 * 60,
+        totalSpan: 9 * 60,
+        parseTime: (dateStr) => {
+          if (!dateStr) return 9*60;
+          const d = new Date(dateStr);
+          return d.getHours() * 60 + d.getMinutes();
+        }
+      };
+    case 'Week':
+      return {
+        slots: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        minBound: 1,
+        maxBound: 7,
+        totalSpan: 6,
+        parseTime: (dateStr) => {
+          if (!dateStr) return 1;
+          const d = new Date(dateStr);
+          let day = d.getDay();
+          if (day === 0) day = 7;
+          return day + (d.getHours() / 24);
+        }
+      };
+    case 'Month':
+      return {
+        slots: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'],
+        minBound: 1,
+        maxBound: 5.5,
+        totalSpan: 4.5,
+        parseTime: (dateStr) => {
+          if (!dateStr) return 1;
+          const d = new Date(dateStr);
+          return 1 + (d.getDate() - 1) / 7;
+        }
+      };
+    case 'Year':
+      return {
+        slots: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+        minBound: 0,
+        maxBound: 11,
+        totalSpan: 11,
+        parseTime: (dateStr) => {
+          if (!dateStr) return 0;
+          const d = new Date(dateStr);
+          return d.getMonth() + (d.getDate() / 31);
+        }
+      };
+    default:
+      return null;
+  }
 }
 
-function extractTime(isoString) {
-  if (!isoString) return '00:00';
-  const date = new Date(isoString);
-  return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-}
+function calculateDynamicPosition(startTimeStr, endTimeStr, config) {
+  if (!config) return { left: '0%', width: '0%', display: 'none' };
+  
+  let startVal = config.parseTime(startTimeStr);
+  let endVal = config.parseTime(endTimeStr);
 
-function calculatePosition(startTime, endTime) {
-  let startMins = timeToMinutes(startTime);
-  let endMins = timeToMinutes(endTime);
+  // Fallback if end time is somehow before start time
+  if (endVal < startVal) endVal = startVal + (config.totalSpan * 0.1); 
 
-  // Clamp values to timeline bounds
-  if (startMins < START_HOUR_MINS) startMins = START_HOUR_MINS;
-  if (endMins > END_HOUR_MINS) endMins = END_HOUR_MINS;
-  if (startMins > endMins) startMins = endMins; 
+  if (startVal < config.minBound) startVal = config.minBound;
+  if (endVal > config.maxBound) endVal = config.maxBound;
+  if (startVal > endVal) startVal = endVal;
 
-  // Hide if entirely outside the bounds
-  if (endMins <= START_HOUR_MINS || startMins >= END_HOUR_MINS) {
-      return { left: '0%', width: '0%', display: 'none' };
+  if (endVal <= config.minBound || startVal >= config.maxBound) {
+    return { left: '0%', width: '0%', display: 'none' };
   }
 
-  const leftPercent = Math.max(0, ((startMins - START_HOUR_MINS) / TOTAL_SPAN_MINS) * 100);
-  const widthPercent = Math.min(100 - leftPercent, ((endMins - startMins) / TOTAL_SPAN_MINS) * 100);
+  const leftPercent = Math.max(0, ((startVal - config.minBound) / config.totalSpan) * 100);
+  const widthPercent = Math.min(100 - leftPercent, ((endVal - startVal) / config.totalSpan) * 100);
 
   return {
     left: `${leftPercent}%`,
@@ -55,12 +88,47 @@ function calculatePosition(startTime, endTime) {
 
 export default function TimelineTable() {
   const [activeFilter, setActiveFilter] = useState('Day');
-  const [selectedDate] = useState('JUNE 1, 2023');
+  const [selectedDate, setSelectedDate] = useState(new Date(2026, 7, 19));
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(selectedDate.getMonth());
+  const [currentYear, setCurrentYear] = useState(selectedDate.getFullYear());
   
+  const [activeTask, setActiveTask] = useState(null);
+  const [activeAssignee, setActiveAssignee] = useState(null);
+  const trackRef = useRef(null);
+
   const { data: timelineResponse, loading, error, refetch } = useDashboardTimeline();
   const timelineData = timelineResponse?.data || [];
 
   const filterOptions = ['Day', 'Week', 'Month', 'Year'];
+  const scaleConfig = getScaleConfig(activeFilter);
+
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const formattedSelectedDate = selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
+
+  const handlePrevMonth = () => {
+    if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear(currentYear - 1); } 
+    else { setCurrentMonth(currentMonth - 1); }
+  };
+
+  const handleNextMonth = () => {
+    if (currentMonth === 11) { setCurrentMonth(0); setCurrentYear(currentYear + 1); } 
+    else { setCurrentMonth(currentMonth + 1); }
+  };
+
+  const scrollLeft = () => {
+    if (trackRef.current) {
+      trackRef.current.scrollBy({ left: -300, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = () => {
+    if (trackRef.current) {
+      trackRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+    }
+  };
 
   return (
     <div className="timeline-container">
@@ -69,19 +137,77 @@ export default function TimelineTable() {
         <h2 className="timeline-title">Management</h2>
 
         <div className="timeline-header-controls">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button onClick={scrollLeft} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '50%', width: '28px', height: '28px', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+               <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+            <button onClick={scrollRight} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '50%', width: '28px', height: '28px', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+               <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+          </div>
+
           {/* Date Selector */}
-          <button className="timeline-date-btn">
-            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-            </svg>
-            <span>{selectedDate}</span>
-            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="chevron-down">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </button>
+          <div style={{ position: 'relative' }}>
+            <button className="timeline-date-btn" onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}>
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              <span>{formattedSelectedDate}</span>
+              <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="chevron-down">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+            
+            {isDatePickerOpen && (
+              <div style={{
+                position: 'absolute', top: '100%', left: 0, marginTop: '8px', padding: '12px', 
+                background: 'rgba(24, 24, 27, 0.95)', border: '1px solid #2d2f36', 
+                borderRadius: '12px', zIndex: 99, boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
+                width: '240px', backdropFilter: 'blur(16px)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', color: '#f4f4f5' }}>
+                  <button onClick={handlePrevMonth} style={{ background: 'transparent', border: 'none', color: '#a1a1aa', cursor: 'pointer', padding: '4px' }}>
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                  </button>
+                  <span style={{ fontWeight: '600', fontSize: '13px' }}>{monthNames[currentMonth]} {currentYear}</span>
+                  <button onClick={handleNextMonth} style={{ background: 'transparent', border: 'none', color: '#a1a1aa', cursor: 'pointer', padding: '4px' }}>
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  </button>
+                </div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', textAlign: 'center', fontSize: '11px', color: '#71717a', marginBottom: '6px' }}>
+                  {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => <div key={d}>{d}</div>)}
+                </div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
+                  {Array.from({ length: firstDayOfMonth }).map((_, i) => <div key={`empty-${i}`} />)}
+                  {Array.from({ length: daysInMonth }).map((_, i) => {
+                    const day = i + 1;
+                    const isSelected = day === selectedDate.getDate() && currentMonth === selectedDate.getMonth() && currentYear === selectedDate.getFullYear();
+                    return (
+                      <div 
+                        key={day} 
+                        onClick={() => { setSelectedDate(new Date(currentYear, currentMonth, day)); setIsDatePickerOpen(false); refetch(); }}
+                        style={{ 
+                          padding: '0', textAlign: 'center', fontSize: '12px', borderRadius: '50%', cursor: 'pointer',
+                          background: isSelected ? '#ffffff' : 'transparent', color: isSelected ? '#000000' : '#a1a1aa',
+                          transition: 'background 0.2s ease, color 0.2s ease', height: '24px', width: '24px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontWeight: isSelected ? '600' : '400'
+                        }}
+                        onMouseOver={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)' }}
+                        onMouseOut={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent' }}
+                      >
+                        {day}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Time View Filters */}
           <div className="timeline-filter-group">
@@ -99,7 +225,7 @@ export default function TimelineTable() {
       </div>
 
       {/* Timeline Grid Body */}
-      <div className="timeline-body">
+      <div className="timeline-body" ref={trackRef}>
         {loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px', color: '#6b7280' }}>
             <Loader2 className="animate-spin" style={{ marginRight: '8px' }} /> Loading timeline...
@@ -116,7 +242,7 @@ export default function TimelineTable() {
             </button>
           </div>
         ) : (
-          <div className="timeline-grid-wrapper">
+          <div className="timeline-grid-wrapper" style={{ minWidth: activeFilter === 'Day' ? '800px' : '580px' }}>
             {/* Rows Container */}
             <div className="timeline-rows-container">
               {timelineData.map((row) => (
@@ -128,36 +254,57 @@ export default function TimelineTable() {
 
                   {/* Timeline Track */}
                   <div className="timeline-track">
-                    {/* Vertical Grid lines corresponding to hours */}
+                    {/* Vertical Grid lines corresponding to slots */}
                     <div className="timeline-grid-lines">
-                      {TIME_SLOTS.map((slot, index) => (
+                      {scaleConfig.slots.map((slot, index) => (
                         <div key={slot + index} className="timeline-grid-line" />
                       ))}
                     </div>
 
-                    {/* Task Pills */}
                     {row.tasks?.map((item) => {
-                      const pos = calculatePosition(extractTime(item.startDate), extractTime(item.dueDate));
+                      const pos = calculateDynamicPosition(item.startDate, item.dueDate, scaleConfig);
+                      const priorityClass = item.priority === 'high' ? 'priority-high' : item.priority === 'medium' ? 'priority-medium' : 'priority-low';
                       return (
                         <div
                           key={item.id}
                           className="timeline-pill-wrapper"
                           style={{ left: pos.left, width: pos.width, display: pos.display }}
                         >
-                          {item.priority && (
-                            <div className="timeline-top-label">{item.priority}</div>
-                          )}
-                          <div className="timeline-pill" title={item.title}>
+                          <div className="timeline-pill" onClick={(e) => { e.stopPropagation(); setActiveTask(item); }}>
+                            {item.priority && (
+                              <div className={`timeline-top-label ${priorityClass}`}>{item.priority}</div>
+                            )}
                             <span className="timeline-pill-title">{item.duration || item.title}</span>
 
                             <div className="timeline-avatar-group">
                               {item.assignee && (
-                                <img
-                                  src={item.assignee.avatar}
-                                  alt={item.assignee.name}
-                                  className="timeline-avatar"
-                                  title={item.assignee.name}
-                                />
+                                <div style={{ position: 'relative' }}>
+                                  <img
+                                    src={item.assignee.avatar}
+                                    alt={item.assignee.name}
+                                    className="timeline-avatar"
+                                    title={`${item.assignee.name} - ${item.title}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActiveAssignee(activeAssignee?.assignee?.id === item.assignee.id ? null : { assignee: item.assignee, taskTitle: item.title });
+                                    }}
+                                  />
+                                  {activeAssignee?.assignee?.id === item.assignee.id && (
+                                    <div style={{
+                                      position: 'absolute', bottom: '100%', right: '0%', transform: 'translate(10px, -8px)',
+                                      background: 'rgba(31, 41, 55, 0.98)', border: '1px solid rgba(255,255,255,0.1)', padding: '12px',
+                                      borderRadius: '8px', zIndex: 100, width: '160px', backdropFilter: 'blur(10px)',
+                                      boxShadow: '0 10px 20px rgba(0, 0, 0, 0.5)', color: '#fff', textAlign: 'center', cursor: 'default'
+                                    }} onClick={e => e.stopPropagation()}>
+                                      <img src={item.assignee.avatar} alt={item.assignee.name} style={{ width: '40px', height: '40px', borderRadius: '50%', marginBottom: '8px', border: '2px solid #3b82f6' }} />
+                                      <div style={{ fontSize: '13px', fontWeight: 'bold' }}>{item.assignee.name}</div>
+                                      <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '4px' }}>Lead Member</div>
+                                      <div style={{ fontSize: '10px', background: 'rgba(59,130,246,0.2)', color: '#60a5fa', padding: '2px 4px', borderRadius: '4px', display: 'inline-block', lineHeight: '1.2' }}>
+                                        {activeAssignee.taskTitle}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
                               )}
                             </div>
                           </div>
@@ -179,7 +326,7 @@ export default function TimelineTable() {
             <div className="timeline-footer">
               <div className="timeline-category-spacer" />
               <div className="timeline-time-slots">
-                {TIME_SLOTS.map((slot) => (
+                {scaleConfig.slots.map((slot) => (
                   <div key={slot} className="timeline-time-slot">
                     {slot}
                   </div>
@@ -189,6 +336,57 @@ export default function TimelineTable() {
           </div>
         )}
       </div>
+
+      {/* Task Modal Overlay */}
+      {activeTask && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+        }} onClick={() => setActiveTask(null)}>
+          <div style={{
+            background: 'var(--bg-color, #1f2937)', border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '16px', padding: '24px', width: '90%', maxWidth: '400px',
+            color: 'var(--text-primary, #fff)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)'
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{ margin: 0, fontSize: '18px' }}>{activeTask.title}</h2>
+              <button onClick={() => setActiveTask(null)} style={{ background: 'transparent', border: 'none', color: '#9ca3af', cursor: 'pointer' }}>
+                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+              <div>
+                <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '4px' }}>Priority</div>
+                <div style={{ fontWeight: '500', display: 'inline-block', background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '10px', fontSize: '12px' }}>{activeTask.priority || 'Normal'}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '4px' }}>Duration</div>
+                <div style={{ fontWeight: '500', fontSize: '14px' }}>{activeTask.duration || 'Unknown'}</div>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '8px' }}>Timeframe</div>
+              <div style={{ background: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px', fontSize: '13px' }}>
+                <div style={{ marginBottom: '8px' }}><strong>Start:</strong> {new Date(activeTask.startDate).toLocaleString()}</div>
+                <div><strong>End:</strong> {new Date(activeTask.dueDate).toLocaleString()}</div>
+              </div>
+            </div>
+
+            {activeTask.assignee && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px' }}>
+                <img src={activeTask.assignee.avatar} alt={activeTask.assignee.name} style={{ width: '36px', height: '36px', borderRadius: '50%' }} />
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{activeTask.assignee.name}</div>
+                  <div style={{ fontSize: '12px', color: '#9ca3af' }}>Assigned Lead</div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -14,7 +14,7 @@
   flex-direction: column;
   justify-content: space-between;
   gap: 14px;
-  overflow: hidden;
+  overflow: visible;
   transition: all 0.3s ease;
 }
 
@@ -79,12 +79,12 @@
   background: transparent;
   border: none;
   padding: 5px 12px;
-  border-radius: 14px;
+  border-radius: 9999px;
   font-size: 12px;
   font-weight: 500;
   color: var(--text-secondary, #666);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .timeline-filter-btn:hover {
@@ -95,7 +95,7 @@
   background: #ffffff;
   color: #000000;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* Body & Grid */
@@ -109,6 +109,7 @@
   justify-content: space-evenly;
   overflow-x: auto;
   overflow-y: auto;
+  scroll-behavior: smooth;
 }
 
 /* Slim Modern Custom Scrollbars */
@@ -147,12 +148,13 @@
   gap: 8px;
   flex: 1;
   justify-content: space-between;
+  padding-right: 20px;
 }
 
 .timeline-rows-container {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 14px;
   flex: 1;
   justify-content: space-evenly;
 }
@@ -160,17 +162,25 @@
 .timeline-row {
   display: flex;
   align-items: center;
-  height: 38px;
+  height: 48px;
   position: relative;
 }
 
 .timeline-category-label {
-  width: 140px;
+  width: 160px;
   flex-shrink: 0;
   font-size: 13px;
   font-weight: 500;
-  color: var(--text-secondary, #666);
+  color: #9ca3af;
   white-space: nowrap;
+  padding-right: 12px;
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  background: transparent;
+  height: 100%;
+  display: flex;
+  align-items: center;
 }
 
 /* Track Area */
@@ -203,39 +213,52 @@
 /* Task Pill */
 .timeline-pill-wrapper {
   position: absolute;
-  height: 30px;
+  height: 28px;
   z-index: 2;
   transition: all 0.3s ease;
 }
 
 .timeline-top-label {
-  position: absolute;
-  top: -15px;
-  left: 10px;
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--text-secondary, #777);
-  letter-spacing: 0.3px;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+  padding: 3px 6px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+.timeline-top-label.priority-high { background-color: #ef4444; }
+.timeline-top-label.priority-medium { background-color: #f59e0b; }
+.timeline-top-label.priority-low { background-color: #3b82f6; }
 
 .timeline-pill {
   width: 100%;
   height: 100%;
-  background: #0d0d0d;
+  background: #111111;
   color: #ffffff;
   border-radius: 9999px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 3px 5px 3px 14px;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+  gap: 8px;
+  padding: 0px 4px 0px 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  min-width: 140px;
+  position: relative;
+  overflow: hidden;
 }
 
 .timeline-pill:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+  background: #222222;
 }
 
 .timeline-pill-title {
@@ -244,7 +267,10 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding-right: 6px;
+  min-width: 0;
+  flex: 1;
+  text-align: center;
+  line-height: 1;
 }
 
 /* Avatar Stack */
@@ -255,12 +281,22 @@
 }
 
 .timeline-avatar {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1.5px solid #0d0d0d;
-  margin-left: -7px;
+  border: 2px solid #111111;
+  margin-left: -6px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.timeline-pill:hover .timeline-avatar {
+  border-color: #222222;
+}
+
+.timeline-avatar:hover {
+  transform: scale(1.1);
+  z-index: 10;
 }
 
 .timeline-avatar:first-child {

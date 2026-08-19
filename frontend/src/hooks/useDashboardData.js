@@ -24,18 +24,17 @@ export const useDashboardData = (fetchFunction, initialData = null) => {
       setData(result);
     } catch (err) {
       setError(err.message || 'An error occurred while fetching data');
-      // Set to fallback initial data on error to prevent UI crashes if needed
-      if (data === null && initialData !== null) {
-          setData(initialData);
-      }
+      setData(prev => (prev === null && initialData !== null ? initialData : prev));
     } finally {
       setLoading(false);
     }
-  }, [fetchFunction, initialData, data]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchFunction]);
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return { data, loading, error, refetch: fetchData };
 };
