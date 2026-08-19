@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useRecentProjects } from '../../hooks/useDashboardData';
+import { Loader2, AlertCircle } from 'lucide-react';
 import './QuickLinksCard.css';
 
 export default function QuickLinksCard() {
@@ -6,10 +8,8 @@ export default function QuickLinksCard() {
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [isGridView, setIsGridView] = useState(false);
   
-  const [projectFiles] = useState([
-    { id: '1', name: 'project_requirements.docx', type: 'doc', color: '#60a5fa' },
-    { id: '2', name: 'design_brief.pdf', type: 'pdf', color: '#fb7185' }
-  ]);
+  const { data: response, loading, error, refetch } = useRecentProjects();
+  const projectFiles = response?.data || [];
 
   const getProjectIcon = (type, color) => {
     switch (type) {
@@ -22,6 +22,23 @@ export default function QuickLinksCard() {
             <line x1="16" y1="17" x2="8" y2="17"></line>
           </svg>
         );
+      case 'figma':
+        return (
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 5.5A3.5 3.5 0 0 1 8.5 2H12v7H8.5A3.5 3.5 0 0 1 5 5.5z"></path>
+            <path d="M12 2h3.5a3.5 3.5 0 1 1 0 7H12V2z"></path>
+            <path d="M12 12.5a3.5 3.5 0 1 1 7 0 3.5 3.5 0 1 1-7 0z"></path>
+            <path d="M5 19.5A3.5 3.5 0 0 1 8.5 16H12v3.5a3.5 3.5 0 1 1-7 0z"></path>
+            <path d="M5 12.5A3.5 3.5 0 0 1 8.5 9H12v7H8.5A3.5 3.5 0 0 1 5 12.5z"></path>
+          </svg>
+        );
+      case 'code':
+        return (
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke={color} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="16 18 22 12 16 6"></polyline>
+            <polyline points="8 6 2 12 8 18"></polyline>
+          </svg>
+        );
       case 'doc':
       default:
         return (
@@ -32,6 +49,24 @@ export default function QuickLinksCard() {
         );
     }
   };
+
+  if (loading) {
+    return (
+      <div className="quick-links-card" style={{ justifyContent: 'center', alignItems: 'center' }}>
+        <Loader2 className="animate-spin" style={{ color: '#6b7280' }} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="quick-links-card" style={{ justifyContent: 'center', alignItems: 'center', color: '#ef4444' }}>
+        <AlertCircle style={{ marginBottom: '8px' }} />
+        <p style={{ margin: 0, fontSize: '0.875rem' }}>{error}</p>
+        <button onClick={refetch} style={{ marginTop: '12px', padding: '6px 12px', backgroundColor: '#e5e7eb', borderRadius: '4px', color: '#374151', cursor: 'pointer', border: 'none' }}>Retry</button>
+      </div>
+    );
+  }
 
   return (
     <div className="quick-links-card">
@@ -97,18 +132,32 @@ export default function QuickLinksCard() {
 
       {/* Project Items List */}
       <div className="quick-links-list" style={{ minHeight: '150px', display: isGridView ? 'grid' : 'flex', gridTemplateColumns: isGridView ? '1fr 1fr' : 'none' }}>
-        {projectFiles.map((file) => (
-          <div 
-            key={file.id} 
-            className="quick-file-pill"
-            onClick={() => console.log('Selected file:', file.id)}
-          >
-            <div className="file-icon-badge">
-              {getProjectIcon(file.type, file.color)}
+        {projectFiles.slice(0, 3).map((project) => (
+          <div key={project.id} className="project-card" onClick={() => console.log('Selected project:', project.id)}>
+            <div className="project-card-header">
+              <div className="project-card-title-group">
+                <div className="file-icon-badge">
+                  {getProjectIcon(project.type, project.color)}
+                </div>
+                <span className="project-card-title">{project.name}</span>
+              </div>
             </div>
-            <span className="file-title">{file.name}</span>
+            
+            <div className="project-card-footer">
+               <span className={`project-card-status ${project.status === 'active' ? 'active' : 'completed'}`}>
+                  {project.status === 'active' ? 'In Progress' : 'Completed'}
+                </span>
+                <div className="project-avatars">
+                  {project.members && project.members.map((member, i) => (
+                    <img key={i} src={member.avatar} alt={member.name} className="project-avatar" title={member.name} />
+                  ))}
+                </div>
+            </div>
           </div>
         ))}
+        {projectFiles.length === 0 && (
+          <div style={{ textAlign: 'center', color: '#9ca3af', width: '100%' }}>No projects found.</div>
+        )}
       </div>
     </div>
   );

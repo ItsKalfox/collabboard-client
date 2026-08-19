@@ -8,13 +8,20 @@ const dataDir = path.join(__dirname, '../data');
 
 export const getTimeline = async (req, res) => {
     try {
+        const userId = req.user.id;
         const tasksData = await fs.readFile(path.join(dataDir, 'mockTasks.json'), 'utf-8');
         const projectsData = await fs.readFile(path.join(dataDir, 'mockProjects.json'), 'utf-8');
         const usersData = await fs.readFile(path.join(dataDir, 'mockData.json'), 'utf-8');
 
         const tasks = JSON.parse(tasksData);
-        const projects = JSON.parse(projectsData);
+        let projects = JSON.parse(projectsData);
         const users = JSON.parse(usersData);
+
+        // Filter projects to only those accessible by the user
+        let userProjects = projects.filter(p => p.ownerId === userId || p.members.some(m => m.userId === userId));
+        if (userProjects.length === 0) {
+            userProjects = JSON.parse(projectsData).slice(0, 3); // Fallback starter data
+        }
 
         const formatDuration = (start, end) => {
             const diffMs = new Date(end) - new Date(start);
@@ -26,7 +33,7 @@ export const getTimeline = async (req, res) => {
             return `about ${diffDays} day${diffDays !== 1 ? 's' : ''}`;
         };
 
-        const timeline = projects.map(project => {
+        const timeline = userProjects.map(project => {
             const projectTasks = tasks
                 .filter(t => t.projectId === project.id)
                 .map(task => {
@@ -66,13 +73,19 @@ export const getTimeline = async (req, res) => {
 
 export const getOngoingProjectsStats = async (req, res) => {
     try {
+        const userId = req.user.id;
         const tasksData = await fs.readFile(path.join(dataDir, 'mockTasks.json'), 'utf-8');
         const projectsData = await fs.readFile(path.join(dataDir, 'mockProjects.json'), 'utf-8');
 
         const tasks = JSON.parse(tasksData);
-        const projects = JSON.parse(projectsData);
+        const allProjects = JSON.parse(projectsData);
 
-        const activeProjects = projects.filter(p => p.status === 'active');
+        // Filter to active projects accessible by the user
+        let userProjects = allProjects.filter(p => p.ownerId === userId || p.members.some(m => m.userId === userId));
+        if (userProjects.length === 0) {
+            userProjects = allProjects.slice(0, 3); // Fallback starter data
+        }
+        const activeProjects = userProjects.filter(p => p.status === 'active');
         
         let totalSubtasksAll = 0;
         let completedSubtasksAll = 0;
@@ -133,11 +146,28 @@ export const getOngoingProjectsStats = async (req, res) => {
 
 export const getTeamProgress = async (req, res) => {
     try {
+        const userId = req.user.id;
         const usersData = await fs.readFile(path.join(dataDir, 'mockData.json'), 'utf-8');
         const tasksData = await fs.readFile(path.join(dataDir, 'mockTasks.json'), 'utf-8');
+        const projectsData = await fs.readFile(path.join(dataDir, 'mockProjects.json'), 'utf-8');
 
-        const users = JSON.parse(usersData);
+        let users = JSON.parse(usersData);
         const tasks = JSON.parse(tasksData);
+        const projects = JSON.parse(projectsData);
+
+        // Scope to users that share a project with the authenticated user
+        let userProjects = projects.filter(p => p.ownerId === userId || p.members.some(m => m.userId === userId));
+        if (userProjects.length === 0) {
+            userProjects = projects.slice(0, 3); // Fallback starter data
+        }
+        const relevantUserIds = new Set();
+        userProjects.forEach(p => {
+            relevantUserIds.add(p.ownerId);
+            p.members.forEach(m => relevantUserIds.add(m.userId));
+        });
+
+        // Filter the users pool
+        users = users.filter(u => relevantUserIds.has(u.id));
 
         const teamStats = {};
 
@@ -179,17 +209,35 @@ export const getTeamProgress = async (req, res) => {
             }
         });
 
+        let overallTotalTasks = 0;
+        let overallCompletedTasks = 0;
+        let overallActivity = [];
+
         const teamsArray = Object.values(teamStats).map(team => {
+            overallTotalTasks += team.totalTasks;
+            overallCompletedTasks += team.completedTasks;
+            
+            // Generate some dynamic activity data for the dev chart
+            const devBarHeights = Array.from({ length: 8 }, () => Math.floor(Math.random() * 60) + 20 + (team.completedTasks * 2));
+            overallActivity = devBarHeights.map((h, i) => Math.min(100, Math.max(overallActivity[i] || 0, h)));
+
             const progress = team.totalTasks === 0 ? 0 : Number(((team.completedTasks / team.totalTasks) * 100).toFixed(1));
             return {
                 ...team,
-                progress
+                progress,
+                devBarHeights: devBarHeights.map(h => Math.min(100, h))
             };
         });
 
         res.status(200).json({
             status: 'success',
-            data: teamsArray
+            data: teamsArray,
+            overallStats: {
+                totalPoints: overallTotalTasks * 10,
+                tasksCompleted: overallCompletedTasks,
+                activeMembers: relevantUserIds.size,
+                activity: overallActivity.map(h => Math.min(100, h))
+            }
         });
     } catch (error) {
         console.error('Error in getTeamProgress:', error);
@@ -235,3 +283,49 @@ export const getRecentFiles = async (req, res) => {
         res.status(500).json({ status: 'error', message: 'Internal server error' });
     }
 };
+
+export const getRecentProjects = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const projectsData = await fs.readFile(path.join(dataDir, 'mockProjects.json'), 'utf-8');
+        const usersData = await fs.readFile(path.join(dataDir, 'mockData.json'), 'utf-8');
+        let projects = JSON.parse(projectsData);
+        const users = JSON.parse(usersData);
+
+        // Filter projects accessible by the user
+        let userProjects = projects.filter(p => p.ownerId === userId || p.members.some(m => m.userId === userId));
+        if (userProjects.length === 0) {
+            userProjects = projects.slice(0, 3); // Fallback starter data
+        }
+        
+        // Sort by updatedAt descending
+        userProjects.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
+        // Return just the top 3 (now Project Cards, not capsule pills)
+        const recentProjects = userProjects.slice(0, 3).map(p => ({
+            id: p.id,
+            name: p.name,
+            status: p.status,
+            type: p.category && p.category.toLowerCase().includes('design') ? 'figma' : 'code',
+            color: p.category && p.category.toLowerCase().includes('design') ? '#a78bfa' : '#34d399',
+            updatedAt: p.updatedAt,
+            members: p.members.map(m => {
+                const user = users.find(u => u.id === m.userId);
+                return {
+                    id: m.userId,
+                    name: user?.name,
+                    avatar: user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}`
+                };
+            })
+        }));
+
+        res.status(200).json({
+            status: 'success',
+            data: recentProjects
+        });
+    } catch (error) {
+        console.error('Error in getRecentProjects:', error);
+        res.status(500).json({ status: 'error', message: 'Internal server error' });
+    }
+};
+

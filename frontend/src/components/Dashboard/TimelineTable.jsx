@@ -131,7 +131,7 @@ export default function TimelineTable() {
   };
 
   return (
-    <div className="timeline-container">
+    <div className="timeline-container" style={{ zIndex: (activeTask || activeAssignee) ? 1000 : 'auto' }}>
       {/* Header Bar */}
       <div className="timeline-header">
         <h2 className="timeline-title">Management</h2>

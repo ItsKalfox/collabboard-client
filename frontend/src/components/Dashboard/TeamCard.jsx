@@ -9,8 +9,12 @@ export default function TeamCard() {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const { data: response, loading, error, refetch } = useTeamProgress();
   const teamsData = response?.data || [];
-
-  const devBarHeights = [35, 55, 40, 70, 60, 90, 75, 100];
+  const overallStats = response?.overallStats || {
+    totalPoints: 0,
+    tasksCompleted: 0,
+    activeMembers: 0,
+    activity: [35, 55, 40, 70, 60, 90, 75, 100] // fallback
+  };
 
   return (
     <>
@@ -19,7 +23,7 @@ export default function TeamCard() {
         <div className="team-card-header">
           <div className="team-header-left">
             <h3 className="team-title">Team</h3>
-            <span className="team-badge">+5</span>
+            <span className="team-badge">+{overallStats.activeMembers}</span>
           </div>
 
           {/* Header Stats */}
@@ -34,7 +38,7 @@ export default function TeamCard() {
                   <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                 </svg>
               </div>
-              <span className="stat-number">1240</span>
+              <span className="stat-number">{overallStats.totalPoints}</span>
               <div className="stat-change positive">
                 <svg viewBox="0 0 24 24" width="10" height="10" stroke="currentColor" strokeWidth="3" fill="none">
                   <line x1="12" y1="19" x2="12" y2="5"></line>
@@ -52,13 +56,13 @@ export default function TeamCard() {
                   <polyline points="12 6 12 12 16 14"></polyline>
                 </svg>
               </div>
-              <span className="stat-number">562</span>
+              <span className="stat-number">{overallStats.tasksCompleted}</span>
               <div className="stat-change positive">
                 <svg viewBox="0 0 24 24" width="10" height="10" stroke="currentColor" strokeWidth="3" fill="none">
                   <line x1="12" y1="19" x2="12" y2="5"></line>
                   <polyline points="5 12 12 5 19 12"></polyline>
                 </svg>
-                <span>+124</span>
+                <span>+12</span>
               </div>
             </div>
 
@@ -69,7 +73,7 @@ export default function TeamCard() {
                   <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
                 </svg>
               </div>
-              <span className="stat-number">25</span>
+              <span className="stat-number">{overallStats.activeMembers}</span>
               <div className="stat-sparkline">
                 <svg viewBox="0 0 50 16" width="40" height="14">
                   <path
@@ -155,7 +159,7 @@ export default function TeamCard() {
                       </div>
                     ) : (
                       <div className="dev-chart-container">
-                        {devBarHeights.map((h, i) => (
+                        {(team.devBarHeights || overallStats.activity).map((h, i) => (
                           <div key={i} className="dev-chart-bar-wrapper" style={{ position: 'relative' }}
                                onMouseEnter={() => setHoveredBarIndex(i)} onMouseLeave={() => setHoveredBarIndex(null)}>
                             {hoveredBarIndex === i && (

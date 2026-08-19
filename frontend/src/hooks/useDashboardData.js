@@ -3,7 +3,8 @@ import {
   fetchTimelineData,
   fetchOngoingProjects,
   fetchTeamProgress,
-  fetchRecentFiles
+  fetchRecentFiles,
+  fetchRecentProjects
 } from '../services/dashboardService';
 
 /**
@@ -54,4 +55,8 @@ export const useTeamProgress = () => {
 
 export const useRecentFiles = () => {
   return useDashboardData(fetchRecentFiles, []);
+};
+
+export const useRecentProjects = () => {
+  return useDashboardData(fetchRecentProjects, []);
 };

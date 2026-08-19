@@ -58,3 +58,10 @@ export const fetchTeamProgress = () => {
 export const fetchRecentFiles = () => {
   return fetchAPI('/dashboard/files');
 };
+
+/**
+ * Fetches recent projects data
+ */
+export const fetchRecentProjects = () => {
+  return fetchAPI('/dashboard/projects/recent');
+};
