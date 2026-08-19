@@ -12,6 +12,7 @@ import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import KanbanColumn from './KanbanColumn';
 import TaskCard from './TaskCard';
 import TaskPopup from '../TaskPopup/TaskPopup';
+import { formatDate } from '../../utils/dateUtils';
 import './KanbanBoard.css';
 
 const COLUMNS_DEF = [
@@ -87,7 +88,7 @@ export default function KanbanBoard({ projectId, refreshKey }) {
               ...task,
               tag: task.priority === 'high' ? 'High Priority' : task.category || 'Task',
               tagColor: task.priority === 'high' ? 'pink' : 'cyan',
-              date: new Date(task.dueDate || task.createdAt).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' }),
+              date: formatDate(task.dueDate || task.createdAt),
               progressCurrent: task.subtasks ? task.subtasks.filter(st => st.completed).length : 0,
               progressTotal: task.subtasks ? task.subtasks.length : 1,
               members: task.assigneeId ? [{ name: assigneeName, initials: assigneeInitial }] : []

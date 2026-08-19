@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { formatDate } from '../../utils/dateUtils';
 import './TaskPopup.css';
 
 /* ─── Dummy employee pool ───────────────────────────────────── */
@@ -475,7 +476,7 @@ export default function TaskPopup({ task: prop, onClose }) {
               <Icon d="M3 4h18v2H3zm0 7h18v2H3zm0 7h18v2H3z" />
               Created date
             </div>
-            <div className="popup-meta-val popup-meta-text">{task.createdDate}</div>
+            <div className="popup-meta-val popup-meta-text">{formatDate(task.createdDate)}</div>
           </div>
 
           {/* Due date */}
@@ -486,11 +487,14 @@ export default function TaskPopup({ task: prop, onClose }) {
             </div>
             <div className="popup-meta-val">
               {isEditing
-                ? <input className="popup-mini-input popup-mini-input--wide"
-                  value={draft.dueDate}
-                  onChange={e => setDraft(d => ({ ...d, dueDate: e.target.value }))}
+                ? <input type="date" className="popup-mini-input popup-mini-input--wide"
+                  value={draft.dueDate ? new Date(draft.dueDate).toISOString().split('T')[0] : ''}
+                  onChange={e => {
+                    const newDateStr = e.target.value;
+                    setDraft(d => ({ ...d, dueDate: newDateStr ? new Date(newDateStr).toISOString() : null }));
+                  }}
                 />
-                : <span className="popup-meta-text">{task.dueDate}</span>
+                : <span className="popup-meta-text">{formatDate(task.dueDate)}</span>
               }
             </div>
           </div>
