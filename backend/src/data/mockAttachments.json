@@ -53,5 +53,16 @@
     "size": 181261,
     "uploadedBy": "1786340518154",
     "uploadedAt": "2026-08-19T08:49:42.382Z"
+  },
+  {
+    "id": "att_1787146585712",
+    "projectId": "proj_003",
+    "filename": "sample_report.txt",
+    "url": "https://res.cloudinary.com/bpv9dfck/raw/upload/v1787146585/collabboard/attachments/proj_003/att_1787146583119",
+    "publicId": "collabboard/attachments/proj_003/att_1787146583119",
+    "mimeType": "text/plain",
+    "size": 36,
+    "uploadedBy": "1786448728310",
+    "uploadedAt": "2026-08-19T13:36:25.712Z"
   }
 ]

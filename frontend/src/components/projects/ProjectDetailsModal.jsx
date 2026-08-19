@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, ArrowRight, ChevronDown, ChevronRight, UserPlus, Trash2, Calendar, Search, AlertCircle, Loader2, RefreshCw, Clock, CheckSquare } from 'lucide-react';
 import { MOCK_MEMBERS, normalizeMember } from '../../mock/mockMembers';
-import { uploadCoverImage, getAttachments, uploadAttachment, deleteAttachment, getProjectMembers, searchUsers, addProjectMember, removeProjectMember, getProjectTasks, getProjectTimeline, refreshProjectTimeline } from '../../services/projectService';
+import { uploadCoverImage, getAttachments, uploadAttachment, deleteAttachment, getProjectMembers, searchUsers, addProjectMember, removeProjectMember, getProjectTasks, getProjectTimeline, refreshProjectTimeline, downloadAttachment } from '../../services/projectService';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import '../TaskPopup/TaskPopup.css';
 import './projects.css';
@@ -40,6 +40,7 @@ export default function ProjectDetailsModal({
   const [coverError, setCoverError] = useState('');
   const [isUploadingAtt, setIsUploadingAtt] = useState(false);
   const [deletingAttId, setDeletingAttId] = useState(null);
+  const [downloadingAttId, setDownloadingAttId] = useState(null);
   const [attachmentError, setAttachmentError] = useState('');
 
   const formatAttachment = (att) => {
@@ -382,27 +383,36 @@ export default function ProjectDetailsModal({
     }
   };
 
-  const downloadAtt = att => {
-    let downloadUrl = att.url;
-    let createdTempUrl = false;
+  const downloadAtt = async (att) => {
+    if (!project?.id || downloadingAttId) return;
 
-    if (!downloadUrl) {
-      const mockContent = `Mock attachment file content for ${att.name}.${att.ext?.toLowerCase() || 'txt'}\nProject: ${project.name}\nSize: ${att.size}`;
-      const blob = new Blob([mockContent], { type: 'text/plain;charset=utf-8' });
-      downloadUrl = URL.createObjectURL(blob);
-      createdTempUrl = true;
+    const attachmentId = att.id || att._id;
+    if (!attachmentId) {
+      setAttachmentError('Attachment ID is missing');
+      return;
     }
 
-    const a = document.createElement('a');
-    a.href = downloadUrl;
-    a.target = '_blank';
-    a.download = att.filename || `${att.name}.${att.ext?.toLowerCase() || 'pdf'}`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    setDownloadingAttId(attachmentId);
+    setAttachmentError('');
 
-    if (createdTempUrl) {
+    try {
+      // Send GET /api/projects/:id/attachments/:attachmentId/download
+      const { blob, filename } = await downloadAttachment(project.id, attachmentId);
+      const downloadUrl = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = filename || att.filename || att.name || `attachment_${attachmentId}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+    } catch (err) {
+      console.error('Failed to download attachment:', err);
+      // Display error message from backend without removing attachment from UI
+      setAttachmentError(err.message || 'Failed to download attachment. Please try again.');
+    } finally {
+      setDownloadingAttId(null);
     }
   };
 
@@ -866,14 +876,19 @@ export default function ProjectDetailsModal({
                       e.stopPropagation();
                       downloadAtt(att);
                     }}
-                    style={{ background: 'transparent', border: 'none', color: 'var(--popup-text-muted)', cursor: 'pointer', padding: '4px', display: 'flex' }}
+                    disabled={downloadingAttId === att.id}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--popup-text-muted)', cursor: downloadingAttId === att.id ? 'not-allowed' : 'pointer', padding: '4px', display: 'flex' }}
                     title="Download attachment"
                   >
-                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                      <polyline points="7 10 12 15 17 10"/>
-                      <line x1="12" y1="15" x2="12" y2="3"/>
-                    </svg>
+                    {downloadingAttId === att.id ? (
+                      <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
+                    ) : (
+                      <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                      </svg>
+                    )}
                   </button>
                   <button 
                     type="button"

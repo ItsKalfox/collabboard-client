@@ -345,6 +345,44 @@ export const refreshProjectTimeline = async (projectId, since) => {
   return data.data || { newActivities: [], lastRefreshedAt: new Date().toISOString() };
 };
 
+/**
+ * Download an attachment via GET /api/projects/:id/attachments/:attachmentId/download
+ * @param {string} projectId
+ * @param {string} attachmentId
+ * @returns {Promise<{ blob: Blob, filename: string|null }>}
+ */
+export const downloadAttachment = async (projectId, attachmentId) => {
+  const response = await fetch(`${API_URL}/projects/${projectId}/attachments/${attachmentId}/download`, {
+    method: 'GET',
+    headers: getAuthHeaders(true)
+  });
+
+  if (!response.ok) {
+    let errorMsg = 'Failed to download attachment';
+    try {
+      const errorData = await response.json();
+      errorMsg = errorData.message || errorMsg;
+    } catch {
+      // Response might not be JSON
+    }
+    throw new Error(errorMsg);
+  }
+
+  // Extract filename from Content-Disposition header if available
+  const disposition = response.headers.get('Content-Disposition');
+  let filename = null;
+  if (disposition && disposition.includes('filename=')) {
+    const match = disposition.match(/filename="?([^";]+)"?/);
+    if (match && match[1]) {
+      filename = match[1];
+    }
+  }
+
+  const blob = await response.blob();
+  return { blob, filename };
+};
+
+
 
 
 
