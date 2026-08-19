@@ -20,25 +20,7 @@
       }
     ],
     "createdAt": "2026-08-10T05:41:58.154Z",
-    "updatedAt": "2026-08-10T05:41:58.154Z"
-  },
-  {
-    "id": "proj_002",
-    "name": "Mobile App",
-    "description": "Build a cross-platform mobile application for iOS and Android.",
-    "category": "Development",
-    "status": "active",
-    "ownerId": "1786340518154",
-    "coverImage": null,
-    "members": [
-      {
-        "userId": "1786340518154",
-        "role": "owner",
-        "joinedAt": "2026-08-10T06:00:00.000Z"
-      }
-    ],
-    "createdAt": "2026-08-10T06:00:00.000Z",
-    "updatedAt": "2026-08-10T06:00:00.000Z"
+    "updatedAt": "2026-08-19T08:00:24.827Z"
   },
   {
     "id": "proj_003",
@@ -62,5 +44,15 @@
     ],
     "createdAt": "2026-08-11T07:05:27.127Z",
     "updatedAt": "2026-08-11T07:05:27.127Z"
+  },
+  {
+    "id": "proj_1787126355155",
+    "name": "New Project",
+    "description": "A brand new project",
+    "status": "active",
+    "ownerId": "1786340518154",
+    "coverImage": null,
+    "createdAt": "2026-08-19T07:59:15.155Z",
+    "updatedAt": "2026-08-19T07:59:15.155Z"
   }
 ]

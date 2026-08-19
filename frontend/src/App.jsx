@@ -97,11 +97,10 @@ function App() {
     handleTabClick('Dashboard');
   };
 
-  const [selectedProjectId, setSelectedProjectId] = useState(null);
+  const [selectedProject, setSelectedProject] = useState(null);
 
   const handleOpenBoard = (project) => {
-    const projId = typeof project === 'object' ? project.id : project;
-    setSelectedProjectId(projId);
+    setSelectedProject(project);
     handleTabClick('Board');
   };
 
@@ -372,9 +371,9 @@ function App() {
             <Dashboard />
           ) : activeTab === 'Board' ? (
             <Board 
-              initialProjectId={selectedProjectId} 
-              selectedProject={typeof selectedProjectId === 'object' ? selectedProjectId : null}
-              onSelectProject={(id) => setSelectedProjectId(id)} 
+              initialProjectId={typeof selectedProject === 'object' ? selectedProject?.id : selectedProject} 
+              selectedProject={typeof selectedProject === 'object' ? selectedProject : null}
+              onSelectProject={(id) => setSelectedProject(id)} 
             />
           ) : activeTab === 'Projects' ? (
             <ProjectsPage theme={theme} toggleTheme={toggleTheme} currentUser={currentUser} onOpenBoard={handleOpenBoard} />
