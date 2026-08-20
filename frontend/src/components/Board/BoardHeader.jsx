@@ -1,5 +1,14 @@
 import { useState, useEffect } from 'react';
+import { normalizeMember } from '../../mock/mockMembers';
 import './BoardHeader.css';
+
+const COLOR_HEX = {
+  blue: '#3b82f6',
+  green: '#10b981',
+  yellow: '#f59e0b',
+  red: '#f43f5e',
+  purple: '#a855f7',
+};
 
 export default function BoardHeader({ project = {}, onAddTask, onAddMember, onAddTag }) {
   const [activeSubTab, setActiveSubTab] = useState('Board');
@@ -67,12 +76,26 @@ export default function BoardHeader({ project = {}, onAddTask, onAddMember, onAd
         </div>
 
         <div className="board-team-group">
-          <div className="team-avatars-stack">
-            {projectMembers.map((m, idx) => (
-              <div key={idx} className={`avatar-circle av-${(idx % 3) + 1}`} title={m.name}>
-                {m.name ? m.name.charAt(0).toUpperCase() : 'U'}
+          <div className="pc-list-members" style={{ marginRight: '16px' }}>
+            {projectMembers.map(normalizeMember).slice(0, 4).map((member, idx) => (
+              <div
+                key={idx}
+                className="pc-list-avatar"
+                style={{ backgroundColor: member.bg || COLOR_HEX.blue, zIndex: 10 - idx }}
+                title={member.name}
+              >
+                {member.avatar ? (
+                  <img src={member.avatar} alt={member.name} />
+                ) : (
+                  member.initials || member.name?.substring(0, 2) || '?'
+                )}
               </div>
             ))}
+            {projectMembers.length > 4 && (
+              <div className="pc-list-avatar-more" style={{ zIndex: 1 }}>
+                +{projectMembers.length - 4}
+              </div>
+            )}
           </div>
           <button className="invite-member-btn" title="Add Member" onClick={onAddMember}>
             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2.5" fill="none">

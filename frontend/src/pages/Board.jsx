@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ProjectsSidebar from '../components/Board/ProjectsSidebar';
 import BoardHeader from '../components/Board/BoardHeader';
 import KanbanBoard from '../components/Board/KanbanBoard';
 import ActionModal from '../components/Board/ActionModal';
 
+import { Search, X } from 'lucide-react';
+import { searchUsers } from '../services/projectService';
 import { INITIAL_PROJECTS } from '../mock/mockProjects';
 import './Board.css';
 
@@ -60,6 +62,14 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
   const [newMemberEmail, setNewMemberEmail] = useState('');
   const [newTag, setNewTag] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Search member states
+  const [memberSearch, setMemberSearch] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
+  const [searchError, setSearchError] = useState('');
+  const [showMemberDropdown, setShowMemberDropdown] = useState(false);
+  const memberSearchWrapRef = useRef(null);
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -132,6 +142,37 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
       onSelectProject(projectId);
     }
   };
+
+  // Close member dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (memberSearchWrapRef.current && !memberSearchWrapRef.current.contains(e.target)) {
+        setShowMemberDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Debounced user search
+  useEffect(() => {
+    if (!memberSearch || !memberSearch.trim()) {
+      setSearchResults([]);
+      setIsSearchingUsers(false);
+      setSearchError('');
+      return;
+    }
+    let isMounted = true;
+    setIsSearchingUsers(true);
+    setSearchError('');
+    const timer = setTimeout(() => {
+      searchUsers(memberSearch)
+        .then(users => { if (isMounted) setSearchResults(users || []); })
+        .catch(err => { if (isMounted) { setSearchError(err.message || 'Failed to search'); setSearchResults([]); } })
+        .finally(() => { if (isMounted) setIsSearchingUsers(false); });
+    }, 400);
+    return () => { isMounted = false; clearTimeout(timer); };
+  }, [memberSearch]);
 
   const handleAddSubtask = (e) => {
     e.preventDefault();
@@ -218,9 +259,8 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
     }
   };
 
-  const handleAddMemberSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedProjectId || !newMemberEmail.trim()) return;
+  const handleAddMemberDirectly = async (memberObj) => {
+    if (!selectedProjectId) return;
     
     setIsSubmitting(true);
     try {
@@ -232,13 +272,23 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ email: newMemberEmail, role: 'member' })
+        body: JSON.stringify({ email: memberObj.email, role: 'member' })
       });
       if (res.ok) {
-        // Trigger a re-render of BoardHeader to fetch new members
-        setProjects([...projects]); 
+        setProjects(prev => {
+          const newProjects = [...prev];
+          const projIndex = newProjects.findIndex(p => p.id === selectedProjectId);
+          if (projIndex !== -1) {
+            newProjects[projIndex] = {
+              ...newProjects[projIndex],
+              members: [...(newProjects[projIndex].members || []), memberObj]
+            };
+          }
+          return newProjects;
+        });
+        setMemberSearch('');
+        setShowMemberDropdown(false);
         setIsAddMemberModalOpen(false);
-        setNewMemberEmail('');
       } else {
         const errData = await res.json();
         alert(errData.message || 'Failed to add member');
@@ -525,24 +575,101 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
       {/* Add Member Modal */}
       <ActionModal
         isOpen={isAddMemberModalOpen}
-        onClose={() => setIsAddMemberModalOpen(false)}
-        title="Invite Team Member"
-        onSubmit={handleAddMemberSubmit}
-        submitText="Send Invite"
-        loading={isSubmitting}
+        onClose={() => {
+          setIsAddMemberModalOpen(false);
+          setMemberSearch('');
+          setShowMemberDropdown(false);
+        }}
+        title="Add Team Member"
+        onSubmit={(e) => e.preventDefault()}
+        hideFooter={true}
       >
-        <div className="auth-input-group">
-          <label className="auth-label">Email Address</label>
-          <div className="auth-input-wrapper">
+        <div className="auth-input-group" ref={memberSearchWrapRef}>
+          <label className="auth-label">Search Member</label>
+          <div className="auth-input-wrapper" style={{ position: 'relative' }}>
+            <Search size={16} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-muted)' }} />
             <input
-              type="email"
+              type="text"
               className="auth-input"
-              placeholder="alex.morgan@company.com"
-              value={newMemberEmail}
-              onChange={(e) => setNewMemberEmail(e.target.value)}
-              required
+              style={{ paddingLeft: '38px', paddingRight: memberSearch ? '38px' : '12px' }}
+              placeholder="Search by name or email..."
+              value={memberSearch}
+              onChange={e => {
+                setMemberSearch(e.target.value);
+                setShowMemberDropdown(true);
+              }}
+              onFocus={() => setShowMemberDropdown(true)}
               autoFocus
             />
+            {memberSearch && (
+              <button
+                type="button"
+                onClick={() => { setMemberSearch(''); setShowMemberDropdown(false); }}
+                style={{ position: 'absolute', right: '12px', top: '12px', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0 }}
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+
+          {/* Inline results — always takes up space so modal doesn't jump */}
+          <div style={{ marginTop: '8px', minHeight: '240px', borderRadius: '10px', border: '1px solid var(--border-color, rgba(255,255,255,0.10))', overflow: 'hidden', background: 'var(--window-bg, rgba(255,255,255,0.04))' }}>
+            {!memberSearch.trim() ? (
+              <div style={{ padding: '48px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                <Search size={28} style={{ opacity: 0.3, marginBottom: '10px', display: 'block', margin: '0 auto 10px' }} />
+                Start typing to search for a team member
+              </div>
+            ) : isSearchingUsers ? (
+              <div style={{ padding: '48px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                Searching users...
+              </div>
+            ) : searchResults.length === 0 ? (
+              <div style={{ padding: '48px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                No users found for "{memberSearch}"
+              </div>
+            ) : (
+              <div style={{ maxHeight: '240px', overflowY: 'auto' }}>
+                {searchResults.map(emp => (
+                  <div
+                    key={emp.id || emp._id || emp.email}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '10px',
+                      padding: '10px 14px', cursor: 'pointer',
+                      borderBottom: '1px solid var(--border-color, rgba(255,255,255,0.05))',
+                      transition: 'background 0.15s ease'
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.07)'}
+                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    <div style={{
+                      width: '34px', height: '34px', borderRadius: '50%', flexShrink: 0,
+                      background: '#3b82f6', color: '#fff',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '13px', fontWeight: 'bold'
+                    }}>
+                      {emp.name ? emp.name.charAt(0).toUpperCase() : emp.email.charAt(0).toUpperCase()}
+                    </div>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                      <span style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {emp.name || emp.username || 'Unknown'}
+                      </span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                        {emp.email}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => handleAddMemberDirectly(emp)}
+                      disabled={isSubmitting}
+                      style={{ padding: '5px 12px', fontSize: '12px', flexShrink: 0 }}
+                    >
+                      {isSubmitting ? '...' : 'Add'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </ActionModal>
