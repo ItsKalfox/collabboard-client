@@ -32,7 +32,13 @@ function normalizeTaskForPopup(task, columnTitle) {
     progress: task.progress !== undefined ? task.progress : (task.progressTotal ? Math.round((task.progressCurrent / task.progressTotal) * 100) : 50),
     assignees: task.assignees || (task.members || []).map(m => ({ name: m.name, initials: m.initials })),
     subtasks: task.subtasks ? task.subtasks.map(s => ({ ...s, comments: s.comments || [] })) : [],
-    attachments: task.attachments || [],
+    attachments: (task.attachments || []).map(att => ({
+      id: att.id,
+      name: att.name || (att.filename ? att.filename.replace(/\.[^.]+$/, '') : 'Attachment'),
+      ext: att.ext || (att.filename ? att.filename.split('.').pop().toUpperCase() : 'FILE'),
+      size: typeof att.size === 'number' ? (att.size / (1024 * 1024)).toFixed(2) + ' MB' : (att.size || 'Unknown'),
+      url: att.url || null
+    })),
     generalComments: task.generalComments || [],
     activities: task.activities || [
       { text: `Task "${task.title}" was created`, timestamp: task.createdAt || task.date || new Date().toISOString() },
@@ -45,6 +51,7 @@ export default function KanbanBoard({ projectId, refreshKey }) {
   const [activeTask, setActiveTask] = useState(null);
   const [draggedTask, setDraggedTask] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [localRefresh, setLocalRefresh] = useState(0);
 
   useEffect(() => {
     if (!projectId) return;
@@ -107,7 +114,7 @@ export default function KanbanBoard({ projectId, refreshKey }) {
     };
     
     fetchData();
-  }, [projectId, refreshKey]);
+  }, [projectId, refreshKey, localRefresh]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -282,6 +289,7 @@ export default function KanbanBoard({ projectId, refreshKey }) {
         <TaskPopup
           task={activeTask}
           onClose={() => setActiveTask(null)}
+          onUpdate={() => setLocalRefresh(r => r + 1)}
         />
       )}
     </>
