@@ -616,7 +616,7 @@
 }
 
 .popup-tab.active {
-  color: #6366f1;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -627,7 +627,7 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  background: var(--text-primary);
   border-radius: 2px 2px 0 0;
 }
 

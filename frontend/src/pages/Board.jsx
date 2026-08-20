@@ -48,6 +48,12 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [isAddTagModalOpen, setIsAddTagModalOpen] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskDescription, setNewTaskDescription] = useState('');
+  const [newTaskDueDate, setNewTaskDueDate] = useState('');
+  const [newSubtasks, setNewSubtasks] = useState([]);
+  const [activeTaskTab, setActiveTaskTab] = useState('main');
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+  const [newSubtaskDesc, setNewSubtaskDesc] = useState('');
 
   const [newMemberEmail, setNewMemberEmail] = useState('');
   const [newTag, setNewTag] = useState('');
@@ -125,6 +131,29 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
     }
   };
 
+  const handleAddSubtask = (e) => {
+    e.preventDefault();
+    if (!newSubtaskTitle.trim()) return;
+    const subtask = {
+      id: `st-${Date.now()}`,
+      title: newSubtaskTitle.trim(),
+      description: newSubtaskDesc.trim(),
+      completed: false
+    };
+    setNewSubtasks(prev => [...prev, subtask]);
+    setNewSubtaskTitle('');
+    setNewSubtaskDesc('');
+  };
+
+  const handleRemoveSubtask = (id) => {
+    setNewSubtasks(prev => prev.filter(s => s.id !== id));
+  };
+
+  const activeProjectData = projects.find(p => p.id === selectedProjectId);
+  const minDate = new Date().toISOString().split('T')[0];
+  const maxDate = activeProjectData?.dueDate ? new Date(activeProjectData.dueDate).toISOString().split('T')[0] : '';
+
+
   const handleAddTaskSubmit = async (e) => {
     e.preventDefault();
     if (!selectedProjectId || !newTaskTitle.trim()) return;
@@ -140,13 +169,23 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
           'Authorization': `Bearer ${token}`
         },
 
-        body: JSON.stringify({ title: newTaskTitle, status: 'todo' })
+        body: JSON.stringify({ 
+          title: newTaskTitle, 
+          status: 'todo',
+          description: newTaskDescription,
+          dueDate: newTaskDueDate || null,
+          subtasks: newSubtasks
+        })
 
       });
       if (res.ok) {
         setRefreshKey(k => k + 1); // trigger task refetch
         setIsAddTaskModalOpen(false);
         setNewTaskTitle('');
+        setNewTaskDescription('');
+        setNewTaskDueDate('');
+        setNewSubtasks([]);
+        setActiveTaskTab('main');
 
       } else {
         const errData = await res.json();
@@ -273,27 +312,125 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
       {/* Add Task Modal */}
       <ActionModal
         isOpen={isAddTaskModalOpen}
-        onClose={() => setIsAddTaskModalOpen(false)}
+        onClose={() => {
+          setIsAddTaskModalOpen(false);
+          setActiveTaskTab('main');
+        }}
         title="Add New Task"
         onSubmit={handleAddTaskSubmit}
         submitText="Add Task"
         loading={isSubmitting}
       >
-        <div className="auth-input-group">
-          <label className="auth-label">Task Title</label>
-          <div className="auth-input-wrapper">
-            <input
-              type="text"
-              className="auth-input"
-              placeholder="e.g. Design homepage wireframes"
-              value={newTaskTitle}
-              onChange={(e) => setNewTaskTitle(e.target.value)}
-              required
-              autoFocus
-            />
-          </div>
+        <div className="popup-tabs" style={{ marginBottom: '16px', display: 'flex', width: '100%' }}>
+          <button
+            type="button"
+            className={`popup-tab ${activeTaskTab === 'main' ? 'active' : ''}`}
+            style={{ flex: 1, justifyContent: 'center' }}
+            onClick={() => setActiveTaskTab('main')}
+          >
+            Main Details
+          </button>
+          <button
+            type="button"
+            className={`popup-tab ${activeTaskTab === 'subtasks' ? 'active' : ''}`}
+            style={{ flex: 1, justifyContent: 'center' }}
+            onClick={() => setActiveTaskTab('subtasks')}
+          >
+            Subtasks
+          </button>
         </div>
 
+        <div style={{ minHeight: '280px' }}>
+          {activeTaskTab === 'main' && (
+          <>
+            <div className="auth-input-group">
+              <label className="auth-label">Task Title</label>
+              <div className="auth-input-wrapper">
+                <input
+                  type="text"
+                  className="auth-input"
+                  placeholder="e.g. Design homepage wireframes"
+                  value={newTaskTitle}
+                  onChange={(e) => setNewTaskTitle(e.target.value)}
+                  required
+                  autoFocus
+                />
+              </div>
+            </div>
+            
+            <div className="auth-input-group" style={{ marginTop: '16px' }}>
+              <label className="auth-label">Description</label>
+              <div className="auth-input-wrapper">
+                <textarea
+                  className="auth-input"
+                  style={{ minHeight: '80px', padding: '10px 14px', resize: 'vertical' }}
+                  placeholder="Enter task description..."
+                  value={newTaskDescription}
+                  onChange={(e) => setNewTaskDescription(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="auth-input-group" style={{ marginTop: '16px' }}>
+              <label className="auth-label">Due Date</label>
+              <div className="auth-input-wrapper">
+                <input
+                  type="date"
+                  className="auth-input"
+                  value={newTaskDueDate}
+                  min={minDate}
+                  max={maxDate}
+                  onChange={(e) => setNewTaskDueDate(e.target.value)}
+                />
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeTaskTab === 'subtasks' && (
+          <div className="add-task-subtasks-container" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {newSubtasks.length > 0 && (
+              <div className="subtasks-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '150px', overflowY: 'auto', paddingRight: '4px' }}>
+                {newSubtasks.map(st => (
+                  <div key={st.id} className="subtask-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', background: 'var(--menu-bg, rgba(255,255,255,0.1))', padding: '10px', borderRadius: '8px' }}>
+                    <div style={{ flex: 1, marginRight: '10px' }}>
+                      <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>{st.title}</div>
+                      {st.description && <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>{st.description}</div>}
+                    </div>
+                    <button type="button" onClick={() => handleRemoveSubtask(st.id)} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: '4px' }}>
+                      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <div className="add-subtask-form" style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '12px', background: 'var(--window-bg, rgba(255,255,255,0.05))', borderRadius: '8px' }}>
+              <div className="auth-input-wrapper">
+                <input
+                  type="text"
+                  className="auth-input"
+                  placeholder="Subtask Title"
+                  value={newSubtaskTitle}
+                  onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                />
+              </div>
+              <div className="auth-input-wrapper">
+                <input
+                  type="text"
+                  className="auth-input"
+                  placeholder="Subtask Description (optional)"
+                  value={newSubtaskDesc}
+                  onChange={(e) => setNewSubtaskDesc(e.target.value)}
+                />
+              </div>
+              <button type="button" className="btn-secondary" onClick={handleAddSubtask} disabled={!newSubtaskTitle.trim()} style={{ alignSelf: 'flex-start', padding: '6px 12px', fontSize: '13px' }}>
+                Add Subtask
+              </button>
+            </div>
+            </div>
+          )}
+        </div>
       </ActionModal>
 
       {/* Add Member Modal */}

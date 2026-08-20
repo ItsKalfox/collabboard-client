@@ -136,6 +136,7 @@ function App() {
   };
 
   const themeVars = {
+    colorScheme: isDark ? 'dark' : 'light',
     '--bg-image': isDark ? `url(${backgroundBL})` : `url(${backgroundWH})`,
     '--bg-color': isDark ? '#000000' : '#ffffff',
     '--window-bg': isDark ? 'rgba(30, 30, 30, 0.5)' : 'rgba(255, 255, 255, 0.25)',
