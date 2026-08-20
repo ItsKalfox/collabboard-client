@@ -537,6 +537,10 @@ export const addTaskAttachment = async (req, res) => {
         attachments.push(newAttachment);
         saveMockAttachments(attachments);
 
+        if (!tasks[taskIndex].attachments) tasks[taskIndex].attachments = [];
+        tasks[taskIndex].attachments.push(newAttachment);
+        saveMockTasks(tasks);
+
         res.status(201).json({
             status: 'success',
             message: 'Attachment uploaded successfully',
