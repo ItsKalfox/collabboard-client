@@ -65,6 +65,7 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
 
   /* ── Edit mode ── */
   const [isEditing, setIsEditing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [draft, setDraft] = useState({});
 
   const startEdit = () => {
@@ -292,6 +293,9 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
     const files = Array.from(e.target.files);
     e.target.value = ''; // Reset immediately
     
+    if (files.length === 0) return;
+    setIsUploading(true);
+    
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       const token = localStorage.getItem('token');
@@ -335,15 +339,30 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
       }
     } catch (err) {
       console.error('Failed to upload attachment(s)', err);
+    } finally {
+      setIsUploading(false);
     }
   };
 
-  const downloadAtt = att => {
+  const downloadAtt = async (att) => {
     if (!att.url) return;
-    const a = document.createElement('a');
-    a.href = att.url;
-    a.download = `${att.name}.${att.ext.toLowerCase()}`;
-    a.click();
+    try {
+      const res = await fetch(att.url);
+      if (!res.ok) throw new Error('Network response was not ok');
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = blobUrl;
+      a.download = `${att.name}.${att.ext.toLowerCase()}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch (e) {
+      console.error('Download failed via blob fetch, falling back to new tab', e);
+      window.open(att.url, '_blank');
+    }
   };
 
   const downloadAll = () => task.attachments.filter(a => a.url).forEach(downloadAtt);
@@ -356,7 +375,7 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       const token = localStorage.getItem('token');
-      await fetch(`${apiUrl}/attachments/${attId}`, {
+      await fetch(`${apiUrl}/tasks/${task.id}/attachments/${attId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -655,12 +674,17 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
             {/* Add button */}
             <button
               className="popup-att-add-btn"
-              onClick={() => fileInputRef.current.click()}
+              onClick={() => !isUploading && fileInputRef.current.click()}
               title="Add attachment"
+              disabled={isUploading}
             >
-              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
-                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
+              {isUploading ? (
+                <span style={{ fontSize: '13px', color: '#9ca3af', fontWeight: '500', padding: '0 8px' }}>Uploading...</span>
+              ) : (
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
+                  <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+              )}
             </button>
             <input
               ref={fileInputRef}

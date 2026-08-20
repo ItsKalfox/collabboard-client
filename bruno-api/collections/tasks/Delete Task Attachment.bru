@@ -1,0 +1,20 @@
+meta {
+  name: Delete Task Attachment
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseUrl}}/tasks/:taskId/attachments/:attachmentId
+  body: none
+  auth: bearer
+}
+
+params:path {
+  taskId: task_001
+  attachmentId: att_001
+}
+
+auth:bearer {
+  token: {{token}}
+}

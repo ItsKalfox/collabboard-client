@@ -54,6 +54,8 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
   const [activeTaskTab, setActiveTaskTab] = useState('main');
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
   const [newSubtaskDesc, setNewSubtaskDesc] = useState('');
+  const [newTaskAttachments, setNewTaskAttachments] = useState([]);
+  const [isUploadingNewTaskAtt, setIsUploadingNewTaskAtt] = useState(false);
 
   const [newMemberEmail, setNewMemberEmail] = useState('');
   const [newTag, setNewTag] = useState('');
@@ -179,12 +181,29 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
 
       });
       if (res.ok) {
+        const data = await res.json();
+        const newTaskId = data.data.task.id;
+
+        if (newTaskAttachments.length > 0) {
+          const uploadPromises = newTaskAttachments.map(async (f) => {
+            const formData = new FormData();
+            formData.append('file', f);
+            await fetch(`${apiUrl}/tasks/${newTaskId}/attachments`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token}` },
+              body: formData
+            });
+          });
+          await Promise.all(uploadPromises);
+        }
+
         setRefreshKey(k => k + 1); // trigger task refetch
         setIsAddTaskModalOpen(false);
         setNewTaskTitle('');
         setNewTaskDescription('');
         setNewTaskDueDate('');
         setNewSubtasks([]);
+        setNewTaskAttachments([]);
         setActiveTaskTab('main');
 
       } else {
@@ -338,6 +357,14 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
           >
             Subtasks
           </button>
+          <button
+            type="button"
+            className={`popup-tab ${activeTaskTab === 'attachments' ? 'active' : ''}`}
+            style={{ flex: 1, justifyContent: 'center' }}
+            onClick={() => setActiveTaskTab('attachments')}
+          >
+            Attachments
+          </button>
         </div>
 
         <div style={{ minHeight: '280px' }}>
@@ -430,6 +457,68 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
             </div>
             </div>
           )}
+
+        {activeTaskTab === 'attachments' && (
+          <div className="add-task-attachments-container" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+              Attachments will be uploaded automatically when you create the task.
+            </div>
+            
+            {newTaskAttachments.length > 0 && (
+              <div className="attachments-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '150px', overflowY: 'auto' }}>
+                {newTaskAttachments.map((file, idx) => (
+                  <div key={idx} className="attachment-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--menu-bg, rgba(255,255,255,0.1))', padding: '10px', borderRadius: '8px' }}>
+                    <div style={{ fontSize: '13px', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {file.name}
+                    </div>
+                    <button type="button" onClick={() => setNewTaskAttachments(prev => prev.filter((_, i) => i !== idx))} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: '4px' }}>
+                      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <div className="add-attachment-action">
+              <input
+                type="file"
+                multiple
+                id="new-task-file-upload"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  if (e.target.files.length > 0) {
+                    setIsUploadingNewTaskAtt(true);
+                    const selected = Array.from(e.target.files);
+                    // Simulate upload delay for immediate visual feedback
+                    setTimeout(() => {
+                      setNewTaskAttachments(prev => [...prev, ...selected]);
+                      setIsUploadingNewTaskAtt(false);
+                    }, 1200);
+                  }
+                  e.target.value = '';
+                }}
+              />
+              <button 
+                type="button" 
+                className="btn-secondary" 
+                onClick={() => !isUploadingNewTaskAtt && document.getElementById('new-task-file-upload').click()}
+                disabled={isUploadingNewTaskAtt}
+                style={{ padding: '6px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                {isUploadingNewTaskAtt ? (
+                  <span>Uploading...</span>
+                ) : (
+                  <>
+                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
+                      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    Select Files
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
         </div>
       </ActionModal>
 

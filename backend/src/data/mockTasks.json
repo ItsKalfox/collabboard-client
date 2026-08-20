@@ -13,21 +13,34 @@
       {
         "id": "sub_101",
         "title": "Desktop navbar layou",
-        "completed": true,
+        "completed": false,
         "description": ""
       },
       {
         "id": "sub_102",
         "title": "Hero section banner",
-        "completed": true
+        "completed": false
       },
       {
         "id": "sub_103",
         "title": "Footer links and responsive menu",
-        "completed": true
+        "completed": false
       }
     ],
-    "updatedAt": "2026-08-19T10:00:00"
+    "updatedAt": "2026-08-19T10:00:00",
+    "attachments": [
+      {
+        "id": "att_1787250926024",
+        "taskId": "task_001",
+        "filename": "design_spec_v1.pdf",
+        "url": "https://res.cloudinary.com/bpv9dfck/image/upload/v1787250925/collabboard/attachments/tasks/task_001/att_1787250923334.jpg",
+        "publicId": "collabboard/attachments/tasks/task_001/att_1787250923334",
+        "mimeType": "application/pdf",
+        "size": 109669,
+        "uploadedBy": "1786356291453",
+        "uploadedAt": "2026-08-20T18:35:26.024Z"
+      }
+    ]
   },
   {
     "id": "task_002",

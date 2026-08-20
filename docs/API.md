@@ -2194,6 +2194,56 @@ GET /api/tasks/:taskId
 
 ---
 
+## 3. Delete Task Attachment
+
+Deletes a specific attachment from a task. The file will be removed from Cloudinary and the attachment record will be deleted.
+
+### Endpoint
+
+```http
+DELETE /api/tasks/:taskId/attachments/:attachmentId
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/tasks/task_101/attachments/att_001
+```
+
+### Authentication
+
+Required.
+
+### Request Headers
+
+```http
+Authorization: Bearer <token>
+```
+
+### Success Response
+
+**Code:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Attachment deleted successfully"
+}
+```
+
+### Error Responses
+
+**Code:** `404 Not Found` (If task or attachment is not found)
+
+```json
+{
+  "status": "error",
+  "message": "Attachment not found"
+}
+```
+
+---
+
 ## 2. Update Task
 
 Updates an existing task.

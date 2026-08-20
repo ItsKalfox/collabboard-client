@@ -514,11 +514,13 @@ export const addTaskAttachment = async (req, res) => {
         }
 
         const tasks = getMockTasks();
-        const task = tasks.find(t => t.id === taskId);
-
-        if (!task) {
+        const taskIndex = tasks.findIndex(t => t.id === taskId);
+        
+        if (taskIndex === -1) {
             return res.status(404).json({ status: 'error', message: 'Task not found' });
         }
+        
+        const task = tasks[taskIndex];
 
         const result = await uploadToCloudinary(req.file.buffer, {
             folder: `collabboard/attachments/tasks/${taskId}`,
@@ -554,5 +556,48 @@ export const addTaskAttachment = async (req, res) => {
     } catch (error) {
         console.error('Add task attachment error:', error);
         res.status(500).json({ status: 'error', message: 'Server error while uploading attachment' });
+    }
+};
+
+export const deleteTaskAttachment = async (req, res) => {
+    try {
+        const { taskId, attachmentId } = req.params;
+
+        const attachments = getMockAttachments();
+        const attachmentIndex = attachments.findIndex(a => a.id === attachmentId && a.taskId === taskId);
+
+        if (attachmentIndex === -1) {
+            return res.status(404).json({ status: 'error', message: 'Attachment not found' });
+        }
+
+        const attachment = attachments[attachmentIndex];
+
+        // Delete from Cloudinary
+        if (attachment.publicId) {
+            await cloudinary.uploader.destroy(attachment.publicId, { resource_type: 'raw' }).catch(err => {
+                console.error("Cloudinary destroy raw failed, trying image/video:", err);
+                cloudinary.uploader.destroy(attachment.publicId);
+            });
+        }
+
+        // Remove from global attachments mock
+        attachments.splice(attachmentIndex, 1);
+        saveMockAttachments(attachments);
+
+        // Remove from task mock
+        const tasks = getMockTasks();
+        const taskIndex = tasks.findIndex(t => t.id === taskId);
+        if (taskIndex !== -1 && tasks[taskIndex].attachments) {
+            tasks[taskIndex].attachments = tasks[taskIndex].attachments.filter(a => a.id !== attachmentId);
+            saveMockTasks(tasks);
+        }
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Attachment deleted successfully'
+        });
+    } catch (error) {
+        console.error('Delete task attachment error:', error);
+        res.status(500).json({ status: 'error', message: 'Server error while deleting attachment' });
     }
 };
