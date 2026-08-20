@@ -77,7 +77,7 @@ export const createTask = async (req, res) => {
             status: status || 'todo',
             assignee: assignee || null,
             assignees: assignees || [],
-            priority: priority !== undefined ? priority : 7,
+            priority: priority !== undefined ? priority : 'medium',
             dueDate: dueDate || null,
             progress: progress || 0,
             subtasks: subtasks || [],

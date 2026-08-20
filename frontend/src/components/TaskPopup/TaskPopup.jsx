@@ -79,38 +79,50 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
     setIsEditing(true);
   };
 
-  const saveEdit = async () => {
+  const saveEdit = async (e) => {
+    if (e) e.preventDefault();
+    console.log("saveEdit triggered", { draft, task });
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const token = localStorage.getItem('token');
-      await fetch(`${apiUrl}/tasks/${task.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          title: draft.title,
-          description: draft.description,
-          status: draft.status,
-          priority: draft.priority,
-          dueDate: draft.dueDate
-        })
-      });
-    } catch (e) {
-      console.error('Failed to update task', e);
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const token = localStorage.getItem('token');
+        await fetch(`${apiUrl}/tasks/${task.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            title: draft.title,
+            description: draft.description,
+            status: draft.status,
+            priority: draft.priority,
+            dueDate: draft.dueDate
+          })
+        });
+      } catch (err) {
+        console.error('Failed to update task via fetch:', err);
+      }
+      
+      setTask(t => ({
+        ...t,
+        ...draft,
+        activities: [
+          { text: 'Task details were updated', timestamp: fmtNow() },
+          ...(t.activities || []),
+        ],
+      }));
+      console.log("setTask called");
+      
+      if (onUpdate) onUpdate();
+      console.log("onUpdate called");
+      
+      setIsEditing(false);
+      console.log("setIsEditing(false) called");
+    } catch (criticalError) {
+      console.error("CRITICAL ERROR IN saveEdit:", criticalError);
+      alert("Error saving: " + criticalError.message);
     }
-    
-    setTask(t => ({
-      ...t,
-      ...draft,
-      activities: [
-        { text: 'Task details were updated', timestamp: fmtNow() },
-        ...t.activities,
-      ],
-    }));
-    if (onUpdate) onUpdate();
-    setIsEditing(false);
   };
 
   /* ── Confirm Modal State ── */
@@ -161,7 +173,7 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
       return {
         ...t,
         subtasks: subs,
-        activities: [{ text: `Subtask "${subs[i].title}" ${verb}`, timestamp: fmtNow() }, ...t.activities],
+        activities: [{ text: `Subtask "${subs[i].title}" ${verb}`, timestamp: fmtNow() }, ...(t.activities || [])],
       };
     });
     if (onUpdate) onUpdate();
@@ -188,7 +200,7 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
     setTask(t => ({
       ...t,
       subtasks: t.subtasks.filter((_, idx) => idx !== i),
-      activities: [{ text: `Subtask "${targetSub.title}" deleted`, timestamp: fmtNow() }, ...t.activities],
+      activities: [{ text: `Subtask "${targetSub.title}" deleted`, timestamp: fmtNow() }, ...(t.activities || [])],
     }));
     if (onUpdate) onUpdate();
   };
@@ -227,7 +239,7 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
     setTask(t => ({
       ...t,
       subtasks: [...t.subtasks, subData],
-      activities: [{ text: `New subtask added: "${title}"`, timestamp: fmtNow() }, ...t.activities],
+      activities: [{ text: `New subtask added: "${title}"`, timestamp: fmtNow() }, ...(t.activities || [])],
     }));
     setNewSubInput('');
     setNewSubDesc('');
@@ -266,7 +278,7 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
       return {
         ...t,
         subtasks: subs,
-        activities: [{ text: `Subtask "${targetSub.title}" updated`, timestamp: fmtNow() }, ...t.activities],
+        activities: [{ text: `Subtask "${targetSub.title}" updated`, timestamp: fmtNow() }, ...(t.activities || [])],
       };
     });
     setEditingSubtaskId(null);
@@ -316,7 +328,7 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
           attachments: [...t.attachments, ...successfulUploads],
           activities: [
             { text: `${successfulUploads.length} attachment(s) added`, timestamp: fmtNow() },
-            ...t.activities,
+            ...(t.activities || []),
           ],
         }));
         if (onUpdate) onUpdate();
@@ -354,7 +366,7 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
     setTask(t => ({
       ...t,
       attachments: t.attachments.filter(a => a.id !== attId),
-      activities: [{ text: `Attachment deleted`, timestamp: fmtNow() }, ...t.activities],
+      activities: [{ text: `Attachment deleted`, timestamp: fmtNow() }, ...(t.activities || [])],
     }));
     if (onUpdate) onUpdate();
   };
@@ -371,9 +383,25 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
   }, [onClose]);
 
   /* ── Derived values ── */
-  const priorityColor =
-    task.priority >= 7 ? '#ef4444' :
-      task.priority >= 4 ? '#f59e0b' : '#22c55e';
+  const getPriorityColor = (p) => 
+    p === 'high' ? '#ef4444' :
+      p === 'medium' ? '#f59e0b' : '#22c55e';
+  const getTagColor = (p) => p === 'high' ? 'red' : p === 'medium' ? 'amber' : p === 'low' ? 'green' : 'cyan';
+  const getTagText = (p) => p === 'high' ? 'High Priority' : p === 'medium' ? 'Medium Priority' : p === 'low' ? 'Low Priority' : 'Task';
+  const formatStatus = (s) => {
+    if (!s) return 'To Do';
+    switch (s.toLowerCase()) {
+      case 'todo': return 'To Do';
+      case 'in_progress': return 'In Progress';
+      case 'review':
+      case 'need_review': return 'Need Review';
+      case 'completed':
+      case 'done': return 'Done';
+      default:
+        return s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+  };
+  const priorityColor = getPriorityColor(task.priority || 'medium');
 
   const totalSubs = task.subtasks.length;
   const doneSubs = task.subtasks.filter(s => s.completed).length;
@@ -475,14 +503,18 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
             </div>
             <div className="popup-meta-val">
               {isEditing
-                ? <input type="number" min="1" max="9"
+                ? <select
                   className="popup-mini-input"
-                  value={draft.priority}
-                  style={{ width: 48, color: priorityColor }}
-                  onChange={e => setDraft(d => ({ ...d, priority: +e.target.value }))}
-                />
-                : <span className="popup-priority-badge" style={{ backgroundColor: priorityColor }}>
-                  {task.priority}
+                  value={draft.priority || 'medium'}
+                  style={{ width: '85px', color: getPriorityColor(draft.priority || 'medium'), backgroundColor: 'transparent', border: '1px solid var(--popup-divider)', borderRadius: '4px', outline: 'none' }}
+                  onChange={e => setDraft(d => ({ ...d, priority: e.target.value }))}
+                >
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select>
+                : <span className={`task-tag-pill tag-${getTagColor(task.priority)}`}>
+                  {getTagText(task.priority)}
                 </span>
               }
             </div>
@@ -494,14 +526,8 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
               <Icon d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0-18v8l3 3" />
               Status
             </div>
-            <div className="popup-meta-val">
-              {isEditing
-                ? <input className="popup-mini-input popup-mini-input--wide"
-                  value={draft.status}
-                  onChange={e => setDraft(d => ({ ...d, status: e.target.value }))}
-                />
-                : <span className="popup-status-chip">{task.status}</span>
-              }
+            <div className="popup-meta-val popup-meta-text">
+              {formatStatus(task.status)}
             </div>
           </div>
 
@@ -776,7 +802,7 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
           <div className="popup-activities-tab">
             {/* Activity log */}
             <div className="popup-activity-list">
-              {task.activities.map((a, i) => (
+              {(task.activities || []).map((a, i) => (
                 <div key={i} className="popup-activity-item">
                   <div className="popup-activity-dot" />
                   <div className="popup-activity-content">

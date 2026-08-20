@@ -54,7 +54,7 @@ export default function KanbanBoard({ projectId, refreshKey }) {
   const [activeTask, setActiveTask] = useState(null);
   const [draggedTask, setDraggedTask] = useState(null);
   const [loading, setLoading] = useState(true);
-
+  const [localRefresh, setLocalRefresh] = useState(0);
 
   useEffect(() => {
     if (!projectId) return;
@@ -119,8 +119,8 @@ export default function KanbanBoard({ projectId, refreshKey }) {
           // Map backend task to frontend TaskCard format
           const uiTask = {
             ...task,
-            tag: task.priority === 'high' ? 'High Priority' : task.category || 'Task',
-            tagColor: task.priority === 'high' ? 'pink' : 'cyan',
+            tag: task.priority === 'high' ? 'High Priority' : task.priority === 'medium' ? 'Medium Priority' : task.priority === 'low' ? 'Low Priority' : task.category || 'Task',
+            tagColor: task.priority === 'high' ? 'red' : task.priority === 'medium' ? 'amber' : task.priority === 'low' ? 'green' : 'cyan',
             date: new Date(task.dueDate || task.createdAt || Date.now()).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' }),
             progressCurrent: task.subtasks ? task.subtasks.filter(st => st.completed).length : 0,
             progressTotal: task.subtasks ? task.subtasks.length : 1,
@@ -144,7 +144,7 @@ export default function KanbanBoard({ projectId, refreshKey }) {
     };
     
     fetchData();
-  }, [projectId, refreshKey]);
+  }, [projectId, refreshKey, localRefresh]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {

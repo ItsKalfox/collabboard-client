@@ -2,18 +2,19 @@
   {
     "id": "task_001",
     "projectId": "proj_001",
-    "title": "Design Homepage Wireframes",
+    "title": "Design Homepage Wireframs",
     "description": "Create low-fidelity wireframes for desktop and mobile layouts.",
-    "status": "review",
-    "priority": "high",
+    "status": "in_progress",
+    "priority": "medium",
     "assigneeId": "1786340518154",
     "createdAt": "2026-08-19T09:30:00",
     "dueDate": "2026-08-19T13:00:00",
     "subtasks": [
       {
         "id": "sub_101",
-        "title": "Desktop navbar layout",
-        "completed": true
+        "title": "Desktop navbar layou",
+        "completed": true,
+        "description": ""
       },
       {
         "id": "sub_102",
@@ -31,10 +32,10 @@
   {
     "id": "task_002",
     "projectId": "proj_001",
-    "title": "Setup Color Palette & Typography",
+    "title": "Setup Color Palette & Typograph",
     "description": "Establish theme tokens for light and dark modes.",
-    "status": "in_progress",
-    "priority": "medium",
+    "status": "todo",
+    "priority": "high",
     "assigneeId": "1786356291453",
     "createdAt": "2026-08-19T14:00:00",
     "dueDate": "2026-08-19T17:30:00",
