@@ -234,7 +234,7 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
   /* ── Activities – add subtask ── */
   const [newSubInput, setNewSubInput] = useState('');
 
-  const addSubtaskFromActivities = async () => {
+  const addSubtask = async () => {
     const title = newSubInput.trim();
     if (!title) return;
 
@@ -269,69 +269,6 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
     if (onUpdate) onUpdate();
   };
 
-
-  /* ── Subtask comments ── */
-  const [subInputs, setSubInputs] = useState({});
-
-  const addSubtaskComment = async (i) => {
-    const text = (subInputs[i] || '').trim();
-    if (!text) return;
-    const comment = {
-      author: task.assignees[0]?.name || 'You',
-      text,
-      timestamp: fmtNow(),
-    };
-    
-    const targetSub = task.subtasks[i];
-    const newComments = [...targetSub.comments, comment];
-    
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const token = localStorage.getItem('token');
-      await fetch(`${apiUrl}/subtasks/${targetSub.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ comments: newComments })
-      });
-    } catch (e) {
-      console.error('Failed to add subtask comment', e);
-    }
-
-    setTask(t => {
-      const subs = t.subtasks.map((s, idx) =>
-        idx === i ? { ...s, comments: newComments } : s
-      );
-      return { ...t, subtasks: subs };
-    });
-    setSubInputs(p => ({ ...p, [i]: '' }));
-    if (onUpdate) onUpdate();
-  };
-
-  /* ── General comments ── */
-  const [newComment, setNewComment] = useState('');
-
-  const addGeneralComment = async () => {
-    const text = newComment.trim();
-    if (!text) return;
-    const c = { author: task.assignees[0]?.name || 'You', text, timestamp: fmtNow() };
-    const newGeneralComments = [...task.generalComments, c];
-    
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const token = localStorage.getItem('token');
-      await fetch(`${apiUrl}/tasks/${task.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ generalComments: newGeneralComments })
-      });
-    } catch (e) {
-      console.error('Failed to add general comment', e);
-    }
-
-    setTask(t => ({ ...t, generalComments: newGeneralComments }));
-    setNewComment('');
-    if (onUpdate) onUpdate();
-  };
 
 
   /* ── Attachments ── */
@@ -438,9 +375,6 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
   const totalSubs = task.subtasks.length;
   const doneSubs = task.subtasks.filter(s => s.completed).length;
   const derivedProgress = totalSubs > 0 ? Math.round((doneSubs / totalSubs) * 100) : 0;
-  
-  const commentCount = task.generalComments.length +
-    task.subtasks.reduce((a, s) => a + s.comments.length, 0);
 
   /* ════════════════════════════════════════════════════════════ */
   return (
@@ -740,7 +674,6 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
         <div className="popup-tabs">
           {[
             { key: 'subtasks', label: 'Subtasks', count: totalSubs },
-            { key: 'comments', label: 'Comments', count: commentCount },
             { key: 'activities', label: 'Activities', count: null },
           ].map(t => (
             <button
@@ -759,8 +692,25 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
         {/* ══ Tab: Subtasks ══════════════════════════════════════ */}
         {activeTab === 'subtasks' && (
           <div className="popup-subtasks">
+            {/* Add subtask from here */}
+            <div className="popup-add-subtask-bar" style={{ marginBottom: '16px' }}>
+              <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              <input
+                className="popup-add-subtask-input"
+                placeholder="Add a new subtask…"
+                value={newSubInput}
+                onChange={e => setNewSubInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addSubtask()}
+              />
+              <button className="popup-add-subtask-btn" onClick={addSubtask}>
+                Add
+              </button>
+            </div>
+
             {task.subtasks.length === 0 && (
-              <p className="popup-empty-msg">No subtasks yet. Add one from the Activities tab.</p>
+              <p className="popup-empty-msg">No subtasks yet. Add one above.</p>
             )}
             {task.subtasks.map((sub, i) => (
               <div key={i} className="popup-subtask-block">
@@ -788,128 +738,15 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
                     </svg>
                   </button>
                 </div>
-
-                {/* Subtask comment thread */}
-                {sub.comments.length > 0 && (
-                  <div className="popup-subtask-comments">
-                    {sub.comments.map((c, ci) => (
-                      <div key={ci} className="popup-thread-comment">
-                        <div className="popup-thread-avatar">{initials(c.author)}</div>
-                        <div className="popup-thread-body">
-                          <div className="popup-thread-meta">
-                            <span className="popup-thread-author">{c.author}</span>
-                            <span className="popup-thread-time">{c.timestamp}</span>
-                          </div>
-                          <p className="popup-thread-text">{c.text}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Subtask comment input */}
-                <div className="popup-subtask-input-row">
-                  <input
-                    className="popup-subtask-comment-input"
-                    placeholder="Add a comment on this subtask…"
-                    value={subInputs[i] || ''}
-                    onChange={e => setSubInputs(p => ({ ...p, [i]: e.target.value }))}
-                    onKeyDown={e => e.key === 'Enter' && addSubtaskComment(i)}
-                  />
-                  <button
-                    className="popup-subtask-send-btn"
-                    onClick={() => addSubtaskComment(i)}
-                    aria-label="Send comment"
-                  >
-                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
-                      <line x1="22" y1="2" x2="11" y2="13" />
-                      <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                    </svg>
-                  </button>
-                </div>
               </div>
             ))}
           </div>
         )}
 
-        {/* ══ Tab: Comments ══════════════════════════════════════ */}
-        {activeTab === 'comments' && (
-          <div className="popup-comments-tab">
-            {task.generalComments.length === 0 && (
-              <p className="popup-empty-msg">No comments yet. Start the conversation below.</p>
-            )}
-            <div className="popup-comments-list">
-              {task.generalComments.map((c, i) => (
-                <div key={i} className="popup-general-comment">
-                  <div className="popup-thread-avatar">{initials(c.author)}</div>
-                  <div className="popup-thread-body">
-                    <div className="popup-thread-meta">
-                      <span className="popup-thread-author">{c.author}</span>
-                      <span className="popup-thread-time">{c.timestamp}</span>
-                    </div>
-                    <p className="popup-thread-text">{c.text}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Assignees who can comment */}
-            <div className="popup-comment-who">
-              <span className="popup-comment-who-label">Commenting as</span>
-              {task.assignees.slice(0, 1).map((a, i) => (
-                <div key={i} className="popup-comment-assignee">
-                  <div className="popup-thread-avatar popup-thread-avatar--sm">{initials(a.name)}</div>
-                  <span>{a.name}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Comment box */}
-            <div className="popup-comment-box">
-              <textarea
-                className="popup-comment-textarea"
-                placeholder="Write a comment…"
-                value={newComment}
-                rows={3}
-                onChange={e => setNewComment(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) addGeneralComment();
-                }}
-              />
-              <div className="popup-comment-box-footer">
-                <span className="popup-comment-hint">Ctrl + Enter to send</span>
-                <button className="popup-send-btn" onClick={addGeneralComment}>
-                  Send
-                  <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
-                    <line x1="22" y1="2" x2="11" y2="13" />
-                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* ══ Tab: Activities ════════════════════════════════════ */}
         {activeTab === 'activities' && (
           <div className="popup-activities-tab">
-            {/* Add subtask from here */}
-            <div className="popup-add-subtask-bar">
-              <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
-                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-              <input
-                className="popup-add-subtask-input"
-                placeholder="Add a new subtask…"
-                value={newSubInput}
-                onChange={e => setNewSubInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && addSubtaskFromActivities()}
-              />
-              <button className="popup-add-subtask-btn" onClick={addSubtaskFromActivities}>
-                Add
-              </button>
-            </div>
-
             {/* Activity log */}
             <div className="popup-activity-list">
               {task.activities.map((a, i) => (
