@@ -1,5 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { MoreVertical, Edit2, Info, Trash2, ArrowRight } from 'lucide-react';
+import { normalizeMember } from '../../mock/mockMembers';
 
 const COLOR_HEX = {
   blue: '#3b82f6',
@@ -12,16 +11,15 @@ const COLOR_HEX = {
 export default function ProjectCard({
   project,
   theme = 'dark',
-  onEdit,
-  onDelete,
   onViewDetails,
-  onOpenBoard,
 }) {
   const isDark = theme !== 'light';
   const lightCls = isDark ? '' : ' light';
 
-  const membersList = Array.isArray(project.members) ? project.members : [];
+  const rawMembers = Array.isArray(project.members) ? project.members : [];
+  const membersList = rawMembers.map(normalizeMember);
   const progressPercent = project.progress || 0;
+  const projectImage = project.coverImage || project.image;
 
   const handleCardClick = () => {
     onViewDetails(project);
@@ -34,8 +32,8 @@ export default function ProjectCard({
     >
       {/* 1. Thumbnail Image */}
       <div className="pc-list-image-container">
-        {project.coverImage ? (
-          <img src={project.coverImage} alt={project.name} className="pc-list-image" />
+        {projectImage ? (
+          <img src={projectImage} alt={project.name} className="pc-list-image" />
         ) : (
           <div className="pc-list-image-placeholder" style={{ backgroundColor: COLOR_HEX[project.color] || COLOR_HEX.blue }} />
         )}
@@ -67,13 +65,13 @@ export default function ProjectCard({
       {/* 4. Owner */}
       <div className="pc-list-meta">
         <span className={`pc-list-meta-label${lightCls}`}>Owner</span>
-        <span className={`pc-list-meta-value${lightCls}`}>{project.owner}</span>
+        <span className={`pc-list-meta-value${lightCls}`}>{project.owner || 'Me'}</span>
       </div>
 
       {/* 5. Date */}
       <div className="pc-list-meta">
         <span className={`pc-list-meta-label${lightCls}`}>Created</span>
-        <span className={`pc-list-meta-value${lightCls}`}>{project.createdDate}</span>
+        <span className={`pc-list-meta-value${lightCls}`}>{project.createdDate || '—'}</span>
       </div>
 
       {/* 6. Members (Overlapping Chips) */}
@@ -98,8 +96,6 @@ export default function ProjectCard({
           </div>
         )}
       </div>
-
-      {/* Action removed as per requirement */}
     </div>
   );
 }

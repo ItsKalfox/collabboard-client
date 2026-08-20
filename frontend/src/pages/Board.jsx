@@ -3,23 +3,52 @@ import ProjectsSidebar from '../components/Board/ProjectsSidebar';
 import BoardHeader from '../components/Board/BoardHeader';
 import KanbanBoard from '../components/Board/KanbanBoard';
 import ActionModal from '../components/Board/ActionModal';
+
+import { INITIAL_PROJECTS } from '../mock/mockProjects';
 import './Board.css';
 
-export default function Board() {
-  const [projects, setProjects] = useState([]);
-  const [selectedProjectId, setSelectedProjectId] = useState(null);
-  const [loading, setLoading] = useState(true);
+export default function Board({ initialProjectId, selectedProject, onSelectProject }) {
+  const [projects, setProjects] = useState(() => {
+    const list = [];
+    if (selectedProject && typeof selectedProject === 'object') {
+      list.push(selectedProject);
+    }
+    return list;
+  });
+
+  const [selectedProjectId, setSelectedProjectId] = useState(() => {
+    if (selectedProject) return typeof selectedProject === 'object' ? selectedProject.id : selectedProject;
+    if (initialProjectId) return typeof initialProjectId === 'object' ? initialProjectId.id : initialProjectId;
+    return null;
+  });
+
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    const target = selectedProject || initialProjectId;
+    const targetId = typeof target === 'object' ? target?.id : target;
+    if (targetId) {
+      setSelectedProjectId(targetId);
+      if (typeof target === 'object' && target !== null) {
+        setProjects(prev => {
+          if (!prev.some(p => p.id === targetId)) {
+            return [target, ...prev];
+          }
+          return prev.map(p => p.id === targetId ? { ...p, ...target } : p);
+        });
+      }
+    }
+  }, [initialProjectId, selectedProject]);
+
 
   // Modal states
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [isAddTagModalOpen, setIsAddTagModalOpen] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [newTaskDesc, setNewTaskDesc] = useState('');
-  const [newTaskPriority, setNewTaskPriority] = useState(7);
-  const [newTaskDueDate, setNewTaskDueDate] = useState('');
+
   const [newMemberEmail, setNewMemberEmail] = useState('');
   const [newTag, setNewTag] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,30 +65,64 @@ export default function Board() {
           }
         });
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch projects');
-        }
 
-        const data = await response.json();
-        if (data.status === 'success' && data.data && data.data.projects) {
-          setProjects(data.data.projects);
-          if (data.data.projects.length > 0) {
-            setSelectedProjectId(data.data.projects[0].id);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.status === 'success' && data.data && data.data.projects) {
+            const apiProjects = data.data.projects;
+            setProjects(prev => {
+              const map = new Map();
+              // Add API projects
+              apiProjects.forEach(p => map.set(p.id, p));
+              // Fallback to mock initial projects only if API returns no projects
+              if (apiProjects.length === 0) {
+                INITIAL_PROJECTS.forEach(p => {
+                  if (!map.has(p.id)) map.set(p.id, p);
+                });
+              }
+              // Add any dynamically selected project
+              prev.forEach(p => {
+                if (!map.has(p.id)) map.set(p.id, p);
+              });
+              const target = selectedProject || initialProjectId;
+              if (typeof target === 'object' && target !== null) {
+                map.set(target.id, { ...map.get(target.id), ...target });
+              }
+              return Array.from(map.values());
+            });
+
+            const target = selectedProject || initialProjectId;
+            const targetId = typeof target === 'object' ? target?.id : target;
+            if (targetId) {
+              setSelectedProjectId(targetId);
+            } else if (apiProjects.length > 0) {
+              setSelectedProjectId(prev => {
+                if (!prev || !apiProjects.some(p => p.id === prev)) {
+                  return apiProjects[0].id;
+                }
+                return prev;
+              });
+            }
           }
         }
       } catch (err) {
-        console.error('Error fetching projects:', err);
-        setError(err.message);
+        console.error('Error fetching projects from API:', err);
+
       } finally {
         setLoading(false);
       }
     };
 
     fetchProjects();
-  }, []);
+
+  }, [initialProjectId, selectedProject]);
+
 
   const handleSelectProject = (projectId) => {
     setSelectedProjectId(projectId);
+    if (onSelectProject) {
+      onSelectProject(projectId);
+    }
   };
 
   const handleAddTaskSubmit = async (e) => {
@@ -76,21 +139,15 @@ export default function Board() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ 
-          title: newTaskTitle, 
-          description: newTaskDesc,
-          priority: newTaskPriority,
-          dueDate: newTaskDueDate ? new Date(newTaskDueDate).toISOString() : null,
-          status: 'todo' 
-        })
+
+        body: JSON.stringify({ title: newTaskTitle, status: 'todo' })
+
       });
       if (res.ok) {
         setRefreshKey(k => k + 1); // trigger task refetch
         setIsAddTaskModalOpen(false);
         setNewTaskTitle('');
-        setNewTaskDesc('');
-        setNewTaskPriority(7);
-        setNewTaskDueDate('');
+
       } else {
         const errData = await res.json();
         alert(errData.message || 'Failed to add task');
@@ -235,47 +292,7 @@ export default function Board() {
             />
           </div>
         </div>
-        
-        <div className="auth-input-group">
-          <label className="auth-label">Description</label>
-          <div className="auth-input-wrapper">
-            <textarea
-              className="auth-input"
-              style={{ minHeight: '80px', padding: '12px', resize: 'vertical' }}
-              placeholder="Task details and description..."
-              value={newTaskDesc}
-              onChange={(e) => setNewTaskDesc(e.target.value)}
-            />
-          </div>
-        </div>
 
-        <div style={{ display: 'flex', gap: '16px' }}>
-          <div className="auth-input-group" style={{ flex: 1 }}>
-            <label className="auth-label">Priority (1-9)</label>
-            <div className="auth-input-wrapper">
-              <input
-                type="number"
-                min="1"
-                max="9"
-                className="auth-input"
-                value={newTaskPriority}
-                onChange={(e) => setNewTaskPriority(+e.target.value)}
-                required
-              />
-            </div>
-          </div>
-          <div className="auth-input-group" style={{ flex: 1 }}>
-            <label className="auth-label">Due Date</label>
-            <div className="auth-input-wrapper">
-              <input
-                type="date"
-                className="auth-input"
-                value={newTaskDueDate}
-                onChange={(e) => setNewTaskDueDate(e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
       </ActionModal>
 
       {/* Add Member Modal */}

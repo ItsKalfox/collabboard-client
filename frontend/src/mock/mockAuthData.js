@@ -23,6 +23,26 @@ export const MOCK_USERS = [
     role: 'Software Engineer',
     isVerified: true,
     createdAt: '2026-02-01T14:20:00Z'
+  },
+  {
+    id: 'usr_003',
+    name: 'Sathsarani Perera',
+    email: 'sathsaraniperera16@gmail.com',
+    password: 'Password123!',
+    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80',
+    role: 'Full Stack Developer',
+    isVerified: true,
+    createdAt: '2026-02-10T10:00:00Z'
+  },
+  {
+    id: 'usr_004',
+    name: 'Isuri Perera',
+    email: 'isuriupp@gmail.com',
+    password: 'Password123!',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80',
+    role: 'Product Manager',
+    isVerified: true,
+    createdAt: '2026-02-10T10:00:00Z'
   }
 ];
 

@@ -28,17 +28,27 @@ export default function BoardHeader({ project = {}, onAddTask, onAddMember, onAd
         });
         if (response.ok) {
           const data = await response.json();
-          setProjectMembers(data.data?.members || []);
+          const membersList = data.data?.members || [];
+          if (membersList.length > 0) {
+            setProjectMembers(membersList);
+            return;
+          }
         }
       } catch (err) {
         console.error('Failed to fetch members:', err);
       }
+      
+      if (Array.isArray(project.members) && project.members.length > 0) {
+        setProjectMembers(project.members.map(m => typeof m === 'string' ? { name: m } : m));
+      } else {
+        setProjectMembers([]);
+      }
     };
     fetchMembers();
-  }, [projectId]);
+  }, [projectId, project]);
 
   const displayTags = [category, status === 'active' ? 'Active' : 'Archived', ...(tags || [])];
-  const displayDeadline = createdAt ? new Date(createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Ongoing';
+  const displayDeadline = project.dueDate || (createdAt ? new Date(createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Ongoing');
   const displayPriority = 'Normal';
 
   return (

@@ -37,5 +37,35 @@
     "email": "dhachanu24@gmail.com",
     "password": "$2b$10$k.ikks7PknaLrnvEJVQsIeIA9yt84I1B7NdaaWG8Fq/Va0wqz80.6",
     "date": "2026-08-18T11:19:13.156Z"
+
+  },
+  {
+    "id": "1787118790420",
+    "name": "Sanju Gamage",
+    "email": "sanjugamage@gmail.com",
+    "password": "$2b$10$Zfp7pVbseczOP9/IM/x53e.t9jz.OnV.fzLwjzX0R0F8Ok4BrlHba",
+    "date": "2026-08-19T05:53:10.420Z"
+  },
+  {
+    "id": "1787119267030",
+    "name": "Thamodee",
+    "email": "test1234@gmail.com",
+    "password": "$2b$10$zTRvjl4MOrd/P3jeVyyB3e1ftSio8ncvfk8EDzfBzHXk15yg9OFKm",
+    "date": "2026-08-19T06:01:07.030Z"
+  },
+  {
+    "id": "1787158084898",
+    "name": "Test User",
+    "email": "test@company.com",
+    "password": "$2b$10$rqbq13it.8313.07B6hzlu1V0Df4ygJi17FogTeWUnWh0JmBe9xIa",
+    "date": "2026-08-19T16:48:04.898Z"
+  },
+  {
+    "id": "1787159313769",
+    "name": "Alex Johnson",
+    "email": "alex@company.com",
+    "password": "$2b$10$JeKiwGkbbSCZ/18DEUIApeChexOnZGEd3ozYebJmc9objhsQz2QQW",
+    "date": "2026-08-19T17:08:33.769Z"
+
   }
 ]

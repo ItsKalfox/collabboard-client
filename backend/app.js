@@ -15,8 +15,21 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+    exposedHeaders: ['Content-Disposition', 'Content-Type']
+}));
+app.use(express.json({ strict: false }));
+
+// Middleware to handle JSON parse errors
+app.use((err, req, res, next) => {
+    if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+        return res.status(400).json({
+            status: 'error',
+            message: 'Invalid JSON payload format'
+        });
+    }
+    next(err);
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -32,5 +45,14 @@ app.use('/api/subtasks', subtaskRoutes);
 app.use('/api/attachments', attachmentRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+
+// Global error handler
+app.use((err, req, res, next) => {
+    console.error('Unhandled server error:', err);
+    res.status(err.status || 500).json({
+        status: 'error',
+        message: err.message || 'Internal Server Error'
+    });
+});
 
 export default app;

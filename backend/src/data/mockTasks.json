@@ -4,10 +4,11 @@
     "projectId": "proj_001",
     "title": "Design Homepage Wireframes",
     "description": "Create low-fidelity wireframes for desktop and mobile layouts.",
-    "status": "todo",
-    "priority": 3,
+    "status": "completed",
+    "priority": "high",
     "assigneeId": "1786340518154",
-    "dueDate": "2026-08-20T18:00:00.000Z",
+    "createdAt": "2026-08-19T09:30:00",
+    "dueDate": "2026-08-19T13:00:00",
     "subtasks": [
       {
         "id": "sub_101",
@@ -20,34 +21,36 @@
         "completed": true
       },
       {
-        "id": "sub_1787240091684",
-        "title": "Test sub task",
-        "completed": false,
-        "description": "hello"
+        "id": "sub_103",
+        "title": "Footer links and responsive menu",
+        "completed": true
       }
     ],
-    "createdAt": "2026-08-10T08:00:00.000Z",
-    "updatedAt": "2026-08-11T10:00:00.000Z"
+    "updatedAt": "2026-08-19T10:00:00"
   },
   {
     "id": "task_002",
     "projectId": "proj_001",
     "title": "Setup Color Palette & Typography",
     "description": "Establish theme tokens for light and dark modes.",
-    "status": "todo",
+    "status": "completed",
     "priority": "medium",
     "assigneeId": "1786356291453",
-    "dueDate": "2026-08-15T18:00:00.000Z",
+    "createdAt": "2026-08-19T14:00:00",
+    "dueDate": "2026-08-19T17:30:00",
     "subtasks": [
       {
-        "id": "sub_1787240632660",
-        "title": "gfg",
-        "description": "gfgfgf",
+        "id": "sub_104",
+        "title": "Define CSS variables",
+        "completed": true
+      },
+      {
+        "id": "sub_105",
+        "title": "Google Fonts integration",
         "completed": true
       }
     ],
-    "createdAt": "2026-08-10T09:00:00.000Z",
-    "updatedAt": "2026-08-11T12:00:00.000Z"
+    "updatedAt": "2026-08-19T12:00:00"
   },
   {
     "id": "task_003",
@@ -57,7 +60,8 @@
     "status": "todo",
     "priority": "high",
     "assigneeId": "1786340518154",
-    "dueDate": "2026-08-25T18:00:00.000Z",
+    "createdAt": "2026-08-11T09:00:00.000Z",
+    "dueDate": "2026-08-19T15:45:00",
     "subtasks": [
       {
         "id": "sub_106",
@@ -70,7 +74,93 @@
         "completed": false
       }
     ],
-    "createdAt": "2026-08-11T09:00:00.000Z",
     "updatedAt": "2026-08-11T09:00:00.000Z"
+  },
+  {
+    "id": "task_004",
+    "projectId": "proj_003",
+    "title": "Component Library",
+    "description": "Develop reusable React components.",
+    "status": "todo",
+    "priority": "high",
+    "assigneeId": "1786356291453",
+    "createdAt": "2026-08-19T11:00:00",
+    "dueDate": "2026-08-19T14:30:00",
+    "subtasks": [],
+    "updatedAt": "2026-08-19T10:00:00"
+  },
+  {
+    "id": "task_005",
+    "projectId": "proj_003",
+    "title": "Design Guidelines Docs",
+    "description": "Document spacing, colors, and usage.",
+    "status": "todo",
+    "priority": "medium",
+    "assigneeId": "1786431927127",
+    "createdAt": "2026-08-19T15:00:00",
+    "dueDate": "2026-08-19T17:45:00",
+    "subtasks": [],
+    "updatedAt": "2026-08-19T12:00:00"
+  },
+  {
+    "id": "1787162269478",
+    "projectId": "proj_1787162098250",
+    "title": "gvmh",
+    "description": "",
+    "status": "todo",
+    "assignee": null,
+    "reviews": [],
+    "createdAt": "2026-08-19T17:57:49.478Z"
+  },
+  {
+    "id": "task_1787165009225_0",
+    "projectId": "proj_1787165009224",
+    "title": "Fresh Server Initial Task",
+    "description": "",
+    "status": "todo",
+    "priority": "medium",
+    "assigneeId": "1786340518154",
+    "dueDate": null,
+    "subtasks": [
+      {
+        "id": "sub_1787165009225_0_0",
+        "title": "Subtask 1",
+        "completed": false
+      }
+    ],
+    "createdAt": "2026-08-19T18:43:29.225Z",
+    "updatedAt": "2026-08-19T18:43:29.225Z"
+  },
+  {
+    "id": "task_1787167804483_0",
+    "projectId": "proj_1787167804480",
+    "title": "hgvhbkjk",
+    "description": "",
+    "status": "todo",
+    "priority": "medium",
+    "assigneeId": "1786431927127",
+    "dueDate": "2026-08-28",
+    "subtasks": [
+      {
+        "id": "sub_1787167804483_0",
+        "title": "fc vb",
+        "completed": false
+      }
+    ],
+    "createdAt": "2026-08-19T19:30:04.483Z",
+    "updatedAt": "2026-08-19T19:30:04.483Z"
+  },
+  {
+    "id": "task_1787167804483_1",
+    "projectId": "proj_1787167804480",
+    "title": "fgvhbj",
+    "description": "",
+    "status": "todo",
+    "priority": "medium",
+    "assigneeId": "1786431927127",
+    "dueDate": "2026-08-28",
+    "subtasks": [],
+    "createdAt": "2026-08-19T19:30:04.483Z",
+    "updatedAt": "2026-08-19T19:30:04.483Z"
   }
 ]
