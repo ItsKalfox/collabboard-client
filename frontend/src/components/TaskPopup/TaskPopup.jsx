@@ -273,7 +273,7 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
   /* ── Subtask comments ── */
   const [subInputs, setSubInputs] = useState({});
 
-  const addSubtaskComment = i => {
+  const addSubtaskComment = async (i) => {
     const text = (subInputs[i] || '').trim();
     if (!text) return;
     const comment = {
@@ -281,24 +281,56 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
       text,
       timestamp: fmtNow(),
     };
+    
+    const targetSub = task.subtasks[i];
+    const newComments = [...targetSub.comments, comment];
+    
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const token = localStorage.getItem('token');
+      await fetch(`${apiUrl}/subtasks/${targetSub.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ comments: newComments })
+      });
+    } catch (e) {
+      console.error('Failed to add subtask comment', e);
+    }
+
     setTask(t => {
       const subs = t.subtasks.map((s, idx) =>
-        idx === i ? { ...s, comments: [...s.comments, comment] } : s
+        idx === i ? { ...s, comments: newComments } : s
       );
       return { ...t, subtasks: subs };
     });
     setSubInputs(p => ({ ...p, [i]: '' }));
+    if (onUpdate) onUpdate();
   };
 
   /* ── General comments ── */
   const [newComment, setNewComment] = useState('');
 
-  const addGeneralComment = () => {
+  const addGeneralComment = async () => {
     const text = newComment.trim();
     if (!text) return;
     const c = { author: task.assignees[0]?.name || 'You', text, timestamp: fmtNow() };
-    setTask(t => ({ ...t, generalComments: [...t.generalComments, c] }));
+    const newGeneralComments = [...task.generalComments, c];
+    
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const token = localStorage.getItem('token');
+      await fetch(`${apiUrl}/tasks/${task.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ generalComments: newGeneralComments })
+      });
+    } catch (e) {
+      console.error('Failed to add general comment', e);
+    }
+
+    setTask(t => ({ ...t, generalComments: newGeneralComments }));
     setNewComment('');
+    if (onUpdate) onUpdate();
   };
 
 
