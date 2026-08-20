@@ -21,7 +21,7 @@ const saveMockTasks = (data) => {
 export const updateSubtask = async (req, res) => {
     try {
         const { subtaskId } = req.params;
-        const { title, completed } = req.body;
+        const { title, completed, comments } = req.body;
         
         const tasks = getMockTasks();
         let subtaskFound = false;
@@ -33,6 +33,7 @@ export const updateSubtask = async (req, res) => {
                 if (subtaskIndex !== -1) {
                     if (title !== undefined) task.subtasks[subtaskIndex].title = title;
                     if (completed !== undefined) task.subtasks[subtaskIndex].completed = completed;
+                    if (comments !== undefined) task.subtasks[subtaskIndex].comments = comments;
                     targetSubtask = task.subtasks[subtaskIndex];
                     subtaskFound = true;
                     break;

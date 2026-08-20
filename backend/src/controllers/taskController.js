@@ -122,7 +122,7 @@ export const getTaskById = async (req, res) => {
 export const updateTask = async (req, res) => {
     try {
         const { taskId } = req.params;
-        const { title, description, status, assignee, priority, dueDate, progress, assignees } = req.body;
+        const { title, description, status, assignee, priority, dueDate, progress, assignees, generalComments } = req.body;
         
         const tasks = getMockTasks();
         const taskIndex = tasks.findIndex(t => t.id === taskId);
@@ -139,6 +139,7 @@ export const updateTask = async (req, res) => {
         if (priority !== undefined) tasks[taskIndex].priority = priority;
         if (dueDate !== undefined) tasks[taskIndex].dueDate = dueDate;
         if (progress !== undefined) tasks[taskIndex].progress = progress;
+        if (generalComments !== undefined) tasks[taskIndex].generalComments = generalComments;
         
         saveMockTasks(tasks);
         
