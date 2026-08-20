@@ -51,5 +51,19 @@
     "email": "test1234@gmail.com",
     "password": "$2b$10$zTRvjl4MOrd/P3jeVyyB3e1ftSio8ncvfk8EDzfBzHXk15yg9OFKm",
     "date": "2026-08-19T06:01:07.030Z"
+  },
+  {
+    "id": "1787158084898",
+    "name": "Test User",
+    "email": "test@company.com",
+    "password": "$2b$10$rqbq13it.8313.07B6hzlu1V0Df4ygJi17FogTeWUnWh0JmBe9xIa",
+    "date": "2026-08-19T16:48:04.898Z"
+  },
+  {
+    "id": "1787159313769",
+    "name": "Alex Johnson",
+    "email": "alex@company.com",
+    "password": "$2b$10$JeKiwGkbbSCZ/18DEUIApeChexOnZGEd3ozYebJmc9objhsQz2QQW",
+    "date": "2026-08-19T17:08:33.769Z"
   }
 ]

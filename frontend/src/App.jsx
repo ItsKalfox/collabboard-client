@@ -28,22 +28,13 @@ function App() {
   });
 
   const [currentDateTime, setCurrentDateTime] = useState('');
-  const [isDark, setIsDark] = useState(true);
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved) return saved;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  });
   
-  const handleThemeToggle = () => {
-    const next = !isDark;
-    setIsDark(next);
-    if (next) {
-      document.documentElement.classList.remove('light-mode');
-      document.body.classList.remove('light-mode');
-      document.documentElement.setAttribute('data-theme', 'dark');
-    } else {
-      document.documentElement.classList.add('light-mode');
-      document.body.classList.add('light-mode');
-      document.documentElement.setAttribute('data-theme', 'light');
-    }
-  };
-
+  const isDark = theme === 'dark';
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
@@ -51,6 +42,10 @@ function App() {
   const isAuthRoute = authRoutes.includes(activeTab);
 
   const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -125,7 +120,20 @@ function App() {
     handleTabClick('Dashboard');
   };
 
+  const [selectedProject, setSelectedProject] = useState(null);
 
+  const handleOpenBoard = (project) => {
+    setSelectedProject(project);
+    handleTabClick('Board');
+  };
+
+  const toggleTheme = () => {
+    setTheme((prev) => {
+      const newTheme = prev === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('theme', newTheme);
+      return newTheme;
+    });
+  };
 
   const themeVars = {
     '--bg-image': isDark ? `url(${backgroundBL})` : `url(${backgroundWH})`,
@@ -150,8 +158,8 @@ function App() {
     return (
       <div className="app-container auth-bg-blur" style={themeVars}>
         <AuthModule 
-          theme={isDark ? 'dark' : 'light'} 
-          toggleTheme={handleThemeToggle} 
+          theme={theme} 
+          toggleTheme={toggleTheme} 
           initialPage={activeTab} 
           onLoginSuccess={handleLoginSuccess}
         />
@@ -351,7 +359,7 @@ function App() {
             <div className="top-bar-actions">
 
               {/* Theme Toggle Button */}
-              <button type="button" onClick={handleThemeToggle} className="theme-toggle-btn cursor-pointer icon-btn">
+              <button type="button" onClick={toggleTheme} className="theme-toggle-btn cursor-pointer icon-btn">
                 {isDark ? <Sun size={18} /> : <Moon size={18} />}
               </button>
 
@@ -369,9 +377,13 @@ function App() {
           {activeTab === 'Dashboard' ? (
             <Dashboard />
           ) : activeTab === 'Board' ? (
-            <Board />
+            <Board 
+              initialProjectId={typeof selectedProject === 'object' ? selectedProject?.id : selectedProject} 
+              selectedProject={typeof selectedProject === 'object' ? selectedProject : null}
+              onSelectProject={(id) => setSelectedProject(id)} 
+            />
           ) : activeTab === 'Projects' ? (
-            <ProjectsPage theme={isDark ? 'dark' : 'light'} toggleTheme={handleThemeToggle} />
+            <ProjectsPage theme={theme} toggleTheme={toggleTheme} currentUser={currentUser} onOpenBoard={handleOpenBoard} />
           ) : (
             <div style={{ color: 'var(--text-secondary)', padding: '20px' }}>
               {activeTab} content view...

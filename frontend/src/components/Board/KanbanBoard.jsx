@@ -14,6 +14,8 @@ import TaskCard from './TaskCard';
 import TaskPopup from '../TaskPopup/TaskPopup';
 import './KanbanBoard.css';
 
+import { INITIAL_PROJECTS } from '../../mock/mockProjects';
+
 const COLUMNS_DEF = [
   { id: 'todo', title: 'To Do' },
   { id: 'in_progress', title: 'In Progress' },
@@ -60,49 +62,76 @@ export default function KanbanBoard({ projectId, refreshKey }) {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
         
         // Fetch tasks and members in parallel
-        const [tasksRes, membersRes] = await Promise.all([
-          fetch(`${apiUrl}/projects/${projectId}/tasks`, { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch(`${apiUrl}/projects/${projectId}/members`, { headers: { 'Authorization': `Bearer ${token}` } })
-        ]);
-        
         let members = [];
-        if (membersRes.ok) {
-          const membersData = await membersRes.json();
-          members = membersData.data?.members || [];
+        let tasks = [];
+
+        try {
+          const [tasksRes, membersRes] = await Promise.all([
+            fetch(`${apiUrl}/projects/${projectId}/tasks`, { headers: { 'Authorization': `Bearer ${token}` } }),
+            fetch(`${apiUrl}/projects/${projectId}/members`, { headers: { 'Authorization': `Bearer ${token}` } })
+          ]);
+          
+          if (membersRes.ok) {
+            const membersData = await membersRes.json();
+            members = membersData.data?.members || [];
+          }
+
+          if (tasksRes.ok) {
+            const data = await tasksRes.json();
+            tasks = data.data?.tasks || [];
+          }
+        } catch {
+          // If network fetch fails, fallback to local mock data
         }
 
-        if (tasksRes.ok) {
-          const data = await tasksRes.json();
-          const tasks = data.data?.tasks || [];
-          
-          const newCols = COLUMNS_DEF.map(col => ({ ...col, tasks: [] }));
-          tasks.forEach(task => {
-            // Find assignee details
-            const assignee = task.assigneeId ? members.find(m => m.userId === task.assigneeId) : null;
-            const assigneeName = assignee ? assignee.name : 'Unknown';
-            const assigneeInitial = assigneeName.charAt(0).toUpperCase();
-
-            // Map backend task to frontend TaskCard format
-            const uiTask = {
-              ...task,
-              tag: task.priority === 'high' ? 'High Priority' : task.category || 'Task',
-              tagColor: task.priority === 'high' ? 'pink' : 'cyan',
-              date: new Date(task.dueDate || task.createdAt).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' }),
-              progressCurrent: task.subtasks ? task.subtasks.filter(st => st.completed).length : 0,
-              progressTotal: task.subtasks ? task.subtasks.length : 1,
-              members: task.assigneeId ? [{ name: assigneeName, initials: assigneeInitial }] : []
-            };
-            
-            const statusCol = newCols.find(c => c.id === task.status);
-            if (statusCol) {
-              statusCol.tasks.push(uiTask);
-            } else {
-              newCols[0].tasks.push(uiTask); // fallback to To Do
-            }
-          });
-          
-          setColumns(newCols);
+        // If no tasks returned from API, check INITIAL_PROJECTS only if projectId is a mock ID starting with proj-
+        if (tasks.length === 0 && String(projectId).startsWith('proj-')) {
+          const foundProj = INITIAL_PROJECTS.find(p => p.id === projectId);
+          if (foundProj && foundProj.tasks && foundProj.tasks.length > 0) {
+            tasks = foundProj.tasks.map(t => ({
+              id: t.id || `task-${Math.random()}`,
+              title: t.title,
+              status: t.status || (t.completed ? 'completed' : 'todo'),
+              priority: t.priority || (t.completed ? 'low' : 'high'),
+              category: foundProj.name,
+              dueDate: foundProj.dueDate,
+              createdAt: foundProj.createdDate,
+              subtasks: t.subtasks ? t.subtasks.map(s => ({
+                id: s.id,
+                title: s.label || s.title,
+                completed: s.done || s.completed || false
+              })) : []
+            }));
+          }
         }
+
+        const newCols = COLUMNS_DEF.map(col => ({ ...col, tasks: [] }));
+        tasks.forEach(task => {
+          // Find assignee details
+          const assignee = task.assigneeId ? members.find(m => m.userId === task.assigneeId) : null;
+          const assigneeName = assignee ? assignee.name : 'Team Member';
+          const assigneeInitial = assigneeName.charAt(0).toUpperCase();
+
+          // Map backend task to frontend TaskCard format
+          const uiTask = {
+            ...task,
+            tag: task.priority === 'high' ? 'High Priority' : task.category || 'Task',
+            tagColor: task.priority === 'high' ? 'pink' : 'cyan',
+            date: new Date(task.dueDate || task.createdAt || Date.now()).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' }),
+            progressCurrent: task.subtasks ? task.subtasks.filter(st => st.completed).length : 0,
+            progressTotal: task.subtasks ? task.subtasks.length : 1,
+            members: task.assigneeId ? [{ name: assigneeName, initials: assigneeInitial }] : [{ name: assigneeName, initials: assigneeInitial }]
+          };
+          
+          const statusCol = newCols.find(c => c.id === task.status);
+          if (statusCol) {
+            statusCol.tasks.push(uiTask);
+          } else {
+            newCols[0].tasks.push(uiTask); // fallback to To Do
+          }
+        });
+        
+        setColumns(newCols);
       } catch (err) {
         console.error('Failed to fetch tasks:', err);
       } finally {
