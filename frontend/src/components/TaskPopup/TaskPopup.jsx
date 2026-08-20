@@ -231,14 +231,16 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
     if (onUpdate) onUpdate();
   };
 
-  /* ── Activities – add subtask ── */
+  /* ── Add subtask ── */
   const [newSubInput, setNewSubInput] = useState('');
+  const [newSubDesc, setNewSubDesc] = useState('');
 
   const addSubtask = async () => {
     const title = newSubInput.trim();
+    const description = newSubDesc.trim();
     if (!title) return;
 
-    let subData = { title, completed: false, comments: [] };
+    let subData = { title, description, completed: false, comments: [] };
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -249,7 +251,7 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ title, completed: false })
+        body: JSON.stringify({ title, description, completed: false })
       });
       const data = await res.json();
       if (data.status === 'success') {
@@ -266,6 +268,46 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
       activities: [{ text: `New subtask added: "${title}"`, timestamp: fmtNow() }, ...t.activities],
     }));
     setNewSubInput('');
+    setNewSubDesc('');
+    if (onUpdate) onUpdate();
+  };
+
+  /* ── Edit subtask ── */
+  const [editingSubtaskId, setEditingSubtaskId] = useState(null);
+  const [editSubtaskDraft, setEditSubtaskDraft] = useState({ title: '', description: '' });
+
+  const startEditSubtask = (i) => {
+    const sub = task.subtasks[i];
+    setEditingSubtaskId(i);
+    setEditSubtaskDraft({ title: sub.title, description: sub.description || '' });
+  };
+
+  const saveEditSubtask = async (i) => {
+    const targetSub = task.subtasks[i];
+    const newTitle = editSubtaskDraft.title.trim() || targetSub.title;
+    const newDesc = editSubtaskDraft.description.trim();
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const token = localStorage.getItem('token');
+      await fetch(`${apiUrl}/subtasks/${targetSub.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ title: newTitle, description: newDesc })
+      });
+    } catch (e) {
+      console.error('Failed to edit subtask', e);
+    }
+
+    setTask(t => {
+      const subs = t.subtasks.map((s, idx) => idx === i ? { ...s, title: newTitle, description: newDesc } : s);
+      return {
+        ...t,
+        subtasks: subs,
+        activities: [{ text: `Subtask "${targetSub.title}" updated`, timestamp: fmtNow() }, ...t.activities],
+      };
+    });
+    setEditingSubtaskId(null);
     if (onUpdate) onUpdate();
   };
 
@@ -693,19 +735,27 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
         {activeTab === 'subtasks' && (
           <div className="popup-subtasks">
             {/* Add subtask from here */}
-            <div className="popup-add-subtask-bar" style={{ marginBottom: '16px' }}>
-              <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
-                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-              <input
-                className="popup-add-subtask-input"
-                placeholder="Add a new subtask…"
-                value={newSubInput}
-                onChange={e => setNewSubInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && addSubtask()}
+            <div className="popup-add-subtask-bar" style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '8px', padding: '12px', background: 'var(--bg-sec)', borderRadius: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" style={{ flexShrink: 0 }}>
+                  <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                <input
+                  className="popup-add-subtask-input"
+                  placeholder="New subtask title…"
+                  value={newSubInput}
+                  onChange={e => setNewSubInput(e.target.value)}
+                  style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', color: 'inherit', textAlign: 'left', fontFamily: 'inherit' }}
+                />
+              </div>
+              <textarea
+                placeholder="Subtask description (optional)…"
+                value={newSubDesc}
+                onChange={e => setNewSubDesc(e.target.value)}
+                style={{ width: '100%', minHeight: '60px', background: 'var(--popup-input-bg)', border: 'var(--popup-input-border)', borderRadius: '6px', padding: '10px', color: 'var(--popup-input-text)', resize: 'vertical', fontFamily: 'inherit', textAlign: 'left', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
               />
-              <button className="popup-add-subtask-btn" onClick={addSubtask}>
-                Add
+              <button className="popup-add-subtask-btn" onClick={addSubtask} style={{ alignSelf: 'flex-end', marginTop: '4px' }}>
+                Add Subtask
               </button>
             </div>
 
@@ -714,30 +764,71 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
             )}
             {task.subtasks.map((sub, i) => (
               <div key={i} className="popup-subtask-block">
-                {/* Row */}
-                <div className="popup-subtask-row">
-                  <button
-                    className={`popup-checkbox ${sub.completed ? 'checked' : ''}`}
-                    onClick={() => toggleSubtask(i)}
-                    aria-label={sub.completed ? 'Mark undone' : 'Mark done'}
-                  >
-                    {sub.completed && <CheckIcon />}
-                  </button>
-                  <span className={`popup-subtask-label ${sub.completed ? 'done' : ''}`}>
-                    {sub.title}
-                  </span>
-                  <button
-                    className="popup-subtask-del-btn"
-                    onClick={() => deleteSubtask(i)}
-                    aria-label="Delete subtask"
-                    style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}
-                  >
-                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
-                      <polyline points="3 6 5 6 21 6"></polyline>
-                      <path d="M19 6V20a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                  </button>
-                </div>
+                {editingSubtaskId === i ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', padding: '12px', background: 'var(--bg-sec)', borderRadius: '8px' }}>
+                    <input
+                      value={editSubtaskDraft.title}
+                      onChange={e => setEditSubtaskDraft(d => ({ ...d, title: e.target.value }))}
+                      placeholder="Title"
+                      style={{ width: '100%', padding: '10px', borderRadius: '6px', border: 'var(--popup-input-border)', background: 'var(--popup-input-bg)', color: 'var(--popup-input-text)', textAlign: 'left', fontFamily: 'inherit' }}
+                    />
+                    <textarea
+                      value={editSubtaskDraft.description}
+                      onChange={e => setEditSubtaskDraft(d => ({ ...d, description: e.target.value }))}
+                      placeholder="Description"
+                      style={{ width: '100%', padding: '10px', borderRadius: '6px', border: 'var(--popup-input-border)', background: 'var(--popup-input-bg)', color: 'var(--popup-input-text)', minHeight: '60px', resize: 'vertical', textAlign: 'left', fontFamily: 'inherit' }}
+                    />
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                      <button onClick={() => setEditingSubtaskId(null)} style={{ padding: '6px 12px', borderRadius: '6px', background: 'transparent', border: '1px solid var(--border-color)', color: 'inherit', cursor: 'pointer' }}>Cancel</button>
+                      <button onClick={() => saveEditSubtask(i)} style={{ padding: '6px 12px', borderRadius: '6px', background: 'var(--accent)', border: 'none', color: '#fff', cursor: 'pointer' }}>Save</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="popup-subtask-row" style={{ alignItems: 'flex-start', padding: '8px 0' }}>
+                    <button
+                      className={`popup-checkbox ${sub.completed ? 'checked' : ''}`}
+                      onClick={() => toggleSubtask(i)}
+                      aria-label={sub.completed ? 'Mark undone' : 'Mark done'}
+                      style={{ marginTop: '2px' }}
+                    >
+                      {sub.completed && <CheckIcon />}
+                    </button>
+                    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: '4px' }}>
+                      <span className={`popup-subtask-label ${sub.completed ? 'done' : ''}`} style={{ textAlign: 'center' }}>
+                        {sub.title}
+                      </span>
+                      {sub.description && (
+                        <span style={{ fontSize: '13.5px', color: 'var(--popup-text-muted)', whiteSpace: 'pre-wrap', lineHeight: '1.4', textAlign: 'left', display: 'block', fontFamily: 'inherit' }}>
+                          {sub.description}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: '4px', marginLeft: 'auto', paddingTop: '4px' }}>
+                      <button
+                        className="popup-subtask-edit-btn"
+                        onClick={() => startEditSubtask(i)}
+                        aria-label="Edit subtask"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: '4px' }}
+                      >
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                      </button>
+                      <button
+                        className="popup-subtask-del-btn"
+                        onClick={() => deleteSubtask(i)}
+                        aria-label="Delete subtask"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: '4px' }}
+                      >
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6V20a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

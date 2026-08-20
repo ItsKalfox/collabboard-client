@@ -21,7 +21,7 @@ const saveMockTasks = (data) => {
 export const updateSubtask = async (req, res) => {
     try {
         const { subtaskId } = req.params;
-        const { title, completed, comments } = req.body;
+        const { title, description, completed, comments } = req.body;
         
         const tasks = getMockTasks();
         let subtaskFound = false;
@@ -32,6 +32,7 @@ export const updateSubtask = async (req, res) => {
                 const subtaskIndex = task.subtasks.findIndex(st => st.id === subtaskId);
                 if (subtaskIndex !== -1) {
                     if (title !== undefined) task.subtasks[subtaskIndex].title = title;
+                    if (description !== undefined) task.subtasks[subtaskIndex].description = description;
                     if (completed !== undefined) task.subtasks[subtaskIndex].completed = completed;
                     if (comments !== undefined) task.subtasks[subtaskIndex].comments = comments;
                     targetSubtask = task.subtasks[subtaskIndex];

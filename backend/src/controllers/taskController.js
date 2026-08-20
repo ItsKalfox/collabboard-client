@@ -323,7 +323,7 @@ export const getSubtasks = async (req, res) => {
 export const createSubtask = async (req, res) => {
     try {
         const { taskId } = req.params;
-        const { title, completed } = req.body;
+        const { title, description, completed } = req.body;
         
         if (!title) {
             return res.status(400).json({ status: 'error', message: 'Title is required' });
@@ -339,6 +339,7 @@ export const createSubtask = async (req, res) => {
         const newSubtask = {
             id: `sub_${Date.now()}`,
             title,
+            description: description || '',
             completed: completed || false
         };
         
