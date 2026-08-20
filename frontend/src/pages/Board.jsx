@@ -7,7 +7,7 @@ import ActionModal from '../components/Board/ActionModal';
 import { INITIAL_PROJECTS } from '../mock/mockProjects';
 import './Board.css';
 
-export default function Board({ initialProjectId, selectedProject, onSelectProject }) {
+export default function Board({ initialProjectId, selectedProject, onSelectProject, currentUser }) {
   const [projects, setProjects] = useState(() => {
     const list = [];
     if (selectedProject && typeof selectedProject === 'object') {
@@ -237,10 +237,11 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
   return (
     <div className="board-page-container">
       {/* Left side: Projects Preview Sidebar */}
-      <ProjectsSidebar
-        projects={projects}
-        activeProjectId={selectedProjectId}
-        onSelectProject={handleSelectProject}
+      <ProjectsSidebar 
+        projects={projects} 
+        activeProjectId={selectedProjectId} 
+        onSelectProject={handleSelectProject} 
+        currentUser={currentUser}
       />
 
       {/* Right side: Main Board Workspace */}

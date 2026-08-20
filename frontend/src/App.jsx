@@ -381,6 +381,7 @@ function App() {
               initialProjectId={typeof selectedProject === 'object' ? selectedProject?.id : selectedProject} 
               selectedProject={typeof selectedProject === 'object' ? selectedProject : null}
               onSelectProject={(id) => setSelectedProject(id)} 
+              currentUser={currentUser}
             />
           ) : activeTab === 'Projects' ? (
             <ProjectsPage theme={theme} toggleTheme={toggleTheme} currentUser={currentUser} onOpenBoard={handleOpenBoard} />
