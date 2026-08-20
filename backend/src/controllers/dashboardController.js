@@ -18,7 +18,7 @@ export const getTimeline = async (req, res) => {
         const users = JSON.parse(usersData);
 
         // Filter projects to only those accessible by the user
-        let userProjects = projects.filter(p => p.ownerId === userId || p.members.some(m => m.userId === userId));
+        let userProjects = projects.filter(p => p.ownerId === userId || (p.members || []).some(m => m.userId === userId));
         if (userProjects.length === 0) {
             userProjects = JSON.parse(projectsData).slice(0, 3); // Fallback starter data
         }
@@ -81,7 +81,7 @@ export const getOngoingProjectsStats = async (req, res) => {
         const allProjects = JSON.parse(projectsData);
 
         // Filter to active projects accessible by the user
-        let userProjects = allProjects.filter(p => p.ownerId === userId || p.members.some(m => m.userId === userId));
+        let userProjects = allProjects.filter(p => p.ownerId === userId || (p.members || []).some(m => m.userId === userId));
         if (userProjects.length === 0) {
             userProjects = allProjects.slice(0, 3); // Fallback starter data
         }
@@ -161,14 +161,14 @@ export const getTeamProgress = async (req, res) => {
         const projects = JSON.parse(projectsData);
 
         // Scope to users that share a project with the authenticated user
-        let userProjects = projects.filter(p => p.ownerId === userId || p.members.some(m => m.userId === userId));
+        let userProjects = projects.filter(p => p.ownerId === userId || (p.members || []).some(m => m.userId === userId));
         if (userProjects.length === 0) {
             userProjects = projects.slice(0, 3); // Fallback starter data
         }
         const relevantUserIds = new Set();
         userProjects.forEach(p => {
             relevantUserIds.add(p.ownerId);
-            p.members.forEach(m => relevantUserIds.add(m.userId));
+            (p.members || []).forEach(m => relevantUserIds.add(m.userId));
         });
 
         // Filter the users pool
@@ -266,7 +266,7 @@ export const getRecentFiles = async (req, res) => {
         let attachments = JSON.parse(attachmentsData);
 
         // Filter projects accessible by the user
-        let userProjects = projects.filter(p => p.ownerId === userId || p.members.some(m => m.userId === userId));
+        let userProjects = projects.filter(p => p.ownerId === userId || (p.members || []).some(m => m.userId === userId));
         if (userProjects.length === 0) {
             userProjects = projects.slice(0, 3); // Fallback starter data
         }
@@ -314,7 +314,7 @@ export const getRecentProjects = async (req, res) => {
         const users = JSON.parse(usersData);
 
         // Filter projects accessible by the user
-        let userProjects = projects.filter(p => p.ownerId === userId || p.members.some(m => m.userId === userId));
+        let userProjects = projects.filter(p => p.ownerId === userId || (p.members || []).some(m => m.userId === userId));
         if (userProjects.length === 0) {
             userProjects = projects.slice(0, 3); // Fallback starter data
         }
@@ -330,7 +330,7 @@ export const getRecentProjects = async (req, res) => {
             type: p.category && p.category.toLowerCase().includes('design') ? 'figma' : 'code',
             color: p.category && p.category.toLowerCase().includes('design') ? '#a78bfa' : '#34d399',
             updatedAt: p.updatedAt,
-            members: p.members.map(m => {
+            members: (p.members || []).map(m => {
                 const user = users.find(u => u.id === m.userId);
                 return {
                     id: m.userId,
