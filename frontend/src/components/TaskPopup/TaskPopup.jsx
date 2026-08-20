@@ -138,44 +138,6 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
   /* ── Tab ── */
   const [activeTab, setActiveTab] = useState('subtasks');
 
-  /* ── Invite ── */
-  const [showInvite, setShowInvite] = useState(false);
-  const [inviteSearch, setInviteSearch] = useState('');
-  const [pendingInvitees, setPendingInvitees] = useState([]);
-
-  const filteredEmployees = ALL_EMPLOYEES.filter(e =>
-    e.name.toLowerCase().includes(inviteSearch.toLowerCase()) ||
-    e.role.toLowerCase().includes(inviteSearch.toLowerCase())
-  );
-
-  const toggleInvitee = emp => {
-    setPendingInvitees(prev =>
-      prev.find(p => p.id === emp.id)
-        ? prev.filter(p => p.id !== emp.id)
-        : [...prev, emp]
-    );
-  };
-
-  const confirmInvite = () => {
-    const toAdd = pendingInvitees.filter(
-      e => !task.assignees.find(a => a.name === e.name)
-    ).map(e => ({ name: e.name, initials: e.initials }));
-
-    if (toAdd.length) {
-      setTask(t => ({
-        ...t,
-        assignees: [...t.assignees, ...toAdd],
-        activities: [
-          { text: `${toAdd.map(a => a.name).join(', ')} added as assignee(s)`, timestamp: fmtNow() },
-          ...t.activities,
-        ],
-      }));
-    }
-    setPendingInvitees([]);
-    setInviteSearch('');
-    setShowInvite(false);
-  };
-
   /* ── Subtasks ── */
   const toggleSubtask = async (i) => {
     const targetSub = task.subtasks[i];
@@ -401,13 +363,12 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
   useEffect(() => {
     const h = e => {
       if (e.key === 'Escape') {
-        if (showInvite) { setShowInvite(false); return; }
         onClose();
       }
     };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
-  }, [onClose, showInvite]);
+  }, [onClose]);
 
   /* ── Derived values ── */
   const priorityColor =
@@ -450,7 +411,7 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
       {/* Backdrop */}
       <div
         className="popup-backdrop"
-        onClick={() => showInvite ? setShowInvite(false) : onClose()}
+        onClick={() => onClose()}
       />
 
       {/* ── Main Panel ── */}
@@ -589,32 +550,7 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
             </div>
           </div>
 
-          {/* Assignees */}
-          <div className="popup-meta-row popup-meta-row--assignees">
-            <div className="popup-meta-label">
-              <Icon d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-              Assignees
-            </div>
-            <div className="popup-meta-val popup-meta-val--assignees">
-              {task.assignees.map((a, i) => (
-                <div key={i} className="popup-avatar" title={a.name}>
-                  {initials(a.name)}
-                </div>
-              ))}
-              <button
-                className="popup-invite-chip"
-                onClick={() => setShowInvite(true)}
-              >
-                <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" strokeWidth="2.5" fill="none">
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                  <circle cx="8.5" cy="7" r="4" />
-                  <line x1="20" y1="8" x2="20" y2="14" />
-                  <line x1="23" y1="11" x2="17" y2="11" />
-                </svg>
-                Invite
-              </button>
-            </div>
-          </div>
+
 
         </div>{/* /meta-grid */}
 
@@ -855,82 +791,7 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
 
       </div>{/* /popup-panel */}
 
-      {/* ══ Invite Modal ══════════════════════════════════════════ */}
-      {showInvite && (
-        <div className="popup-invite-modal" role="dialog" aria-label="Invite members">
-          <div className="popup-invite-header">
-            <h3 className="popup-invite-title">Invite Members</h3>
-            <button className="popup-close-btn" onClick={() => setShowInvite(false)}>
-              <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          </div>
 
-          {/* Search */}
-          <div className="popup-invite-search-wrap">
-            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round">
-              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              className="popup-invite-search"
-              placeholder="Search by name or role…"
-              value={inviteSearch}
-              onChange={e => setInviteSearch(e.target.value)}
-              autoFocus
-            />
-          </div>
-
-          {/* Employee list */}
-          <div className="popup-invite-list">
-            {filteredEmployees.map(emp => {
-              const isAdded = !!task.assignees.find(a => a.name === emp.name);
-              const isSelected = !!pendingInvitees.find(p => p.id === emp.id);
-              return (
-                <div
-                  key={emp.id}
-                  className={`popup-invite-item ${isAdded ? 'is-added' : ''} ${isSelected ? 'is-selected' : ''}`}
-                  onClick={() => !isAdded && toggleInvitee(emp)}
-                >
-                  <div className="popup-invite-avatar">{emp.initials}</div>
-                  <div className="popup-invite-info">
-                    <span className="popup-invite-name">{emp.name}</span>
-                    <span className="popup-invite-role">{emp.role}</span>
-                  </div>
-                  <div className="popup-invite-status">
-                    {isAdded
-                      ? <span className="popup-invite-badge added">✓ Added</span>
-                      : isSelected
-                        ? <span className="popup-invite-badge selected">✓ Selected</span>
-                        : <span className="popup-invite-badge empty">+ Add</span>
-                    }
-                  </div>
-                </div>
-              );
-            })}
-            {filteredEmployees.length === 0 && (
-              <p className="popup-empty-msg">No employees match your search.</p>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="popup-invite-footer">
-            <button
-              className="popup-cancel-btn"
-              onClick={() => { setPendingInvitees([]); setShowInvite(false); }}
-            >
-              Cancel
-            </button>
-            <button
-              className="popup-save-btn"
-              onClick={confirmInvite}
-              disabled={pendingInvitees.length === 0}
-            >
-              Add {pendingInvitees.length > 0 ? `(${pendingInvitees.length})` : ''}
-            </button>
-          </div>
-        </div>
-      )}
     </>
   );
 }
