@@ -65,5 +65,12 @@
     "email": "alex@company.com",
     "password": "$2b$10$JeKiwGkbbSCZ/18DEUIApeChexOnZGEd3ozYebJmc9objhsQz2QQW",
     "date": "2026-08-19T17:08:33.769Z"
+  },
+  {
+    "id": "1787249164315",
+    "name": "Test User",
+    "email": "test@example.com",
+    "password": "$2b$10$5mg3DyXxzdOwHnqmpiUp2OOxa8MXOslMzlyZFlEyWaijs2jZXx9FK",
+    "date": "2026-08-20T18:06:04.315Z"
   }
 ]

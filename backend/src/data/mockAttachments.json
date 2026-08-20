@@ -174,5 +174,49 @@
     "size": 16141060,
     "uploadedBy": "1786431927127",
     "uploadedAt": "2026-08-19T19:30:18.792Z"
+  },
+  {
+    "id": "att_1787250208288",
+    "taskId": "task_001",
+    "filename": "design_spec_v1.pdf",
+    "url": "https://res.cloudinary.com/bpv9dfck/image/upload/v1787250207/collabboard/attachments/tasks/task_001/att_1787250205295.jpg",
+    "publicId": "collabboard/attachments/tasks/task_001/att_1787250205295",
+    "mimeType": "application/pdf",
+    "size": 109669,
+    "uploadedBy": "1786356291453",
+    "uploadedAt": "2026-08-20T18:23:28.288Z"
+  },
+  {
+    "id": "att_1787250889443",
+    "taskId": "task_001",
+    "filename": "design_spec_v1.pdf",
+    "url": "https://res.cloudinary.com/bpv9dfck/image/upload/v1787250889/collabboard/attachments/tasks/task_001/att_1787250886447.jpg",
+    "publicId": "collabboard/attachments/tasks/task_001/att_1787250886447",
+    "mimeType": "application/pdf",
+    "size": 109669,
+    "uploadedBy": "1786356291453",
+    "uploadedAt": "2026-08-20T18:34:49.443Z"
+  },
+  {
+    "id": "att_1787250895092",
+    "taskId": "task_001",
+    "filename": "design_spec_v1.pdf",
+    "url": "https://res.cloudinary.com/bpv9dfck/image/upload/v1787250894/collabboard/attachments/tasks/task_001/att_1787250894015.jpg",
+    "publicId": "collabboard/attachments/tasks/task_001/att_1787250894015",
+    "mimeType": "application/pdf",
+    "size": 109669,
+    "uploadedBy": "1786356291453",
+    "uploadedAt": "2026-08-20T18:34:55.092Z"
+  },
+  {
+    "id": "att_1787250926024",
+    "taskId": "task_001",
+    "filename": "design_spec_v1.pdf",
+    "url": "https://res.cloudinary.com/bpv9dfck/image/upload/v1787250925/collabboard/attachments/tasks/task_001/att_1787250923334.jpg",
+    "publicId": "collabboard/attachments/tasks/task_001/att_1787250923334",
+    "mimeType": "application/pdf",
+    "size": 109669,
+    "uploadedBy": "1786356291453",
+    "uploadedAt": "2026-08-20T18:35:26.024Z"
   }
 ]

@@ -64,6 +64,25 @@ export const deleteAttachmentById = async (req, res) => {
         attachments.splice(attachmentIndex, 1);
         saveMockAttachments(attachments);
 
+        // Also remove from task's attachments array in mockTasks.json
+        const mockTasksPath = path.join(__dirname, '../data/mockTasks.json');
+        if (fs.existsSync(mockTasksPath)) {
+            const tasksData = JSON.parse(fs.readFileSync(mockTasksPath, 'utf8'));
+            let tasksModified = false;
+            tasksData.forEach(task => {
+                if (task.attachments) {
+                    const idx = task.attachments.findIndex(a => a.id === attachmentId);
+                    if (idx !== -1) {
+                        task.attachments.splice(idx, 1);
+                        tasksModified = true;
+                    }
+                }
+            });
+            if (tasksModified) {
+                fs.writeFileSync(mockTasksPath, JSON.stringify(tasksData, null, 2));
+            }
+        }
+
         res.status(200).json({
             status: 'success',
             message: 'Attachment deleted successfully'

@@ -136,6 +136,7 @@ function App() {
   };
 
   const themeVars = {
+    colorScheme: isDark ? 'dark' : 'light',
     '--bg-image': isDark ? `url(${backgroundBL})` : `url(${backgroundWH})`,
     '--bg-color': isDark ? '#000000' : '#ffffff',
     '--window-bg': isDark ? 'rgba(30, 30, 30, 0.5)' : 'rgba(255, 255, 255, 0.25)',
@@ -381,6 +382,7 @@ function App() {
               initialProjectId={typeof selectedProject === 'object' ? selectedProject?.id : selectedProject} 
               selectedProject={typeof selectedProject === 'object' ? selectedProject : null}
               onSelectProject={(id) => setSelectedProject(id)} 
+              currentUser={currentUser}
             />
           ) : activeTab === 'Projects' ? (
             <ProjectsPage theme={theme} toggleTheme={toggleTheme} currentUser={currentUser} onOpenBoard={handleOpenBoard} />

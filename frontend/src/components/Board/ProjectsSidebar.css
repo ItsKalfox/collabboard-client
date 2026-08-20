@@ -81,3 +81,45 @@
     max-height: 250px;
   }
 }
+
+.sidebar-project-category {
+  margin-bottom: 20px;
+}
+
+.sidebar-category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  margin-bottom: 8px;
+}
+
+.sidebar-category-title {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 600;
+  color: var(--text-secondary, #888);
+  margin: 0;
+}
+
+.sidebar-category-divider {
+  flex: 1;
+  height: 1px;
+  background: var(--text-secondary, #888);
+  opacity: 0.15;
+  margin: 0 12px;
+}
+
+.sidebar-category-chevron {
+  color: var(--text-secondary, #888);
+  display: flex;
+  align-items: center;
+  opacity: 0.6;
+}
+
+.sidebar-empty-text {
+  font-size: 13px;
+  color: var(--text-secondary, #888);
+  padding: 0 10px;
+}

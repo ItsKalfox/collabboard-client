@@ -1,12 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ProjectsSidebar from '../components/Board/ProjectsSidebar';
 import BoardHeader from '../components/Board/BoardHeader';
 import KanbanBoard from '../components/Board/KanbanBoard';
 import ActionModal from '../components/Board/ActionModal';
+
+import { Search, X } from 'lucide-react';
+import { searchUsers } from '../services/projectService';
 import { INITIAL_PROJECTS } from '../mock/mockProjects';
 import './Board.css';
 
-export default function Board({ initialProjectId, selectedProject, onSelectProject }) {
+export default function Board({ initialProjectId, selectedProject, onSelectProject, currentUser }) {
   const [projects, setProjects] = useState(() => {
     const list = [];
     if (selectedProject && typeof selectedProject === 'object') {
@@ -41,14 +44,32 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
     }
   }, [initialProjectId, selectedProject]);
 
+
   // Modal states
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [isAddTagModalOpen, setIsAddTagModalOpen] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskDescription, setNewTaskDescription] = useState('');
+  const [newTaskDueDate, setNewTaskDueDate] = useState('');
+  const [newSubtasks, setNewSubtasks] = useState([]);
+  const [activeTaskTab, setActiveTaskTab] = useState('main');
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+  const [newSubtaskDesc, setNewSubtaskDesc] = useState('');
+  const [newTaskAttachments, setNewTaskAttachments] = useState([]);
+  const [isUploadingNewTaskAtt, setIsUploadingNewTaskAtt] = useState(false);
+
   const [newMemberEmail, setNewMemberEmail] = useState('');
   const [newTag, setNewTag] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Search member states
+  const [memberSearch, setMemberSearch] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
+  const [searchError, setSearchError] = useState('');
+  const [showMemberDropdown, setShowMemberDropdown] = useState(false);
+  const memberSearchWrapRef = useRef(null);
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -61,6 +82,7 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
             'Authorization': `Bearer ${token}`
           }
         });
+
 
         if (response.ok) {
           const data = await response.json();
@@ -103,13 +125,16 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
         }
       } catch (err) {
         console.error('Error fetching projects from API:', err);
+
       } finally {
         setLoading(false);
       }
     };
 
     fetchProjects();
+
   }, [initialProjectId, selectedProject]);
+
 
   const handleSelectProject = (projectId) => {
     setSelectedProjectId(projectId);
@@ -117,6 +142,60 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
       onSelectProject(projectId);
     }
   };
+
+  // Close member dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (memberSearchWrapRef.current && !memberSearchWrapRef.current.contains(e.target)) {
+        setShowMemberDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Debounced user search
+  useEffect(() => {
+    if (!memberSearch || !memberSearch.trim()) {
+      setSearchResults([]);
+      setIsSearchingUsers(false);
+      setSearchError('');
+      return;
+    }
+    let isMounted = true;
+    setIsSearchingUsers(true);
+    setSearchError('');
+    const timer = setTimeout(() => {
+      searchUsers(memberSearch)
+        .then(users => { if (isMounted) setSearchResults(users || []); })
+        .catch(err => { if (isMounted) { setSearchError(err.message || 'Failed to search'); setSearchResults([]); } })
+        .finally(() => { if (isMounted) setIsSearchingUsers(false); });
+    }, 400);
+    return () => { isMounted = false; clearTimeout(timer); };
+  }, [memberSearch]);
+
+  const handleAddSubtask = (e) => {
+    e.preventDefault();
+    if (!newSubtaskTitle.trim()) return;
+    const subtask = {
+      id: `st-${Date.now()}`,
+      title: newSubtaskTitle.trim(),
+      description: newSubtaskDesc.trim(),
+      completed: false
+    };
+    setNewSubtasks(prev => [...prev, subtask]);
+    setNewSubtaskTitle('');
+    setNewSubtaskDesc('');
+  };
+
+  const handleRemoveSubtask = (id) => {
+    setNewSubtasks(prev => prev.filter(s => s.id !== id));
+  };
+
+  const activeProjectData = projects.find(p => p.id === selectedProjectId);
+  const minDate = new Date().toISOString().split('T')[0];
+  const maxDate = activeProjectData?.dueDate ? new Date(activeProjectData.dueDate).toISOString().split('T')[0] : '';
+
 
   const handleAddTaskSubmit = async (e) => {
     e.preventDefault();
@@ -132,12 +211,42 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ title: newTaskTitle, status: 'todo' })
+
+        body: JSON.stringify({ 
+          title: newTaskTitle, 
+          status: 'todo',
+          description: newTaskDescription,
+          dueDate: newTaskDueDate || null,
+          subtasks: newSubtasks
+        })
+
       });
       if (res.ok) {
+        const data = await res.json();
+        const newTaskId = data.data.task.id;
+
+        if (newTaskAttachments.length > 0) {
+          const uploadPromises = newTaskAttachments.map(async (f) => {
+            const formData = new FormData();
+            formData.append('file', f);
+            await fetch(`${apiUrl}/tasks/${newTaskId}/attachments`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token}` },
+              body: formData
+            });
+          });
+          await Promise.all(uploadPromises);
+        }
+
         setRefreshKey(k => k + 1); // trigger task refetch
         setIsAddTaskModalOpen(false);
         setNewTaskTitle('');
+        setNewTaskDescription('');
+        setNewTaskDueDate('');
+        setNewSubtasks([]);
+        setNewTaskAttachments([]);
+        setActiveTaskTab('main');
+
       } else {
         const errData = await res.json();
         alert(errData.message || 'Failed to add task');
@@ -150,9 +259,8 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
     }
   };
 
-  const handleAddMemberSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedProjectId || !newMemberEmail.trim()) return;
+  const handleAddMemberDirectly = async (memberObj) => {
+    if (!selectedProjectId) return;
     
     setIsSubmitting(true);
     try {
@@ -164,13 +272,23 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ email: newMemberEmail, role: 'member' })
+        body: JSON.stringify({ email: memberObj.email, role: 'member' })
       });
       if (res.ok) {
-        // Trigger a re-render of BoardHeader to fetch new members
-        setProjects([...projects]); 
+        setProjects(prev => {
+          const newProjects = [...prev];
+          const projIndex = newProjects.findIndex(p => p.id === selectedProjectId);
+          if (projIndex !== -1) {
+            newProjects[projIndex] = {
+              ...newProjects[projIndex],
+              members: [...(newProjects[projIndex].members || []), memberObj]
+            };
+          }
+          return newProjects;
+        });
+        setMemberSearch('');
+        setShowMemberDropdown(false);
         setIsAddMemberModalOpen(false);
-        setNewMemberEmail('');
       } else {
         const errData = await res.json();
         alert(errData.message || 'Failed to add member');
@@ -227,10 +345,11 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
   return (
     <div className="board-page-container">
       {/* Left side: Projects Preview Sidebar */}
-      <ProjectsSidebar
-        projects={projects}
-        activeProjectId={selectedProjectId}
-        onSelectProject={handleSelectProject}
+      <ProjectsSidebar 
+        projects={projects} 
+        activeProjectId={selectedProjectId} 
+        onSelectProject={handleSelectProject} 
+        currentUser={currentUser}
       />
 
       {/* Right side: Main Board Workspace */}
@@ -262,49 +381,295 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
       {/* Add Task Modal */}
       <ActionModal
         isOpen={isAddTaskModalOpen}
-        onClose={() => setIsAddTaskModalOpen(false)}
+        onClose={() => {
+          setIsAddTaskModalOpen(false);
+          setActiveTaskTab('main');
+        }}
         title="Add New Task"
         onSubmit={handleAddTaskSubmit}
         submitText="Add Task"
         loading={isSubmitting}
       >
-        <div className="auth-input-group">
-          <label className="auth-label">Task Title</label>
-          <div className="auth-input-wrapper">
-            <input
-              type="text"
-              className="auth-input"
-              placeholder="e.g. Design homepage wireframes"
-              value={newTaskTitle}
-              onChange={(e) => setNewTaskTitle(e.target.value)}
-              required
-              autoFocus
-            />
+        <div className="popup-tabs" style={{ marginBottom: '16px', display: 'flex', width: '100%' }}>
+          <button
+            type="button"
+            className={`popup-tab ${activeTaskTab === 'main' ? 'active' : ''}`}
+            style={{ flex: 1, justifyContent: 'center' }}
+            onClick={() => setActiveTaskTab('main')}
+          >
+            Main Details
+          </button>
+          <button
+            type="button"
+            className={`popup-tab ${activeTaskTab === 'subtasks' ? 'active' : ''}`}
+            style={{ flex: 1, justifyContent: 'center' }}
+            onClick={() => setActiveTaskTab('subtasks')}
+          >
+            Subtasks
+          </button>
+          <button
+            type="button"
+            className={`popup-tab ${activeTaskTab === 'attachments' ? 'active' : ''}`}
+            style={{ flex: 1, justifyContent: 'center' }}
+            onClick={() => setActiveTaskTab('attachments')}
+          >
+            Attachments
+          </button>
+        </div>
+
+        <div style={{ minHeight: '280px' }}>
+          {activeTaskTab === 'main' && (
+          <>
+            <div className="auth-input-group">
+              <label className="auth-label">Task Title</label>
+              <div className="auth-input-wrapper">
+                <input
+                  type="text"
+                  className="auth-input"
+                  placeholder="e.g. Design homepage wireframes"
+                  value={newTaskTitle}
+                  onChange={(e) => setNewTaskTitle(e.target.value)}
+                  required
+                  autoFocus
+                />
+              </div>
+            </div>
+            
+            <div className="auth-input-group" style={{ marginTop: '16px' }}>
+              <label className="auth-label">Description</label>
+              <div className="auth-input-wrapper">
+                <textarea
+                  className="auth-input"
+                  style={{ minHeight: '80px', padding: '10px 14px', resize: 'vertical' }}
+                  placeholder="Enter task description..."
+                  value={newTaskDescription}
+                  onChange={(e) => setNewTaskDescription(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="auth-input-group" style={{ marginTop: '16px' }}>
+              <label className="auth-label">Due Date</label>
+              <div className="auth-input-wrapper">
+                <input
+                  type="date"
+                  className="auth-input"
+                  value={newTaskDueDate}
+                  min={minDate}
+                  max={maxDate}
+                  onChange={(e) => setNewTaskDueDate(e.target.value)}
+                />
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeTaskTab === 'subtasks' && (
+          <div className="add-task-subtasks-container" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {newSubtasks.length > 0 && (
+              <div className="subtasks-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '150px', overflowY: 'auto', paddingRight: '4px' }}>
+                {newSubtasks.map(st => (
+                  <div key={st.id} className="subtask-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', background: 'var(--menu-bg, rgba(255,255,255,0.1))', padding: '10px', borderRadius: '8px' }}>
+                    <div style={{ flex: 1, marginRight: '10px' }}>
+                      <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>{st.title}</div>
+                      {st.description && <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>{st.description}</div>}
+                    </div>
+                    <button type="button" onClick={() => handleRemoveSubtask(st.id)} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: '4px' }}>
+                      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <div className="add-subtask-form" style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '12px', background: 'var(--window-bg, rgba(255,255,255,0.05))', borderRadius: '8px' }}>
+              <div className="auth-input-wrapper">
+                <input
+                  type="text"
+                  className="auth-input"
+                  placeholder="Subtask Title"
+                  value={newSubtaskTitle}
+                  onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                />
+              </div>
+              <div className="auth-input-wrapper">
+                <input
+                  type="text"
+                  className="auth-input"
+                  placeholder="Subtask Description (optional)"
+                  value={newSubtaskDesc}
+                  onChange={(e) => setNewSubtaskDesc(e.target.value)}
+                />
+              </div>
+              <button type="button" className="btn-secondary" onClick={handleAddSubtask} disabled={!newSubtaskTitle.trim()} style={{ alignSelf: 'flex-start', padding: '6px 12px', fontSize: '13px' }}>
+                Add Subtask
+              </button>
+            </div>
+            </div>
+          )}
+
+        {activeTaskTab === 'attachments' && (
+          <div className="add-task-attachments-container" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+              Attachments will be uploaded automatically when you create the task.
+            </div>
+            
+            {newTaskAttachments.length > 0 && (
+              <div className="attachments-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '150px', overflowY: 'auto' }}>
+                {newTaskAttachments.map((file, idx) => (
+                  <div key={idx} className="attachment-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--menu-bg, rgba(255,255,255,0.1))', padding: '10px', borderRadius: '8px' }}>
+                    <div style={{ fontSize: '13px', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {file.name}
+                    </div>
+                    <button type="button" onClick={() => setNewTaskAttachments(prev => prev.filter((_, i) => i !== idx))} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: '4px' }}>
+                      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <div className="add-attachment-action">
+              <input
+                type="file"
+                multiple
+                id="new-task-file-upload"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  if (e.target.files.length > 0) {
+                    setIsUploadingNewTaskAtt(true);
+                    const selected = Array.from(e.target.files);
+                    // Simulate upload delay for immediate visual feedback
+                    setTimeout(() => {
+                      setNewTaskAttachments(prev => [...prev, ...selected]);
+                      setIsUploadingNewTaskAtt(false);
+                    }, 1200);
+                  }
+                  e.target.value = '';
+                }}
+              />
+              <button 
+                type="button" 
+                className="btn-secondary" 
+                onClick={() => !isUploadingNewTaskAtt && document.getElementById('new-task-file-upload').click()}
+                disabled={isUploadingNewTaskAtt}
+                style={{ padding: '6px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                {isUploadingNewTaskAtt ? (
+                  <span>Uploading...</span>
+                ) : (
+                  <>
+                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
+                      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    Select Files
+                  </>
+                )}
+              </button>
+            </div>
           </div>
+        )}
         </div>
       </ActionModal>
 
       {/* Add Member Modal */}
       <ActionModal
         isOpen={isAddMemberModalOpen}
-        onClose={() => setIsAddMemberModalOpen(false)}
-        title="Invite Team Member"
-        onSubmit={handleAddMemberSubmit}
-        submitText="Send Invite"
-        loading={isSubmitting}
+        onClose={() => {
+          setIsAddMemberModalOpen(false);
+          setMemberSearch('');
+          setShowMemberDropdown(false);
+        }}
+        title="Add Team Member"
+        onSubmit={(e) => e.preventDefault()}
+        hideFooter={true}
       >
-        <div className="auth-input-group">
-          <label className="auth-label">Email Address</label>
-          <div className="auth-input-wrapper">
+        <div className="auth-input-group" ref={memberSearchWrapRef}>
+          <label className="auth-label">Search Member</label>
+          <div className="auth-input-wrapper" style={{ position: 'relative' }}>
+            <Search size={16} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-muted)' }} />
             <input
-              type="email"
+              type="text"
               className="auth-input"
-              placeholder="alex.morgan@company.com"
-              value={newMemberEmail}
-              onChange={(e) => setNewMemberEmail(e.target.value)}
-              required
+              style={{ paddingLeft: '38px', paddingRight: memberSearch ? '38px' : '12px' }}
+              placeholder="Search by name or email..."
+              value={memberSearch}
+              onChange={e => {
+                setMemberSearch(e.target.value);
+                setShowMemberDropdown(true);
+              }}
+              onFocus={() => setShowMemberDropdown(true)}
               autoFocus
             />
+            {memberSearch && (
+              <button
+                type="button"
+                onClick={() => { setMemberSearch(''); setShowMemberDropdown(false); }}
+                style={{ position: 'absolute', right: '12px', top: '12px', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0 }}
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+
+          {/* Inline results — always takes up space so modal doesn't jump */}
+          <div style={{ marginTop: '8px', minHeight: '240px', borderRadius: '10px', border: '1px solid var(--border-color, rgba(255,255,255,0.10))', overflow: 'hidden', background: 'var(--window-bg, rgba(255,255,255,0.04))' }}>
+            {!memberSearch.trim() ? (
+              <div style={{ padding: '48px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                <Search size={28} style={{ opacity: 0.3, marginBottom: '10px', display: 'block', margin: '0 auto 10px' }} />
+                Start typing to search for a team member
+              </div>
+            ) : isSearchingUsers ? (
+              <div style={{ padding: '48px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                Searching users...
+              </div>
+            ) : searchResults.length === 0 ? (
+              <div style={{ padding: '48px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                No users found for "{memberSearch}"
+              </div>
+            ) : (
+              <div style={{ maxHeight: '240px', overflowY: 'auto' }}>
+                {searchResults.map(emp => (
+                  <div
+                    key={emp.id || emp._id || emp.email}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '10px',
+                      padding: '10px 14px', cursor: 'pointer',
+                      borderBottom: '1px solid var(--border-color, rgba(255,255,255,0.05))',
+                      transition: 'background 0.15s ease'
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.07)'}
+                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    <div style={{
+                      width: '34px', height: '34px', borderRadius: '50%', flexShrink: 0,
+                      background: '#3b82f6', color: '#fff',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '13px', fontWeight: 'bold'
+                    }}>
+                      {emp.name ? emp.name.charAt(0).toUpperCase() : emp.email.charAt(0).toUpperCase()}
+                    </div>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                      <span style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {emp.name || emp.username || 'Unknown'}
+                      </span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                        {emp.email}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => handleAddMemberDirectly(emp)}
+                      disabled={isSubmitting}
+                      style={{ padding: '5px 12px', fontSize: '12px', flexShrink: 0 }}
+                    >
+                      {isSubmitting ? '...' : 'Add'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </ActionModal>

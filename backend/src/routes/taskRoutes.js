@@ -1,5 +1,5 @@
 import express from 'express';
-import { getTaskById, updateTask, deleteTask, updateTaskStatus, reviewTask, rejectTask, getTaskReviews, getSubtasks, createSubtask, updateSubtasksList, uploadTaskImage, deleteTaskImage, getTaskAttachments, addTaskAttachment } from '../controllers/taskController.js';
+import { getTaskById, updateTask, deleteTask, updateTaskStatus, reviewTask, rejectTask, getTaskReviews, getSubtasks, createSubtask, updateSubtasksList, uploadTaskImage, deleteTaskImage, getTaskAttachments, addTaskAttachment, deleteTaskAttachment } from '../controllers/taskController.js';
 import { protect } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
@@ -25,5 +25,6 @@ router.delete('/:taskId/image', protect, deleteTaskImage);
 // Attachment endpoints
 router.get('/:taskId/attachments', protect, getTaskAttachments);
 router.post('/:taskId/attachments', protect, uploadFile.single('file'), addTaskAttachment);
+router.delete('/:taskId/attachments/:attachmentId', protect, deleteTaskAttachment);
 
 export default router;

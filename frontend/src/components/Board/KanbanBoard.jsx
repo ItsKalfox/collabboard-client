@@ -12,9 +12,11 @@ import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import KanbanColumn from './KanbanColumn';
 import TaskCard from './TaskCard';
 import TaskPopup from '../TaskPopup/TaskPopup';
+import { formatDate } from '../../utils/dateUtils';
 import './KanbanBoard.css';
 
 import { INITIAL_PROJECTS } from '../../mock/mockProjects';
+
 
 const COLUMNS_DEF = [
   { id: 'todo', title: 'To Do' },
@@ -32,13 +34,14 @@ function normalizeTaskForPopup(task, columnTitle) {
     dueDate: task.dueDate || 'Fri, 01 Dec 2023',
     progress: task.progress !== undefined ? task.progress : (task.progressTotal ? Math.round((task.progressCurrent / task.progressTotal) * 100) : 50),
     assignees: task.assignees || (task.members || []).map(m => ({ name: m.name, initials: m.initials })),
-    subtasks: task.subtasks || [
-      { label: 'Initial moodboard & design concept', done: true, comments: [] },
-      { label: 'Review UI specs with project team', done: false, comments: [] },
-    ],
-    attachments: task.attachments || [
-      { id: 'a1', name: 'Design Brief', ext: 'PDF', size: '2.45 MB', url: null },
-    ],
+    subtasks: task.subtasks ? task.subtasks.map(s => ({ ...s, comments: s.comments || [] })) : [],
+    attachments: (task.attachments || []).map(att => ({
+      id: att.id,
+      name: att.name || (att.filename ? att.filename.replace(/\.[^.]+$/, '') : 'Attachment'),
+      ext: att.ext || (att.filename ? att.filename.split('.').pop().toUpperCase() : 'FILE'),
+      size: typeof att.size === 'number' ? (att.size / (1024 * 1024)).toFixed(2) + ' MB' : (att.size || 'Unknown'),
+      url: att.url || null
+    })),
     generalComments: task.generalComments || [],
     activities: task.activities || [
       { text: `Task "${task.title}" was created`, timestamp: task.createdAt || task.date || 'Mon, 20 Nov 2023' },
@@ -51,6 +54,7 @@ export default function KanbanBoard({ projectId, refreshKey }) {
   const [activeTask, setActiveTask] = useState(null);
   const [draggedTask, setDraggedTask] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [localRefresh, setLocalRefresh] = useState(0);
 
   useEffect(() => {
     if (!projectId) return;
@@ -115,8 +119,8 @@ export default function KanbanBoard({ projectId, refreshKey }) {
           // Map backend task to frontend TaskCard format
           const uiTask = {
             ...task,
-            tag: task.priority === 'high' ? 'High Priority' : task.category || 'Task',
-            tagColor: task.priority === 'high' ? 'pink' : 'cyan',
+            tag: task.priority === 'high' ? 'High Priority' : task.priority === 'medium' ? 'Medium Priority' : task.priority === 'low' ? 'Low Priority' : task.category || 'Task',
+            tagColor: task.priority === 'high' ? 'red' : task.priority === 'medium' ? 'amber' : task.priority === 'low' ? 'green' : 'cyan',
             date: new Date(task.dueDate || task.createdAt || Date.now()).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' }),
             progressCurrent: task.subtasks ? task.subtasks.filter(st => st.completed).length : 0,
             progressTotal: task.subtasks ? task.subtasks.length : 1,
@@ -140,7 +144,7 @@ export default function KanbanBoard({ projectId, refreshKey }) {
     };
     
     fetchData();
-  }, [projectId, refreshKey]);
+  }, [projectId, refreshKey, localRefresh]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -315,6 +319,7 @@ export default function KanbanBoard({ projectId, refreshKey }) {
         <TaskPopup
           task={activeTask}
           onClose={() => setActiveTask(null)}
+          onUpdate={() => setLocalRefresh(r => r + 1)}
         />
       )}
     </>
