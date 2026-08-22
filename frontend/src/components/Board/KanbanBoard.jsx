@@ -49,7 +49,7 @@ function normalizeTaskForPopup(task, columnTitle) {
   };
 }
 
-export default function KanbanBoard({ projectId, refreshKey }) {
+export default function KanbanBoard({ projectId, refreshKey, currentProject }) {
   const [columns, setColumns] = useState(() => COLUMNS_DEF.map(col => ({ ...col, tasks: [] })));
   const [activeTask, setActiveTask] = useState(null);
   const [draggedTask, setDraggedTask] = useState(null);
@@ -285,8 +285,8 @@ export default function KanbanBoard({ projectId, refreshKey }) {
         return;
       }
       
-      if (newStatus === 'completed' && completedSubtasks === totalSubtasks && totalSubtasks > 0 && !task.isApproved) {
-        showToast("Please get a review and approval before moving to Done.");
+      if (newStatus === 'completed' && !task.isApproved) {
+        showToast("Tasks must be reviewed and approved before moving to Done.");
         revertMove();
         return;
       }
@@ -323,19 +323,7 @@ export default function KanbanBoard({ projectId, refreshKey }) {
   return (
     <>
       {toastMessage && (
-        <div className="kanban-toast" style={{
-          position: 'fixed',
-          top: '20px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          backgroundColor: '#ef4444',
-          color: 'white',
-          padding: '12px 24px',
-          borderRadius: '8px',
-          zIndex: 9999,
-          fontWeight: 500,
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-        }}>
+        <div className="kanban-toast">
           {toastMessage}
         </div>
       )}
@@ -364,6 +352,7 @@ export default function KanbanBoard({ projectId, refreshKey }) {
       {activeTask && (
         <TaskPopup
           task={activeTask}
+          project={currentProject}
           onClose={() => setActiveTask(null)}
           onUpdate={() => setLocalRefresh(r => r + 1)}
         />

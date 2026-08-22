@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { formatDate } from '../../utils/dateUtils';
+import { isProjectOwner } from '../../utils/projectUtils';
 import ConfirmModal from '../Board/ConfirmModal';
 import './TaskPopup.css';
 
@@ -43,7 +44,7 @@ const CheckIcon = ({ size = 13 }) => (
 );
 
 /* ─── Main component ────────────────────────────────────────── */
-export default function TaskPopup({ task: prop, onClose, onUpdate }) {
+export default function TaskPopup({ task: prop, project, onClose, onUpdate }) {
   const fileInputRef = useRef();
 
   /* Initialise local task state from prop */
@@ -172,10 +173,12 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
       
       let newStatus = task.status;
       if (totalSubs > 0) {
-        if (doneSubs > 0 && doneSubs < totalSubs && newStatus === 'todo') {
+        if (doneSubs > 0 && doneSubs < totalSubs) {
           newStatus = 'in_progress';
         } else if (doneSubs === totalSubs && newStatus !== 'review' && newStatus !== 'completed') {
           newStatus = 'review';
+        } else if (doneSubs === 0 && newStatus === 'review') {
+          newStatus = 'in_progress';
         }
       }
 
@@ -595,19 +598,19 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
               {(() => {
                 const userJson = localStorage.getItem('user');
                 const currentUser = userJson ? JSON.parse(userJson) : null;
-                const isAssignee = currentUser && (task.assigneeId === currentUser.id || task.assigneeId === currentUser._id);
+                const isOwner = isProjectOwner(project, currentUser);
                 
                 return task.status === 'review' && !task.isApproved ? (
                   <button 
                     onClick={handleApprove}
-                    disabled={isAssignee}
-                    title={isAssignee ? "You cannot approve your own task" : "Approve this task"}
-                    style={{ padding: '2px 8px', fontSize: '11px', backgroundColor: isAssignee ? '#9ca3af' : '#34d399', color: 'white', border: 'none', borderRadius: '4px', cursor: isAssignee ? 'not-allowed' : 'pointer' }}
+                    disabled={!isOwner}
+                    title={!isOwner ? "Only the project owner can approve this task" : "Approve this task"}
+                    style={{ marginLeft: 'auto', padding: '6px 14px', fontSize: '13px', fontWeight: 600, backgroundColor: !isOwner ? '#9ca3af' : '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: !isOwner ? 'not-allowed' : 'pointer', transition: 'all 0.2s' }}
                   >
-                    Approve
+                    Approve Task
                   </button>
                 ) : task.isApproved ? (
-                  <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 500 }}>✓ Approved</span>
+                  <span style={{ marginLeft: 'auto', fontSize: '13px', color: '#10b981', fontWeight: 600 }}>✓ Approved</span>
                 ) : null;
               })()}
             </div>

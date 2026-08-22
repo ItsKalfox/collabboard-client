@@ -372,7 +372,7 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
           ) : error ? (
             <div style={{ padding: '20px', color: 'var(--text-secondary)' }}>Error: {error}</div>
           ) : selectedProjectId ? (
-            <KanbanBoard projectId={selectedProjectId} refreshKey={refreshKey} />
+            <KanbanBoard projectId={selectedProjectId} currentProject={currentProject} refreshKey={refreshKey} />
           ) : (
             <div style={{ padding: '20px', color: 'var(--text-secondary)' }}>No projects found. Please create a project.</div>
           )}
