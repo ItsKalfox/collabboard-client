@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Search, AlertCircle } from 'lucide-react';
-import { normalizeMember } from '../../mock/mockMembers';
+import { normalizeMember, getInitials } from '../../mock/mockMembers';
 import { updateProject, searchUsers } from '../../services/projectService';
 import '../TaskPopup/TaskPopup.css';
 import './projects.css';
@@ -388,7 +388,7 @@ export default function EditProjectModal({
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             overflow: 'hidden', flexShrink: 0
                           }}>
-                            {emp.avatar ? <img src={emp.avatar} alt={emp.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (emp.initials || (emp.name ? emp.name.slice(0, 2).toUpperCase() : 'U'))}
+                            {emp.avatar ? <img src={emp.avatar} alt={emp.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (emp.initials || getInitials(emp.name))}
                           </div>
                           <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                             <span style={{ fontSize: '13px', fontWeight: '600', color: theme === 'light' ? '#0f172a' : '#f8fafc', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{emp.name}</span>

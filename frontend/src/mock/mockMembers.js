@@ -99,6 +99,14 @@ export const MOCK_MEMBERS = [
   }
 ];
 
+export function getInitials(nameStr) {
+  if (!nameStr) return 'U';
+  const parts = nameStr.trim().split(/\s+/);
+  return parts.length >= 2
+    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    : nameStr.substring(0, 2).toUpperCase();
+}
+
 export function getMemberByName(name) {
   if (!name) return null;
   const nameStr = typeof name === 'string' ? name : (name.name || name.email || '');
@@ -109,10 +117,7 @@ export function getMemberByName(name) {
   if (found) return found;
 
   // Generate proper 2-letter initials: first letter of first name + first letter of last name
-  const parts = nameStr.trim().split(/\s+/);
-  const initials = parts.length >= 2
-    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-    : (nameStr.substring(0, 2)).toUpperCase();
+  const initials = getInitials(nameStr);
 
   return {
     name: nameStr,
@@ -132,10 +137,7 @@ export function normalizeMember(member) {
 
     // Always recompute initials from the actual name for accuracy
     const nameStr = member.name.trim();
-    const parts = nameStr.split(/\s+/);
-    const initials = parts.length >= 2
-      ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-      : nameStr.substring(0, 2).toUpperCase();
+    const initials = getInitials(nameStr);
 
     return {
       ...defaultData,
