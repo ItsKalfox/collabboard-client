@@ -1,0 +1,61 @@
+meta:
+  name: Upload Avatar
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://localhost:5000/api/users/avatar
+  auth: bearer
+  body: multipartForm
+
+auth:
+  bearer:
+    token: "{{token}}"
+
+body:
+  multipartForm:
+    - name: avatar
+      value: ""
+      type: file
+
+docs: |
+  ## Upload Avatar
+
+  Uploads a profile picture for the authenticated user. The image is uploaded to Cloudinary
+  under `collabboard/avatars/` and the URL is saved to the user's record in `mockData.json`.
+
+  **Authentication:** Required (Bearer token)
+
+  **Request Body:** `multipart/form-data`
+  - `avatar` (file, required) — Image file (JPEG, PNG, WebP, or GIF). Maximum size: 10MB.
+
+  The image is automatically cropped to 400×400px with face detection and optimized.
+  If the user already has an avatar, the old Cloudinary asset is deleted automatically.
+
+  **Successful Response (200):**
+  ```json
+  {
+    "status": "success",
+    "message": "Avatar uploaded successfully",
+    "data": {
+      "avatarUrl": "https://res.cloudinary.com/your-cloud/image/upload/collabboard/avatars/avatar_123.jpg",
+      "user": {
+        "id": "...",
+        "name": "John Doe",
+        "email": "john@example.com",
+        "avatar": "https://res.cloudinary.com/..."
+      }
+    }
+  }
+  ```
+
+  **Error — No File Provided (400):**
+  ```json
+  { "status": "error", "message": "No image file provided" }
+  ```
+
+  **Error — File Too Large (400):**
+  ```json
+  { "status": "error", "message": "File too large" }
+  ```

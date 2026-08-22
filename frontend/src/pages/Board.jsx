@@ -7,6 +7,7 @@ import ActionModal from '../components/Board/ActionModal';
 import { Search, X } from 'lucide-react';
 import { searchUsers } from '../services/projectService';
 import { INITIAL_PROJECTS } from '../mock/mockProjects';
+import { normalizeMember } from '../mock/mockMembers';
 import './Board.css';
 
 export default function Board({ initialProjectId, selectedProject, onSelectProject, currentUser }) {
@@ -629,34 +630,40 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
               </div>
             ) : (
               <div style={{ maxHeight: '240px', overflowY: 'auto' }}>
-                {searchResults.map(emp => (
-                  <div
-                    key={emp.id || emp._id || emp.email}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '10px',
-                      padding: '10px 14px', cursor: 'pointer',
-                      borderBottom: '1px solid var(--border-color, rgba(255,255,255,0.05))',
-                      transition: 'background 0.15s ease'
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.07)'}
-                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                  >
-                    <div style={{
-                      width: '34px', height: '34px', borderRadius: '50%', flexShrink: 0,
-                      background: '#3b82f6', color: '#fff',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '13px', fontWeight: 'bold'
-                    }}>
-                      {emp.name ? emp.name.charAt(0).toUpperCase() : emp.email.charAt(0).toUpperCase()}
-                    </div>
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                      <span style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {emp.name || emp.username || 'Unknown'}
-                      </span>
-                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                        {emp.email}
-                      </span>
-                    </div>
+                {searchResults.map(empRaw => {
+                  const emp = normalizeMember(empRaw);
+                  return (
+                    <div
+                      key={emp.id || emp._id || emp.email}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '10px',
+                        padding: '10px 14px', cursor: 'pointer',
+                        borderBottom: '1px solid var(--border-color, rgba(255,255,255,0.05))',
+                        transition: 'background 0.15s ease'
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.07)'}
+                      onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <div style={{
+                        width: '34px', height: '34px', borderRadius: '50%', flexShrink: 0,
+                        background: emp.avatar ? 'transparent' : (emp.bg || '#3b82f6'), color: '#fff',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '13px', fontWeight: 'bold', overflow: 'hidden'
+                      }}>
+                        {emp.avatar ? (
+                          <img src={emp.avatar} alt={emp.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          emp.initials || emp.name?.trim().split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?'
+                        )}
+                      </div>
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                        <span style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {emp.name || emp.username || 'Unknown'}
+                        </span>
+                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                          {emp.email}
+                        </span>
+                      </div>
                     <button
                       type="button"
                       className="btn-secondary"
@@ -667,7 +674,8 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
                       {isSubmitting ? '...' : 'Add'}
                     </button>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

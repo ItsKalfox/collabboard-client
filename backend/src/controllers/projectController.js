@@ -109,6 +109,9 @@ export const getProjects = (req, res) => {
                     ...m,
                     name: name,
                     email: userObj ? userObj.email : (m.email || ''),
+                    avatar: userObj ? (userObj.avatar || null) : null,
+                    firstName: userObj ? (userObj.firstName || null) : null,
+                    lastName: userObj ? (userObj.lastName || null) : null,
                     initials: name && name !== 'Unknown' ? name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '?'
                 };
             });
@@ -191,6 +194,9 @@ export const getProjectById = (req, res) => {
                 ...m,
                 name: name,
                 email: userObj ? userObj.email : (m.email || ''),
+                avatar: userObj ? (userObj.avatar || null) : null,
+                firstName: userObj ? (userObj.firstName || null) : null,
+                lastName: userObj ? (userObj.lastName || null) : null,
                 initials: name && name !== 'Unknown' ? name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '?'
             };
         });
@@ -739,6 +745,9 @@ export const getProjectMembers = (req, res) => {
                 userId: m.userId,
                 name: user ? user.name : 'Unknown User',
                 email: user ? user.email : '',
+                avatar: user ? (user.avatar || null) : null,
+                firstName: user ? (user.firstName || null) : null,
+                lastName: user ? (user.lastName || null) : null,
                 role: m.role || 'member',
                 joinedAt: m.joinedAt || project.createdAt
             };

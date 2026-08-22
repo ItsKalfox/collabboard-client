@@ -30,3 +30,10 @@ export const uploadFile = multer({
     fileFilter: attachmentFilter,
     limits: { fileSize: 20 * 1024 * 1024 } // 20MB
 });
+
+// Upload config for user profile avatars (images only, 10MB limit)
+export const uploadAvatar = multer({
+    storage,
+    fileFilter,
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB
+});

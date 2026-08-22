@@ -239,3 +239,132 @@ export const resetPassword = async (req, res) => {
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
+
+// PATCH /api/auth/profile — Update first name and last name (authenticated)
+export const updateProfile = async (req, res) => {
+    try {
+        const { firstName, lastName } = req.body;
+
+        if (!firstName || !lastName) {
+            return res.status(400).json({ status: 'error', message: 'First name and last name are required' });
+        }
+
+        const users = getMockData();
+        const userIndex = users.findIndex(u => u.id === req.user.id);
+
+        if (userIndex === -1) {
+            return res.status(404).json({ status: 'error', message: 'User not found' });
+        }
+
+        // Update name fields — store both combined and split for compatibility
+        users[userIndex].firstName = firstName.trim();
+        users[userIndex].lastName = lastName.trim();
+        users[userIndex].name = `${firstName.trim()} ${lastName.trim()}`;
+
+        saveMockData(users);
+
+        const { password, ...updatedUser } = users[userIndex];
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Profile updated successfully',
+            data: { user: updatedUser }
+        });
+    } catch (error) {
+        console.error('Update profile error:', error);
+        res.status(500).json({ status: 'error', message: 'Server error' });
+    }
+};
+
+// PATCH /api/auth/email — Change email address (requires current password, authenticated)
+export const updateEmail = async (req, res) => {
+    try {
+        const { email, currentPassword } = req.body;
+
+        if (!email || !currentPassword) {
+            return res.status(400).json({ status: 'error', message: 'New email and current password are required' });
+        }
+
+        const users = getMockData();
+        const userIndex = users.findIndex(u => u.id === req.user.id);
+
+        if (userIndex === -1) {
+            return res.status(404).json({ status: 'error', message: 'User not found' });
+        }
+
+        // Verify current password
+        const isMatch = await bcrypt.compare(currentPassword, users[userIndex].password);
+        if (!isMatch) {
+            return res.status(401).json({ status: 'error', message: 'Current password is incorrect' });
+        }
+
+        // Check if the new email is already taken by another user
+        const emailTaken = users.find(u => u.email === email && u.id !== req.user.id);
+        if (emailTaken) {
+            return res.status(409).json({ status: 'error', message: 'Email is already registered to another account' });
+        }
+
+        // Update email
+        users[userIndex].email = email.trim().toLowerCase();
+        saveMockData(users);
+
+        const { password, ...updatedUser } = users[userIndex];
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Email updated successfully',
+            data: { user: updatedUser }
+        });
+    } catch (error) {
+        console.error('Update email error:', error);
+        res.status(500).json({ status: 'error', message: 'Server error' });
+    }
+};
+
+// PATCH /api/auth/password — Change password while authenticated
+export const changePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword, confirmNewPassword } = req.body;
+
+        if (!currentPassword || !newPassword || !confirmNewPassword) {
+            return res.status(400).json({ status: 'error', message: 'Current password, new password, and confirm password are required' });
+        }
+
+        if (newPassword !== confirmNewPassword) {
+            return res.status(400).json({ status: 'error', message: 'New password and confirm password do not match' });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({ status: 'error', message: 'New password must be at least 6 characters' });
+        }
+
+        const users = getMockData();
+        const userIndex = users.findIndex(u => u.id === req.user.id);
+
+        if (userIndex === -1) {
+            return res.status(404).json({ status: 'error', message: 'User not found' });
+        }
+
+        // Verify current password
+        const isMatch = await bcrypt.compare(currentPassword, users[userIndex].password);
+        if (!isMatch) {
+            return res.status(401).json({ status: 'error', message: 'Current password is incorrect' });
+        }
+
+        // Hash and save new password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        users[userIndex].password = hashedPassword;
+        saveMockData(users);
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Password changed successfully'
+        });
+    } catch (error) {
+        console.error('Change password error:', error);
+        res.status(500).json({ status: 'error', message: 'Server error' });
+    }
+};
+

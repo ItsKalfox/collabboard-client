@@ -7,6 +7,7 @@ import logoBL from './assets/logo-BL.png';
 import ProjectsPage from './components/projects/ProjectsPage';
 import Dashboard from './pages/Dashboard';
 import Board from './pages/Board';
+import Settings from './pages/Settings';
 import AuthModule from './components/auth/AuthModule';
 import './App.css';
 
@@ -267,9 +268,18 @@ function App() {
               color: 'var(--text-primary)',
               width: '56px',
               height: '56px',
-              marginBottom: '4px'
+              marginBottom: '4px',
+              overflow: 'hidden'
             }}>
-              {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
+              {currentUser?.avatar ? (
+                <img
+                  src={currentUser.avatar}
+                  alt="Profile"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                />
+              ) : (
+                currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'U'
+              )}
             </div>
             
             <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', alignItems: 'center', marginBottom: '8px' }}>
@@ -386,6 +396,8 @@ function App() {
             />
           ) : activeTab === 'Projects' ? (
             <ProjectsPage theme={theme} toggleTheme={toggleTheme} currentUser={currentUser} onOpenBoard={handleOpenBoard} />
+          ) : activeTab === 'Settings' ? (
+            <Settings currentUser={currentUser} setCurrentUser={setCurrentUser} />
           ) : (
             <div style={{ color: 'var(--text-secondary)', padding: '20px' }}>
               {activeTab} content view...

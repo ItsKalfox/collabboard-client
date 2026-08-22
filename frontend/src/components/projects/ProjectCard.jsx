@@ -80,14 +80,24 @@ export default function ProjectCard({
           <div
             key={idx}
             className={`pc-list-avatar${lightCls}`}
-            style={{ backgroundColor: member.bg || COLOR_HEX.blue, zIndex: 10 - idx }}
-            title={member.name}
+            style={{ backgroundColor: member.avatar ? 'transparent' : (member.bg || COLOR_HEX.blue), zIndex: 10 - idx }}
           >
-            {member.avatar ? (
-              <img src={member.avatar} alt={member.name} />
-            ) : (
-              member.initials || member.name?.substring(0, 2) || '?'
-            )}
+            <div className="avatar-inner">
+              {member.avatar ? (
+                <img src={member.avatar} alt={member.name} />
+              ) : (
+                member.initials || member.name?.trim().split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?'
+              )}
+            </div>
+            <div className="custom-avatar-tooltip">
+              <div className="tooltip-avatar" style={{ backgroundColor: member.bg || COLOR_HEX.blue }}>
+                {member.avatar ? <img src={member.avatar} alt="" /> : (member.initials || member.name?.trim().split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?')}
+              </div>
+              <div className="tooltip-info">
+                <span className="name">{member.name}</span>
+                <span className="email">{member.email || member.role || 'Member'}</span>
+              </div>
+            </div>
           </div>
         ))}
         {membersList.length > 4 && (

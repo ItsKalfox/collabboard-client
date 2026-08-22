@@ -1,0 +1,45 @@
+meta:
+  name: Remove Avatar
+  type: http
+  seq: 3
+
+http:
+  method: DELETE
+  url: http://localhost:5000/api/users/avatar
+  auth: bearer
+
+auth:
+  bearer:
+    token: "{{token}}"
+
+docs: |
+  ## Remove Avatar
+
+  Removes the authenticated user's profile picture. The image is deleted from Cloudinary
+  and the `avatar` and `avatarPublicId` fields are cleared from the user's record.
+
+  **Authentication:** Required (Bearer token)
+
+  **Request Body:** None
+
+  **Successful Response (200):**
+  ```json
+  {
+    "status": "success",
+    "message": "Avatar removed successfully",
+    "data": {
+      "user": {
+        "id": "...",
+        "name": "John Doe",
+        "email": "john@example.com",
+        "avatar": null,
+        "avatarPublicId": null
+      }
+    }
+  }
+  ```
+
+  **Error — User Not Found (404):**
+  ```json
+  { "status": "error", "message": "User not found" }
+  ```

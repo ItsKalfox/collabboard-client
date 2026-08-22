@@ -108,12 +108,11 @@ export function getMemberByName(name) {
   );
   if (found) return found;
 
-  const initials = nameStr
-    .split(' ')
-    .map(w => w[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
+  // Generate proper 2-letter initials: first letter of first name + first letter of last name
+  const parts = nameStr.trim().split(/\s+/);
+  const initials = parts.length >= 2
+    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    : (nameStr.substring(0, 2)).toUpperCase();
 
   return {
     name: nameStr,
@@ -130,10 +129,22 @@ export function normalizeMember(member) {
   }
   if (member && member.name) {
     const defaultData = getMemberByName(member.name);
+
+    // Always recompute initials from the actual name for accuracy
+    const nameStr = member.name.trim();
+    const parts = nameStr.split(/\s+/);
+    const initials = parts.length >= 2
+      ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+      : nameStr.substring(0, 2).toUpperCase();
+
     return {
       ...defaultData,
-      ...member
+      ...member,
+      initials: member.initials || initials,
+      // Live avatar from API always wins over mock avatar
+      avatar: member.avatar !== undefined ? member.avatar : defaultData.avatar
     };
   }
   return member;
 }
+

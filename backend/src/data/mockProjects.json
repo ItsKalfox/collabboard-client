@@ -27,10 +27,15 @@
         "userId": "1787051953156",
         "role": "member",
         "joinedAt": "2026-08-20T18:57:08.367Z"
+      },
+      {
+        "userId": "1786448728310",
+        "role": "Full Stack Developer",
+        "joinedAt": "2026-08-22T05:53:33.293Z"
       }
     ],
     "createdAt": "2026-08-10T08:00:00.000Z",
-    "updatedAt": "2026-08-20T18:57:08.367Z"
+    "updatedAt": "2026-08-22T05:53:33.293Z"
   },
   {
     "id": "proj_002",
