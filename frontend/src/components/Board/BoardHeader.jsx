@@ -82,13 +82,23 @@ export default function BoardHeader({ project = {}, onAddTask, onAddMember, onAd
                 key={idx}
                 className="pc-list-avatar"
                 style={{ backgroundColor: member.avatar ? 'transparent' : (member.bg || COLOR_HEX.blue), zIndex: 10 - idx }}
-                title={member.name}
               >
-                {member.avatar ? (
-                  <img src={member.avatar} alt={member.name} />
-                ) : (
-                  member.initials || member.name?.trim().split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?'
-                )}
+                <div className="avatar-inner">
+                  {member.avatar ? (
+                    <img src={member.avatar} alt={member.name} />
+                  ) : (
+                    member.initials || member.name?.trim().split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?'
+                  )}
+                </div>
+                <div className="custom-avatar-tooltip">
+                  <div className="tooltip-avatar" style={{ backgroundColor: member.bg || COLOR_HEX.blue }}>
+                    {member.avatar ? <img src={member.avatar} alt="" /> : (member.initials || member.name?.trim().split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?')}
+                  </div>
+                  <div className="tooltip-info">
+                    <span className="name">{member.name}</span>
+                    <span className="email">{member.email || member.role || 'Member'}</span>
+                  </div>
+                </div>
               </div>
             ))}
             {projectMembers.length > 4 && (
