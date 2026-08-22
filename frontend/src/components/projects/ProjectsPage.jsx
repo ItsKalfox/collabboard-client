@@ -190,6 +190,7 @@ export default function ProjectsPage({ theme = 'dark', currentUser, onOpenBoard 
         onOpenBoard={onOpenBoard} 
         onEdit={(p) => setEditingProject(p)}
         theme={theme} 
+        currentUser={activeUser}
       />
       <CreateProjectModal 
         isOpen={isCreateOpen} 

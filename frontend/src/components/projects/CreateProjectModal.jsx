@@ -40,7 +40,6 @@ export default function CreateProjectModal({
 
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [tasks, setTasks] = useState([]);
-  const [newSubtaskTitles, setNewSubtaskTitles] = useState({});
 
   const resetForm = useCallback(() => {
     setName('');
@@ -56,7 +55,6 @@ export default function CreateProjectModal({
     setMembers([]);
     setNewTaskTitle('');
     setTasks([]);
-    setNewSubtaskTitles({});
     setError('');
     setIsSubmitting(false);
   }, []);
@@ -306,32 +304,6 @@ export default function CreateProjectModal({
 
   const removeTask = (taskId) => {
     setTasks(tasks.filter(t => t.id !== taskId));
-    const newSubTitles = { ...newSubtaskTitles };
-    delete newSubTitles[taskId];
-    setNewSubtaskTitles(newSubTitles);
-  };
-
-  const handleAddSubtask = (e, taskId) => {
-    e.preventDefault();
-    const title = (newSubtaskTitles[taskId] || '').trim();
-    if (title) {
-      setTasks(tasks.map(t => {
-        if (t.id === taskId) {
-          return { ...t, subtasks: [...t.subtasks, { id: `s-${Date.now()}`, title }] };
-        }
-        return t;
-      }));
-      setNewSubtaskTitles({ ...newSubtaskTitles, [taskId]: '' });
-    }
-  };
-
-  const removeSubtask = (taskId, subtaskId) => {
-    setTasks(tasks.map(t => {
-      if (t.id === taskId) {
-        return { ...t, subtasks: t.subtasks.filter(s => s.id !== subtaskId) };
-      }
-      return t;
-    }));
   };
 
   return (
@@ -648,53 +620,18 @@ export default function CreateProjectModal({
             </form>
 
             {tasks.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {tasks.map(t => (
-                  <div key={t.id} style={{ background: 'var(--popup-card-bg)', border: 'var(--popup-card-border)', borderRadius: '8px', padding: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--popup-text-main)' }}>{t.title}</span>
-                      <button 
-                        type="button"
-                        onClick={() => removeTask(t.id)}
-                        style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-
-                    {/* Subtasks */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginLeft: '16px', paddingLeft: '12px', borderLeft: '2px solid var(--popup-divider)' }}>
-                      {t.subtasks.map(s => (
-                        <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: '13px', color: 'var(--popup-text-muted)' }}>{s.title}</span>
-                          <button 
-                            type="button"
-                            onClick={() => removeSubtask(t.id, s.id)}
-                            style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px' }}
-                          >
-                            <X size={12} />
-                          </button>
-                        </div>
-                      ))}
-                      
-                      <form onSubmit={(e) => handleAddSubtask(e, t.id)} style={{ display: 'flex', gap: '8px', marginTop: '4px', alignItems: 'center' }}>
-                        <input
-                          className="popup-mini-input"
-                          style={{ fontSize: '12px', padding: '0 8px', flex: 1, fontWeight: '400', height: '30px', margin: 0, boxSizing: 'border-box' }}
-                          placeholder="Add subtask..."
-                          value={newSubtaskTitles[t.id] || ''}
-                          onChange={e => setNewSubtaskTitles({ ...newSubtaskTitles, [t.id]: e.target.value })}
-                        />
-                        <button 
-                          type="submit" 
-                          className="popup-save-btn"
-                          style={{ background: 'var(--popup-btn-bg)', border: 'var(--popup-btn-border)', color: 'var(--popup-text-main)', cursor: 'pointer', padding: '0 12px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' }}
-                          disabled={!(newSubtaskTitles[t.id] || '').trim()}
-                        >
-                          <Plus size={14} strokeWidth={2.5} />
-                        </button>
-                      </form>
-                    </div>
+                  <div key={t.id} style={{ background: 'var(--popup-card-bg)', border: 'var(--popup-card-border)', borderRadius: '8px', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '14px', fontWeight: '500', color: 'var(--popup-text-main)' }}>{t.title}</span>
+                    <button 
+                      type="button"
+                      onClick={() => removeTask(t.id)}
+                      style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                      title="Remove task"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 ))}
               </div>

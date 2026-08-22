@@ -84,9 +84,6 @@ export const getProjects = (req, res) => {
     try {
         const { q } = req.query;
 
-        const users = getMockUsers();
-        const tasks = getMockTasks();
-
         let projects = getMockProjects();
 
         if (q) {
@@ -96,63 +93,10 @@ export const getProjects = (req, res) => {
             );
         }
 
-        const augmentedProjects = projects.map(p => {
-            // Populate ownerName
-            const ownerObj = users.find(u => String(u.id) === String(p.ownerId));
-            const ownerName = ownerObj ? ownerObj.name : 'Unknown Owner';
-
-            // Populate members
-            const augmentedMembers = (p.members || []).map(m => {
-                const userObj = users.find(u => String(u.id) === String(m.userId || m.id));
-                const name = userObj ? userObj.name : (m.name || 'Unknown');
-                return {
-                    ...m,
-                    name: name,
-                    email: userObj ? userObj.email : (m.email || ''),
-                    avatar: userObj ? (userObj.avatar || null) : null,
-                    firstName: userObj ? (userObj.firstName || null) : null,
-                    lastName: userObj ? (userObj.lastName || null) : null,
-                    initials: name && name !== 'Unknown' ? name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '?'
-                };
-            });
-
-            // Calculate progress
-            const projectTasks = tasks.filter(t => t.projectId === p.id);
-            let progress = p.progress || 0;
-            if (projectTasks.length > 0) {
-                let totalItems = 0;
-                let completedItems = 0;
-                projectTasks.forEach(t => {
-                    const subtasks = t.subtasks || [];
-                    if (subtasks.length > 0) {
-                        subtasks.forEach(s => {
-                            totalItems++;
-                            if (s.done || s.completed) completedItems++;
-                        });
-                    } else {
-                        totalItems++;
-                        const isDone = Boolean(t.done || t.completed || t.status === 'done' || t.status === 'completed' || t.status === 'Done' || t.status === 'Completed');
-                        if (isDone) completedItems++;
-                    }
-                });
-                if (totalItems > 0) {
-                    progress = Math.round((completedItems / totalItems) * 100);
-                }
-            }
-
-            return {
-                ...p,
-                ownerName,
-                owner: ownerName,
-                members: augmentedMembers,
-                progress
-            };
-        });
-
         res.status(200).json({
             status: 'success',
             data: {
-                projects: augmentedProjects
+                projects
             }
         });
     } catch (error) {
@@ -179,64 +123,10 @@ export const getProjectById = (req, res) => {
             });
         }
 
-        const users = getMockUsers();
-        const tasks = getMockTasks();
-
-        // Populate ownerName
-        const ownerObj = users.find(u => String(u.id) === String(project.ownerId));
-        const ownerName = ownerObj ? ownerObj.name : 'Unknown Owner';
-
-        // Populate members
-        const augmentedMembers = (project.members || []).map(m => {
-            const userObj = users.find(u => String(u.id) === String(m.userId || m.id));
-            const name = userObj ? userObj.name : (m.name || 'Unknown');
-            return {
-                ...m,
-                name: name,
-                email: userObj ? userObj.email : (m.email || ''),
-                avatar: userObj ? (userObj.avatar || null) : null,
-                firstName: userObj ? (userObj.firstName || null) : null,
-                lastName: userObj ? (userObj.lastName || null) : null,
-                initials: name && name !== 'Unknown' ? name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '?'
-            };
-        });
-
-        // Calculate progress
-        const projectTasks = tasks.filter(t => t.projectId === project.id);
-        let progress = project.progress || 0;
-        if (projectTasks.length > 0) {
-            let totalItems = 0;
-            let completedItems = 0;
-            projectTasks.forEach(t => {
-                const subtasks = t.subtasks || [];
-                if (subtasks.length > 0) {
-                    subtasks.forEach(s => {
-                        totalItems++;
-                        if (s.done || s.completed) completedItems++;
-                    });
-                } else {
-                    totalItems++;
-                    const isDone = Boolean(t.done || t.completed || t.status === 'done' || t.status === 'completed' || t.status === 'Done' || t.status === 'Completed');
-                    if (isDone) completedItems++;
-                }
-            });
-            if (totalItems > 0) {
-                progress = Math.round((completedItems / totalItems) * 100);
-            }
-        }
-
-        const augmentedProject = {
-            ...project,
-            ownerName,
-            owner: ownerName,
-            members: augmentedMembers,
-            progress
-        };
-
         res.status(200).json({
             status: 'success',
             data: {
-                project: augmentedProject
+                project
             }
         });
     } catch (error) {
@@ -745,9 +635,6 @@ export const getProjectMembers = (req, res) => {
                 userId: m.userId,
                 name: user ? user.name : 'Unknown User',
                 email: user ? user.email : '',
-                avatar: user ? (user.avatar || null) : null,
-                firstName: user ? (user.firstName || null) : null,
-                lastName: user ? (user.lastName || null) : null,
                 role: m.role || 'member',
                 joinedAt: m.joinedAt || project.createdAt
             };
@@ -867,6 +754,14 @@ export const removeProjectMember = (req, res) => {
         }
 
         const project = projects[projectIndex];
+
+        // Only the owner can remove members from the project
+        if (project.ownerId && project.ownerId !== req.user.id) {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Only the project owner can remove team members'
+            });
+        }
 
         if (!project.members) {
             project.members = [{ userId: project.ownerId, role: 'owner', joinedAt: project.createdAt }];
