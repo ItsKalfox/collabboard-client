@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { X, ArrowRight, ChevronDown, ChevronRight, UserPlus, Trash2, Calendar, Search, AlertCircle, Loader2, RefreshCw, Clock, CheckSquare } from 'lucide-react';
 import { MOCK_MEMBERS, normalizeMember } from '../../mock/mockMembers';
 import { uploadCoverImage, getAttachments, uploadAttachment, deleteAttachment, getProjectMembers, searchUsers, addProjectMember, removeProjectMember, getProjectTasks, getProjectTimeline, refreshProjectTimeline, downloadAttachment } from '../../services/projectService';
-import { calculateProjectProgress } from '../../utils/projectUtils';
+import { calculateProjectProgress, isProjectOwner } from '../../utils/projectUtils';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import '../TaskPopup/TaskPopup.css';
 import './projects.css';
@@ -30,7 +30,8 @@ export default function ProjectDetailsModal({
   onDeleteProject,
   onOpenBoard, 
   onEdit,
-  theme = 'dark' 
+  theme = 'dark',
+  currentUser
 }) {
   const lightCls = theme === 'light' ? ' light' : '';
   const fileInputRef = useRef();
@@ -615,6 +616,7 @@ export default function ProjectDetailsModal({
 
   const activeTasksList = apiTasks.length > 0 ? apiTasks : (project.tasks || []);
   const progressPercent = calculateProjectProgress(project, activeTasksList);
+  const isOwner = isProjectOwner(project, currentUser);
 
   return (
     <div className="popup-backdrop" onClick={() => !isEditing && onClose()}>
@@ -1292,12 +1294,12 @@ export default function ProjectDetailsModal({
                           >
                             <div style={{
                               width: '26px', height: '26px', borderRadius: '50%',
-                              background: emp.avatar ? 'transparent' : (emp.bg || COLOR_HEX.blue), color: '#fff',
+                              background: emp.bg || COLOR_HEX.blue, color: '#fff',
                               fontSize: '10px', fontWeight: '700',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                               overflow: 'hidden', flexShrink: 0
                             }}>
-                              {emp.avatar ? <img src={emp.avatar} alt={emp.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (emp.initials || emp.name?.trim().split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?')}
+                              {emp.avatar ? <img src={emp.avatar} alt={emp.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : emp.initials}
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                               <span style={{ fontSize: '13px', fontWeight: '600', color: theme === 'light' ? '#0f172a' : '#f8fafc' }}>{emp.name}</span>
@@ -1336,14 +1338,14 @@ export default function ProjectDetailsModal({
                   const norm = normalizeMember(m);
                   return (
                     <div key={norm.userId || norm.name || idx} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'var(--popup-card-bg)', border: 'var(--popup-card-border)', borderRadius: '12px' }}>
-                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: norm.avatar ? 'transparent' : (norm.bg || COLOR_HEX.blue), display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '12px', fontWeight: '700', overflow: 'hidden', flexShrink: 0 }}>
-                        {norm.avatar ? <img src={norm.avatar} alt={norm.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (norm.initials || norm.name?.trim().split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'U')}
+                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: norm.bg || COLOR_HEX.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '12px', fontWeight: '700', overflow: 'hidden', flexShrink: 0 }}>
+                        {norm.avatar ? <img src={norm.avatar} alt={norm.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (norm.initials || (norm.name && norm.name.substring(0, 2)) || 'U')}
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '14px', fontWeight: '500', color: 'var(--popup-text-main)' }}>{norm.name}</div>
                         <div style={{ fontSize: '12px', color: 'var(--popup-text-muted)' }}>{project.owner === norm.name ? 'Owner' : norm.role || 'Member'}</div>
                       </div>
-                      {project.owner !== norm.name && (
+                      {isOwner && project.owner !== norm.name && (
                         <button 
                           onClick={() => setMemberToRemove(norm)}
                           style={{ background: 'var(--popup-btn-bg)', border: 'var(--popup-btn-border)', color: '#ef4444', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex' }}
@@ -1365,35 +1367,37 @@ export default function ProjectDetailsModal({
         <div style={{ 
           marginTop: '24px', 
           display: 'flex', 
-          justifyContent: 'space-between', 
+          justifyContent: isOwner ? 'space-between' : 'flex-end', 
           alignItems: 'center', 
           paddingTop: '16px', 
           borderTop: 'var(--popup-divider)' 
         }}>
-          <button
-            type="button"
-            className="popup-delete-btn"
-            onClick={() => setIsDeleteConfirmOpen(true)}
-            title="Delete Project"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              background: 'rgba(239, 68, 68, 0.12)',
-              border: '1px solid rgba(239, 68, 68, 0.35)',
-              color: '#ef4444',
-              padding: '8px 14px',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '13px',
-              fontWeight: '600',
-              transition: 'all 0.2s'
-            }}
-          >
-            <Trash2 size={15} />
-            <span>Delete Project</span>
-          </button>
+          {isOwner && (
+            <button
+              type="button"
+              className="popup-delete-btn"
+              onClick={() => setIsDeleteConfirmOpen(true)}
+              title="Delete Project"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                background: 'rgba(239, 68, 68, 0.12)',
+                border: '1px solid rgba(239, 68, 68, 0.35)',
+                color: '#ef4444',
+                padding: '8px 14px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: '600',
+                transition: 'all 0.2s'
+              }}
+            >
+              <Trash2 size={15} />
+              <span>Delete Project</span>
+            </button>
+          )}
 
           <button className="popup-save-btn" onClick={handleOpenBoard} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span>Open Project Board</span>
