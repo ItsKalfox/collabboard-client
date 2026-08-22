@@ -1,0 +1,54 @@
+meta:
+  name: Update Profile
+  type: http
+  seq: 6
+
+http:
+  method: PATCH
+  url: http://localhost:5000/api/auth/profile
+  auth: bearer
+  body: json
+
+auth:
+  bearer:
+    token: "{{token}}"
+
+body:
+  json: |
+    {
+      "firstName": "John",
+      "lastName": "Doe"
+    }
+
+docs: |
+  ## Update Profile
+
+  Updates the authenticated user's first name and last name.
+
+  **Authentication:** Required (Bearer token)
+
+  **Request Body:**
+  - `firstName` (string, required) — User's first name
+  - `lastName` (string, required) — User's last name
+
+  **Successful Response (200):**
+  ```json
+  {
+    "status": "success",
+    "message": "Profile updated successfully",
+    "data": {
+      "user": {
+        "id": "...",
+        "name": "John Doe",
+        "firstName": "John",
+        "lastName": "Doe",
+        "email": "john@example.com"
+      }
+    }
+  }
+  ```
+
+  **Error — Missing Fields (400):**
+  ```json
+  { "status": "error", "message": "First name and last name are required" }
+  ```

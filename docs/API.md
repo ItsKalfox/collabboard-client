@@ -21,6 +21,13 @@ The API is built using **Node.js** and **Express.js** and provides authenticatio
   * [Get Current User](#3-get-current-user)
   * [Forgot Password](#4-forgot-password)
   * [Reset Password](#5-reset-password)
+  * [Update Profile](#6-update-profile)
+  * [Update Email](#7-update-email)
+  * [Change Password](#8-change-password)
+* [User Endpoints](#user-endpoints)
+  * [Search Users](#1-search-users)
+  * [Upload Avatar](#2-upload-avatar)
+  * [Remove Avatar](#3-remove-avatar)
 * [Project Endpoints](#project-endpoints)
   * [Get All Projects](#1-get-all-projects)
   * [Get Project by ID](#2-get-project-by-id)
@@ -3294,3 +3301,380 @@ Base path:
 ---
 
 **CollabBoard API Documentation**
+
+---
+
+# User Endpoints
+
+## 1. Search Users
+
+Search for users by name or email.
+
+### Endpoint
+
+```http
+GET /api/users/search?q={query}
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/users/search?q=john
+```
+
+### Authentication
+
+Required.
+
+### Query Parameters
+
+| Parameter | Type   | Required | Description                             |
+| --------- | ------ | -------- | --------------------------------------- |
+| `q`       | String | No       | Search term — matches name or email     |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "data": {
+    "users": [
+      { "id": "...", "name": "John Doe", "email": "john@example.com" }
+    ]
+  }
+}
+```
+
+---
+
+## 2. Upload Avatar
+
+Uploads a profile picture for the authenticated user. The image is uploaded to Cloudinary and the URL is persisted in `mockData.json`.
+
+### Endpoint
+
+```http
+POST /api/users/avatar
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/users/avatar
+```
+
+### Authentication
+
+Required.
+
+### Request Body
+
+`multipart/form-data`
+
+| Field    | Type | Required | Description                                              |
+| -------- | ---- | -------- | -------------------------------------------------------- |
+| `avatar` | File | Yes      | Image file (JPEG, PNG, WebP, or GIF). Maximum size 10MB. |
+
+The image is automatically cropped to 400×400px with face-aware gravity and optimized by Cloudinary.
+If the user already has an avatar, the old Cloudinary asset is deleted first.
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Avatar uploaded successfully",
+  "data": {
+    "avatarUrl": "https://res.cloudinary.com/your-cloud/image/upload/collabboard/avatars/avatar_123.jpg",
+    "user": {
+      "id": "...",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "avatar": "https://res.cloudinary.com/..."
+    }
+  }
+}
+```
+
+### Error — No File Provided
+
+**Status:** `400 Bad Request`
+
+```json
+{ "status": "error", "message": "No image file provided" }
+```
+
+### Error — File Too Large
+
+**Status:** `400 Bad Request` (by Multer)
+
+```json
+{ "status": "error", "message": "File too large" }
+```
+
+---
+
+## 3. Remove Avatar
+
+Removes the authenticated user's profile picture. Deletes the asset from Cloudinary and clears the `avatar` field in `mockData.json`.
+
+### Endpoint
+
+```http
+DELETE /api/users/avatar
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/users/avatar
+```
+
+### Authentication
+
+Required.
+
+### Request Body
+
+None.
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Avatar removed successfully",
+  "data": {
+    "user": {
+      "id": "...",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "avatar": null,
+      "avatarPublicId": null
+    }
+  }
+}
+```
+
+---
+
+# Authentication Endpoints — Account Management
+
+## 6. Update Profile
+
+Updates the authenticated user's first and last name. Also updates the combined `name` field for backwards compatibility.
+
+### Endpoint
+
+```http
+PATCH /api/auth/profile
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/auth/profile
+```
+
+### Authentication
+
+Required.
+
+### Request Body
+
+```json
+{
+  "firstName": "John",
+  "lastName": "Doe"
+}
+```
+
+### Request Parameters
+
+| Field       | Type   | Required | Description       |
+| ----------- | ------ | -------- | ----------------- |
+| `firstName` | String | Yes      | User's first name |
+| `lastName`  | String | Yes      | User's last name  |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Profile updated successfully",
+  "data": {
+    "user": {
+      "id": "...",
+      "name": "John Doe",
+      "firstName": "John",
+      "lastName": "Doe",
+      "email": "john@example.com"
+    }
+  }
+}
+```
+
+### Error — Missing Fields
+
+**Status:** `400 Bad Request`
+
+```json
+{ "status": "error", "message": "First name and last name are required" }
+```
+
+---
+
+## 7. Update Email
+
+Changes the authenticated user's email address. Requires the current password for verification before the change is applied.
+
+### Endpoint
+
+```http
+PATCH /api/auth/email
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/auth/email
+```
+
+### Authentication
+
+Required.
+
+### Request Body
+
+```json
+{
+  "email": "newemail@example.com",
+  "currentPassword": "password123"
+}
+```
+
+### Request Parameters
+
+| Field             | Type   | Required | Description                              |
+| ----------------- | ------ | -------- | ---------------------------------------- |
+| `email`           | String | Yes      | New email address                        |
+| `currentPassword` | String | Yes      | Current password for identity verification |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Email updated successfully",
+  "data": {
+    "user": {
+      "id": "...",
+      "name": "John Doe",
+      "email": "newemail@example.com"
+    }
+  }
+}
+```
+
+### Error — Wrong Password
+
+**Status:** `401 Unauthorized`
+
+```json
+{ "status": "error", "message": "Current password is incorrect" }
+```
+
+### Error — Email Already Taken
+
+**Status:** `409 Conflict`
+
+```json
+{ "status": "error", "message": "Email is already registered to another account" }
+```
+
+---
+
+## 8. Change Password
+
+Changes the authenticated user's password. Requires the current password and two matching fields for the new password.
+
+### Endpoint
+
+```http
+PATCH /api/auth/password
+```
+
+### Full URL
+
+```text
+http://localhost:5000/api/auth/password
+```
+
+### Authentication
+
+Required.
+
+### Request Body
+
+```json
+{
+  "currentPassword": "oldpassword123",
+  "newPassword": "newpassword456",
+  "confirmNewPassword": "newpassword456"
+}
+```
+
+### Request Parameters
+
+| Field                | Type   | Required | Description                                    |
+| -------------------- | ------ | -------- | ---------------------------------------------- |
+| `currentPassword`    | String | Yes      | User's current password                        |
+| `newPassword`        | String | Yes      | New password (minimum 6 characters)            |
+| `confirmNewPassword` | String | Yes      | Must exactly match `newPassword`               |
+
+### Successful Response
+
+**Status:** `200 OK`
+
+```json
+{
+  "status": "success",
+  "message": "Password changed successfully"
+}
+```
+
+### Error — Wrong Current Password
+
+**Status:** `401 Unauthorized`
+
+```json
+{ "status": "error", "message": "Current password is incorrect" }
+```
+
+### Error — Password Mismatch
+
+**Status:** `400 Bad Request`
+
+```json
+{ "status": "error", "message": "New password and confirm password do not match" }
+```
+
+### Error — Password Too Short
+
+**Status:** `400 Bad Request`
+
+```json
+{ "status": "error", "message": "New password must be at least 6 characters" }
+```
+
+---
