@@ -755,6 +755,14 @@ export const removeProjectMember = (req, res) => {
 
         const project = projects[projectIndex];
 
+        // Only the owner can remove members from the project
+        if (project.ownerId && project.ownerId !== req.user.id) {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Only the project owner can remove team members'
+            });
+        }
+
         if (!project.members) {
             project.members = [{ userId: project.ownerId, role: 'owner', joinedAt: project.createdAt }];
         }

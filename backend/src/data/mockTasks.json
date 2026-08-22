@@ -136,5 +136,31 @@
     "subtasks": [],
     "createdAt": "2026-08-19T19:30:04.483Z",
     "updatedAt": "2026-08-19T19:30:04.483Z"
+  },
+  {
+    "id": "task_1787381228350_0",
+    "projectId": "proj_1787381228348",
+    "title": "dfbd",
+    "description": "",
+    "status": "todo",
+    "priority": "medium",
+    "assigneeId": "1786431927127",
+    "dueDate": "2026-09-02",
+    "subtasks": [],
+    "createdAt": "2026-08-22T06:47:08.349Z",
+    "updatedAt": "2026-08-22T06:47:08.349Z"
+  },
+  {
+    "id": "task_1787381228350_1",
+    "projectId": "proj_1787381228348",
+    "title": "fdb",
+    "description": "",
+    "status": "todo",
+    "priority": "medium",
+    "assigneeId": "1786431927127",
+    "dueDate": "2026-09-02",
+    "subtasks": [],
+    "createdAt": "2026-08-22T06:47:08.349Z",
+    "updatedAt": "2026-08-22T06:47:08.349Z"
   }
 ]
