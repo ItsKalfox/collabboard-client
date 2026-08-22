@@ -4,7 +4,7 @@
     "projectId": "proj_001",
     "title": "Design Homepage Wireframs",
     "description": "Create low-fidelity wireframes for desktop and mobile layouts.",
-    "status": "in_progress",
+    "status": "review",
     "priority": "medium",
     "assigneeId": "1786340518154",
     "createdAt": "2026-08-19T09:30:00",
@@ -47,7 +47,7 @@
     "projectId": "proj_001",
     "title": "Setup Color Palette & Typograph",
     "description": "Establish theme tokens for light and dark modes.",
-    "status": "todo",
+    "status": "in_progress",
     "priority": "high",
     "assigneeId": "1786356291453",
     "createdAt": "2026-08-19T14:00:00",
@@ -61,7 +61,7 @@
       {
         "id": "sub_105",
         "title": "Google Fonts integration",
-        "completed": true
+        "completed": false
       }
     ],
     "updatedAt": "2026-08-19T12:00:00"

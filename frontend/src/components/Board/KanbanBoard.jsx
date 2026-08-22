@@ -55,6 +55,12 @@ export default function KanbanBoard({ projectId, refreshKey }) {
   const [draggedTask, setDraggedTask] = useState(null);
   const [loading, setLoading] = useState(true);
   const [localRefresh, setLocalRefresh] = useState(0);
+  const [toastMessage, setToastMessage] = useState(null);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
 
   useEffect(() => {
     if (!projectId) return;
@@ -261,6 +267,29 @@ export default function KanbanBoard({ projectId, refreshKey }) {
     const task = currentColumn.tasks.find(t => t.id === activeId);
     if (task && task.status !== currentColumn.id) {
       const newStatus = currentColumn.id;
+      
+      const completedSubtasks = task.progressCurrent || 0;
+      const totalSubtasks = task.progressTotal || 0;
+
+      const revertMove = () => {
+        setColumns(prev => prev.map(c => {
+          if (c.id === currentColumn.id) return { ...c, tasks: c.tasks.filter(t => t.id !== activeId) };
+          if (c.id === task.status) return { ...c, tasks: [...c.tasks, task] };
+          return c;
+        }));
+      };
+      
+      if (newStatus === 'todo' && completedSubtasks > 0) {
+        showToast("Tasks with completed subtasks cannot be moved back to To Do.");
+        revertMove();
+        return;
+      }
+      
+      if (newStatus === 'completed' && completedSubtasks === totalSubtasks && totalSubtasks > 0 && !task.isApproved) {
+        showToast("Please get a review and approval before moving to Done.");
+        revertMove();
+        return;
+      }
 
       // Update local task state to reflect new status
       setColumns((prev) => prev.map(c => {
@@ -293,6 +322,23 @@ export default function KanbanBoard({ projectId, refreshKey }) {
 
   return (
     <>
+      {toastMessage && (
+        <div className="kanban-toast" style={{
+          position: 'fixed',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: '#ef4444',
+          color: 'white',
+          padding: '12px 24px',
+          borderRadius: '8px',
+          zIndex: 9999,
+          fontWeight: 500,
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+        }}>
+          {toastMessage}
+        </div>
+      )}
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}

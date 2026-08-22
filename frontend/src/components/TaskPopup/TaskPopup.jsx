@@ -164,20 +164,42 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ completed: newCompleted })
       });
+
+      // Calculate auto-move logic based on new completion status
+      const subs = task.subtasks.map((s, idx) => idx === i ? { ...s, completed: newCompleted } : s);
+      const totalSubs = subs.length;
+      const doneSubs = subs.filter(s => s.completed).length;
+      
+      let newStatus = task.status;
+      if (totalSubs > 0) {
+        if (doneSubs > 0 && doneSubs < totalSubs && newStatus === 'todo') {
+          newStatus = 'in_progress';
+        } else if (doneSubs === totalSubs && newStatus !== 'review' && newStatus !== 'completed') {
+          newStatus = 'review';
+        }
+      }
+
+      if (newStatus !== task.status) {
+        await fetch(`${apiUrl}/tasks/${task.id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ status: newStatus })
+        });
+      }
+
+      setTask(t => {
+        const verb = newCompleted ? 'completed' : 'reopened';
+        return {
+          ...t,
+          subtasks: subs,
+          status: newStatus,
+          activities: [{ text: `Subtask "${subs[i].title}" ${verb}`, timestamp: fmtNow() }, ...(t.activities || [])],
+        };
+      });
+      if (onUpdate) onUpdate();
     } catch (e) {
       console.error('Failed to toggle subtask', e);
     }
-
-    setTask(t => {
-      const subs = t.subtasks.map((s, idx) => idx === i ? { ...s, completed: newCompleted } : s);
-      const verb = newCompleted ? 'completed' : 'reopened';
-      return {
-        ...t,
-        subtasks: subs,
-        activities: [{ text: `Subtask "${subs[i].title}" ${verb}`, timestamp: fmtNow() }, ...(t.activities || [])],
-      };
-    });
-    if (onUpdate) onUpdate();
   };
 
   const deleteSubtask = (i) => {
@@ -204,6 +226,29 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
       activities: [{ text: `Subtask "${targetSub.title}" deleted`, timestamp: fmtNow() }, ...(t.activities || [])],
     }));
     if (onUpdate) onUpdate();
+  };
+
+  const handleApprove = async () => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const token = localStorage.getItem('token');
+      
+      await fetch(`${apiUrl}/tasks/${task.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ status: 'completed', isApproved: true })
+      });
+      
+      setTask(t => ({ 
+        ...t, 
+        status: 'completed', 
+        isApproved: true,
+        activities: [{ text: `Task was approved and moved to Done`, timestamp: fmtNow() }, ...(t.activities || [])]
+      }));
+      if (onUpdate) onUpdate();
+    } catch (e) {
+      console.error('Failed to approve task', e);
+    }
   };
 
   /* ── Add subtask ── */
@@ -545,8 +590,26 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
               <Icon d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0-18v8l3 3" />
               Status
             </div>
-            <div className="popup-meta-val popup-meta-text">
+            <div className="popup-meta-val popup-meta-text" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {formatStatus(task.status)}
+              {(() => {
+                const userJson = localStorage.getItem('user');
+                const currentUser = userJson ? JSON.parse(userJson) : null;
+                const isAssignee = currentUser && (task.assigneeId === currentUser.id || task.assigneeId === currentUser._id);
+                
+                return task.status === 'review' && !task.isApproved ? (
+                  <button 
+                    onClick={handleApprove}
+                    disabled={isAssignee}
+                    title={isAssignee ? "You cannot approve your own task" : "Approve this task"}
+                    style={{ padding: '2px 8px', fontSize: '11px', backgroundColor: isAssignee ? '#9ca3af' : '#34d399', color: 'white', border: 'none', borderRadius: '4px', cursor: isAssignee ? 'not-allowed' : 'pointer' }}
+                  >
+                    Approve
+                  </button>
+                ) : task.isApproved ? (
+                  <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 500 }}>✓ Approved</span>
+                ) : null;
+              })()}
             </div>
           </div>
 
