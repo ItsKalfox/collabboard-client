@@ -4,7 +4,7 @@
     "projectId": "proj_001",
     "title": "Design Homepage Wireframs",
     "description": "Create low-fidelity wireframes for desktop and mobile layouts.",
-    "status": "in_progress",
+    "status": "review",
     "priority": "medium",
     "assigneeId": "1786340518154",
     "createdAt": "2026-08-19T09:30:00",
@@ -13,18 +13,18 @@
       {
         "id": "sub_101",
         "title": "Desktop navbar layou",
-        "completed": false,
+        "completed": true,
         "description": ""
       },
       {
         "id": "sub_102",
         "title": "Hero section banner",
-        "completed": true
+        "completed": false
       },
       {
         "id": "sub_103",
         "title": "Footer links and responsive menu",
-        "completed": true
+        "completed": false
       }
     ],
     "updatedAt": "2026-08-19T10:00:00",
@@ -47,7 +47,7 @@
     "projectId": "proj_001",
     "title": "Setup Color Palette & Typograph",
     "description": "Establish theme tokens for light and dark modes.",
-    "status": "review",
+    "status": "in_progress",
     "priority": "high",
     "assigneeId": "1786356291453",
     "createdAt": "2026-08-19T14:00:00",
@@ -56,7 +56,8 @@
       {
         "id": "sub_104",
         "title": "Define CSS variables",
-        "completed": true
+        "completed": true,
+        "description": ""
       },
       {
         "id": "sub_105",
@@ -176,5 +177,18 @@
     "subtasks": [],
     "createdAt": "2026-08-19T19:30:04.483Z",
     "updatedAt": "2026-08-19T19:30:04.483Z"
+  },
+  {
+    "id": "task_1787458850042_0",
+    "projectId": "proj_1787458850037",
+    "title": "doggy style",
+    "description": "",
+    "status": "review",
+    "priority": "medium",
+    "assigneeId": "1786356291453",
+    "dueDate": null,
+    "subtasks": [],
+    "createdAt": "2026-08-23T04:20:50.041Z",
+    "updatedAt": "2026-08-23T04:20:50.041Z"
   }
 ]

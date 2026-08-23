@@ -29,18 +29,25 @@
   top: 24px;
   left: 50%;
   transform: translateX(-50%);
-  background-color: var(--menu-bg, rgba(0, 0, 0, 0.8));
-  color: #f87171;
+  background-color: #b2beb5;
+  color: #1f2937;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   padding: 10px 20px;
-  border-radius: 8px;
+  border-radius: 9999px;
   z-index: 9999;
   font-size: 13px;
   font-family: var(--font-family, 'Inter', sans-serif);
   font-weight: 500;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(248, 113, 113, 0.3);
+  border: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .kanban-toast {
+    background-color: #4b5563;
+    color: #f9fafb;
+  }
 }
 
 .kanban-column-header {
