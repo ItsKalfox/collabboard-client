@@ -179,7 +179,7 @@ export const deleteTask = async (req, res) => {
 export const updateTaskStatus = async (req, res) => {
     try {
         const { taskId } = req.params;
-        const { status } = req.body;
+        const { status, isApproved } = req.body;
         
         if (!status) {
             return res.status(400).json({ status: 'error', message: 'Status is required' });
@@ -193,6 +193,9 @@ export const updateTaskStatus = async (req, res) => {
         }
         
         tasks[taskIndex].status = status;
+        if (isApproved !== undefined) {
+            tasks[taskIndex].isApproved = isApproved;
+        }
         saveMockTasks(tasks);
         
         res.status(200).json({

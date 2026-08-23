@@ -93,10 +93,26 @@ export const getProjects = (req, res) => {
             );
         }
 
+        const users = getMockUsers();
+
+        const projectsWithMembers = projects.map(project => {
+            const projectMembers = project.members || [];
+            const mappedMembers = projectMembers.map(m => {
+                const user = users.find(u => u.id === m.userId);
+                return {
+                    ...m,
+                    name: user ? user.name : 'Unknown User',
+                    email: user ? user.email : '',
+                    avatar: user ? user.avatar : ''
+                };
+            });
+            return { ...project, members: mappedMembers };
+        });
+
         res.status(200).json({
             status: 'success',
             data: {
-                projects
+                projects: projectsWithMembers
             }
         });
     } catch (error) {
@@ -635,6 +651,7 @@ export const getProjectMembers = (req, res) => {
                 userId: m.userId,
                 name: user ? user.name : 'Unknown User',
                 email: user ? user.email : '',
+                avatar: user ? user.avatar : '',
                 role: m.role || 'member',
                 joinedAt: m.joinedAt || project.createdAt
             };

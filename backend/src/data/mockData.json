@@ -35,10 +35,14 @@
   },
   {
     "id": "1787051953156",
-    "name": "Cherry",
+    "name": "Cherry Dharmathilaka",
     "email": "dhachanu24@gmail.com",
     "password": "$2b$10$k.ikks7PknaLrnvEJVQsIeIA9yt84I1B7NdaaWG8Fq/Va0wqz80.6",
-    "date": "2026-08-18T11:19:13.156Z"
+    "date": "2026-08-18T11:19:13.156Z",
+    "avatar": "https://res.cloudinary.com/bpv9dfck/image/upload/v1787380927/collabboard/avatars/avatar_1787051953156.jpg",
+    "avatarPublicId": "collabboard/avatars/avatar_1787051953156",
+    "firstName": "Cherry",
+    "lastName": "Dharmathilaka"
   },
   {
     "id": "1787118790420",

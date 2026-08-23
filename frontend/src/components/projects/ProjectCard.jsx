@@ -1,4 +1,4 @@
-import { normalizeMember } from '../../mock/mockMembers';
+import { normalizeMember, getInitials } from '../../mock/mockMembers';
 
 const COLOR_HEX = {
   blue: '#3b82f6',
@@ -86,12 +86,12 @@ export default function ProjectCard({
               {member.avatar ? (
                 <img src={member.avatar} alt={member.name} />
               ) : (
-                member.initials || member.name?.trim().split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?'
+                member.initials || getInitials(member.name)
               )}
             </div>
             <div className="custom-avatar-tooltip">
               <div className="tooltip-avatar" style={{ backgroundColor: member.bg || COLOR_HEX.blue }}>
-                {member.avatar ? <img src={member.avatar} alt="" /> : (member.initials || member.name?.trim().split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?')}
+                {member.avatar ? <img src={member.avatar} alt="" /> : (member.initials || getInitials(member.name))}
               </div>
               <div className="tooltip-info">
                 <span className="name">{member.name}</span>

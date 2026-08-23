@@ -335,7 +335,7 @@ export const getRecentProjects = async (req, res) => {
                 return {
                     id: m.userId,
                     name: user?.name,
-                    avatar: user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}`
+                    avatar: user?.avatar || ''
                 };
             })
         }));

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useRecentProjects } from '../../hooks/useDashboardData';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { getInitials } from '../../mock/mockMembers';
 import './QuickLinksCard.css';
 
 export default function QuickLinksCard() {
@@ -149,7 +150,13 @@ export default function QuickLinksCard() {
                 </span>
                 <div className="project-avatars">
                   {project.members && project.members.map((member, i) => (
-                    <img key={i} src={member.avatar} alt={member.name} className="project-avatar" title={member.name} />
+                    member.avatar ? (
+                      <img key={i} src={member.avatar} alt={member.name} className="project-avatar" title={member.name} />
+                    ) : (
+                      <div key={i} className="project-avatar" title={member.name} style={{ backgroundColor: '#3b82f6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold' }}>
+                        {getInitials(member.name)}
+                      </div>
+                    )
                   ))}
                 </div>
             </div>

@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { formatDate } from '../../utils/dateUtils';
+import { isProjectOwner } from '../../utils/projectUtils';
 import ConfirmModal from '../Board/ConfirmModal';
 import './TaskPopup.css';
 
@@ -43,7 +44,7 @@ const CheckIcon = ({ size = 13 }) => (
 );
 
 /* ─── Main component ────────────────────────────────────────── */
-export default function TaskPopup({ task: prop, onClose, onUpdate }) {
+export default function TaskPopup({ task: prop, project, onClose, onUpdate }) {
   const fileInputRef = useRef();
 
   /* Initialise local task state from prop */
@@ -164,20 +165,44 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ completed: newCompleted })
       });
+
+      // Calculate auto-move logic based on new completion status
+      const subs = task.subtasks.map((s, idx) => idx === i ? { ...s, completed: newCompleted } : s);
+      const totalSubs = subs.length;
+      const doneSubs = subs.filter(s => s.completed).length;
+      
+      let newStatus = task.status;
+      if (totalSubs > 0) {
+        if (doneSubs > 0 && doneSubs < totalSubs) {
+          newStatus = 'in_progress';
+        } else if (doneSubs === totalSubs && newStatus !== 'review' && newStatus !== 'completed') {
+          newStatus = 'review';
+        } else if (doneSubs === 0 && newStatus === 'review') {
+          newStatus = 'in_progress';
+        }
+      }
+
+      if (newStatus !== task.status) {
+        await fetch(`${apiUrl}/tasks/${task.id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ status: newStatus })
+        });
+      }
+
+      setTask(t => {
+        const verb = newCompleted ? 'completed' : 'reopened';
+        return {
+          ...t,
+          subtasks: subs,
+          status: newStatus,
+          activities: [{ text: `Subtask "${subs[i].title}" ${verb}`, timestamp: fmtNow() }, ...(t.activities || [])],
+        };
+      });
+      if (onUpdate) onUpdate();
     } catch (e) {
       console.error('Failed to toggle subtask', e);
     }
-
-    setTask(t => {
-      const subs = t.subtasks.map((s, idx) => idx === i ? { ...s, completed: newCompleted } : s);
-      const verb = newCompleted ? 'completed' : 'reopened';
-      return {
-        ...t,
-        subtasks: subs,
-        activities: [{ text: `Subtask "${subs[i].title}" ${verb}`, timestamp: fmtNow() }, ...(t.activities || [])],
-      };
-    });
-    if (onUpdate) onUpdate();
   };
 
   const deleteSubtask = (i) => {
@@ -204,6 +229,29 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
       activities: [{ text: `Subtask "${targetSub.title}" deleted`, timestamp: fmtNow() }, ...(t.activities || [])],
     }));
     if (onUpdate) onUpdate();
+  };
+
+  const handleApprove = async () => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const token = localStorage.getItem('token');
+      
+      await fetch(`${apiUrl}/tasks/${task.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ status: 'completed', isApproved: true })
+      });
+      
+      setTask(t => ({ 
+        ...t, 
+        status: 'completed', 
+        isApproved: true,
+        activities: [{ text: `Task was approved and moved to Done`, timestamp: fmtNow() }, ...(t.activities || [])]
+      }));
+      if (onUpdate) onUpdate();
+    } catch (e) {
+      console.error('Failed to approve task', e);
+    }
   };
 
   /* ── Add subtask ── */
@@ -545,8 +593,26 @@ export default function TaskPopup({ task: prop, onClose, onUpdate }) {
               <Icon d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0-18v8l3 3" />
               Status
             </div>
-            <div className="popup-meta-val popup-meta-text">
+            <div className="popup-meta-val popup-meta-text" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {formatStatus(task.status)}
+              {(() => {
+                const userJson = localStorage.getItem('user');
+                const currentUser = userJson ? JSON.parse(userJson) : null;
+                const isOwner = isProjectOwner(project, currentUser);
+                
+                return task.status === 'review' && !task.isApproved ? (
+                  <button 
+                    onClick={handleApprove}
+                    disabled={!isOwner}
+                    title={!isOwner ? "Only the project owner can approve this task" : "Approve this task"}
+                    style={{ marginLeft: 'auto', padding: '6px 14px', fontSize: '13px', fontWeight: 600, backgroundColor: !isOwner ? '#9ca3af' : '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: !isOwner ? 'not-allowed' : 'pointer', transition: 'all 0.2s' }}
+                  >
+                    Approve Task
+                  </button>
+                ) : task.isApproved ? (
+                  <span style={{ marginLeft: 'auto', fontSize: '13px', color: '#10b981', fontWeight: 600 }}>✓ Approved</span>
+                ) : null;
+              })()}
             </div>
           </div>
 

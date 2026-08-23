@@ -49,12 +49,18 @@ function normalizeTaskForPopup(task, columnTitle) {
   };
 }
 
-export default function KanbanBoard({ projectId, refreshKey }) {
+export default function KanbanBoard({ projectId, refreshKey, currentProject }) {
   const [columns, setColumns] = useState(() => COLUMNS_DEF.map(col => ({ ...col, tasks: [] })));
   const [activeTask, setActiveTask] = useState(null);
   const [draggedTask, setDraggedTask] = useState(null);
   const [loading, setLoading] = useState(true);
   const [localRefresh, setLocalRefresh] = useState(0);
+  const [toastMessage, setToastMessage] = useState(null);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
 
   useEffect(() => {
     if (!projectId) return;
@@ -261,6 +267,35 @@ export default function KanbanBoard({ projectId, refreshKey }) {
     const task = currentColumn.tasks.find(t => t.id === activeId);
     if (task && task.status !== currentColumn.id) {
       const newStatus = currentColumn.id;
+      
+      const completedSubtasks = task.progressCurrent || 0;
+      const totalSubtasks = task.progressTotal || 0;
+
+      const revertMove = () => {
+        setColumns(prev => prev.map(c => {
+          if (c.id === currentColumn.id) return { ...c, tasks: c.tasks.filter(t => t.id !== activeId) };
+          if (c.id === task.status) return { ...c, tasks: [...c.tasks, task] };
+          return c;
+        }));
+      };
+      
+      if (newStatus === 'todo' && completedSubtasks > 0) {
+        showToast("Tasks with completed subtasks cannot be moved back to To Do.");
+        revertMove();
+        return;
+      }
+      
+      if (task.status === 'completed' && newStatus !== 'completed') {
+        showToast("Completed tasks cannot be moved to another column.");
+        revertMove();
+        return;
+      }
+
+      if (newStatus === 'completed' && !task.isApproved) {
+        showToast("Tasks must be reviewed and approved before moving to Done.");
+        revertMove();
+        return;
+      }
 
       // Update local task state to reflect new status
       setColumns((prev) => prev.map(c => {
@@ -293,6 +328,11 @@ export default function KanbanBoard({ projectId, refreshKey }) {
 
   return (
     <>
+      {toastMessage && (
+        <div className="kanban-toast">
+          {toastMessage}
+        </div>
+      )}
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
@@ -318,6 +358,7 @@ export default function KanbanBoard({ projectId, refreshKey }) {
       {activeTask && (
         <TaskPopup
           task={activeTask}
+          project={currentProject}
           onClose={() => setActiveTask(null)}
           onUpdate={() => setLocalRefresh(r => r + 1)}
         />
