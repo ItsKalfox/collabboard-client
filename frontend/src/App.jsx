@@ -59,8 +59,10 @@ function App() {
       .then(data => {
         if (data.status === 'success' && data.data && data.data.user) {
           setCurrentUser(data.data.user);
+          localStorage.setItem('user', JSON.stringify(data.data.user));
         } else {
           localStorage.removeItem('token');
+          localStorage.removeItem('user');
           if (!authRoutes.includes(activeTab)) setSessionExpired(true);
         }
       })
@@ -118,6 +120,7 @@ function App() {
 
   const handleLoginSuccess = (user) => {
     setCurrentUser(user);
+    localStorage.setItem('user', JSON.stringify(user));
     handleTabClick('Dashboard');
   };
 

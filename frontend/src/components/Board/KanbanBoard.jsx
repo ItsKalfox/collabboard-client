@@ -285,6 +285,12 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject }) {
         return;
       }
       
+      if (task.status === 'completed' && newStatus !== 'completed') {
+        showToast("Completed tasks cannot be moved to another column.");
+        revertMove();
+        return;
+      }
+
       if (newStatus === 'completed' && !task.isApproved) {
         showToast("Tasks must be reviewed and approved before moving to Done.");
         revertMove();
