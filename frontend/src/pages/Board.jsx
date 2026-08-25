@@ -392,10 +392,10 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
                 <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
                   <div className="skeleton-box" style={{ height: '24px', width: '120px', borderRadius: '6px' }} />
                   <div style={{ display: 'flex' }}>
-                    <div className="skeleton-box skeleton-avatar" style={{ marginLeft: '0', zIndex: 4 }} />
-                    <div className="skeleton-box skeleton-avatar" style={{ marginLeft: '-10px', zIndex: 3 }} />
-                    <div className="skeleton-box skeleton-avatar" style={{ marginLeft: '-10px', zIndex: 2 }} />
-                    <div className="skeleton-box skeleton-avatar" style={{ marginLeft: '-10px', zIndex: 1 }} />
+                    <div className="skeleton-avatar" style={{ marginLeft: '0', zIndex: 4 }} />
+                    <div className="skeleton-avatar" style={{ marginLeft: '-10px', zIndex: 3 }} />
+                    <div className="skeleton-avatar" style={{ marginLeft: '-10px', zIndex: 2 }} />
+                    <div className="skeleton-avatar" style={{ marginLeft: '-10px', zIndex: 1 }} />
                   </div>
                 </div>
               </div>
@@ -418,15 +418,7 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
                       </div>
                     </div>
                     <div className="kanban-tasks-list" style={{ minHeight: '150px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      <div className="task-card" style={{ height: '140px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', cursor: 'default', boxShadow: 'none' }}>
-                        <div className="skeleton-box" style={{ height: '20px', width: '70%', borderRadius: '4px', background: 'rgba(150, 150, 150, 0.15)' }} />
-                        <div className="skeleton-box" style={{ height: '14px', width: '100%', borderRadius: '4px', background: 'rgba(150, 150, 150, 0.15)' }} />
-                        <div className="skeleton-box" style={{ height: '14px', width: '80%', borderRadius: '4px', background: 'rgba(150, 150, 150, 0.15)' }} />
-                        <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                           <div className="skeleton-box" style={{ height: '20px', width: '60px', borderRadius: '10px', background: 'rgba(150, 150, 150, 0.15)' }} />
-                           <div className="skeleton-box skeleton-avatar" style={{ width: '24px', height: '24px', background: 'rgba(150, 150, 150, 0.15)' }} />
-                        </div>
-                      </div>
+                      <div className="skeleton-box" style={{ height: '140px', width: '100%', borderRadius: '16px' }} />
                     </div>
                   </div>
                 ))}

@@ -63,7 +63,6 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  border: 2px solid var(--bg-color, #fff);
   background: rgba(150, 150, 150, 0.3);
   animation: skeleton-pulse 1.5s ease-in-out infinite;
 }

@@ -137,7 +137,7 @@ function App() {
         opacity: 1
       });
     }
-  }, [activeTab, isMenuOpen]);
+  }, [activeTab, isMenuOpen, currentUser]);
 
   const [selectedProject, setSelectedProject] = useState(null);
 
@@ -291,48 +291,60 @@ function App() {
 
           {/* Profile */}
           <div className="profile-container" style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' }}>
-            <div className="profile-pic" style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              fontSize: '22px',
-              fontWeight: '600',
-              color: 'var(--text-primary)',
-              width: '56px',
-              height: '56px',
-              marginBottom: '4px',
-              overflow: 'hidden'
-            }}>
-              {currentUser?.avatar ? (
-                <img
-                  src={currentUser.avatar}
-                  alt="Profile"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-                />
-              ) : (
-                currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'U'
-              )}
-            </div>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', alignItems: 'center', marginBottom: '8px' }}>
-              <div className="profile-name" style={{ 
-                whiteSpace: 'nowrap', 
-                overflow: 'hidden', 
-                textOverflow: 'ellipsis',
-                textAlign: 'center',
-                fontSize: '15px',
-                fontWeight: '600'
-              }}>{currentUser?.name || 'Loading...'}</div>
-              <div style={{ 
-                fontSize: '12px', 
-                color: 'var(--text-secondary)',
-                whiteSpace: 'nowrap', 
-                overflow: 'hidden', 
-                textOverflow: 'ellipsis',
-                textAlign: 'center',
-                marginTop: '2px'
-              }}>{currentUser?.email || '...'}</div>
-            </div>
+            {!currentUser ? (
+              <>
+                <div className="skeleton-box" style={{ width: '56px', height: '56px', borderRadius: '50%', marginBottom: '4px' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', alignItems: 'center', marginBottom: '8px', gap: '6px' }}>
+                  <div className="skeleton-box" style={{ width: '80%', height: '16px', borderRadius: '4px' }} />
+                  <div className="skeleton-box" style={{ width: '90%', height: '12px', borderRadius: '4px' }} />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="profile-pic" style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  fontSize: '22px',
+                  fontWeight: '600',
+                  color: 'var(--text-primary)',
+                  width: '56px',
+                  height: '56px',
+                  marginBottom: '4px',
+                  overflow: 'hidden'
+                }}>
+                  {currentUser.avatar ? (
+                    <img
+                      src={currentUser.avatar}
+                      alt="Profile"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                    />
+                  ) : (
+                    currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'
+                  )}
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', alignItems: 'center', marginBottom: '8px' }}>
+                  <div className="profile-name" style={{ 
+                    whiteSpace: 'nowrap', 
+                    overflow: 'hidden', 
+                    textOverflow: 'ellipsis',
+                    textAlign: 'center',
+                    fontSize: '15px',
+                    fontWeight: '600'
+                  }}>{currentUser.name || 'User'}</div>
+                  <div style={{ 
+                    fontSize: '12px', 
+                    color: 'var(--text-secondary)',
+                    whiteSpace: 'nowrap', 
+                    overflow: 'hidden', 
+                    textOverflow: 'ellipsis',
+                    textAlign: 'center',
+                    marginTop: '2px'
+                  }}>{currentUser.email || 'user@example.com'}</div>
+                </div>
+              </>
+            )}
             
             <button 
               onClick={() => {

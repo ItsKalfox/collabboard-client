@@ -133,9 +133,9 @@ export default function ProjectsPage({ theme = 'dark', currentUser, onOpenBoard 
                     <div className="skeleton-box skeleton-meta-value" />
                   </div>
                   <div className="pc-list-members">
-                    <div className="skeleton-box skeleton-avatar" />
-                    <div className="skeleton-box skeleton-avatar" />
-                    <div className="skeleton-box skeleton-avatar" />
+                    <div className="skeleton-avatar" />
+                    <div className="skeleton-avatar" />
+                    <div className="skeleton-avatar" />
                   </div>
                 </div>
               ))}
