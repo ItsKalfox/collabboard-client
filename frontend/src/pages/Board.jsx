@@ -3,6 +3,7 @@ import ProjectsSidebar from '../components/Board/ProjectsSidebar';
 import BoardHeader from '../components/Board/BoardHeader';
 import KanbanBoard from '../components/Board/KanbanBoard';
 import ProjectTimeline from '../components/Board/ProjectTimeline';
+import ProjectActivity from '../components/Board/ProjectActivity';
 import ActionModal from '../components/Board/ActionModal';
 import ProjectDetailsModal from '../components/projects/ProjectDetailsModal';
 
@@ -462,6 +463,7 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
                 <>
                   {activeSubTab === 'Board' && <KanbanBoard projectId={selectedProjectId} currentProject={currentProject} refreshKey={refreshKey} />}
                   {activeSubTab === 'Timeline' && <ProjectTimeline project={currentProject} />}
+                  {activeSubTab === 'Activity' && <ProjectActivity projectId={selectedProjectId} />}
                 </>
               ) : (
                 <div style={{ padding: '20px', color: 'var(--text-secondary)' }}>No projects found. Please create a project.</div>

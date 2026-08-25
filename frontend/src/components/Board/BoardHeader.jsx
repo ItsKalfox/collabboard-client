@@ -22,7 +22,7 @@ export default function BoardHeader({
 }) {
   const [projectMembers, setProjectMembers] = useState([]);
 
-  const subTabs = ['Board', 'Timeline', 'Team Info'];
+  const subTabs = ['Board', 'Timeline', 'Activity'];
 
   const { 
     id: projectId,
