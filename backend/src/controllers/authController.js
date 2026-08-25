@@ -1,35 +1,8 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const mockDataPath = path.join(__dirname, '../data/mockData.json');
-const mockOtpsPath = path.join(__dirname, '../data/mockOtps.json');
-
-const getMockData = () => {
-    if (!fs.existsSync(mockDataPath)) {
-        return [];
-    }
-    const data = fs.readFileSync(mockDataPath, 'utf8');
-    return JSON.parse(data);
-};
-
-const saveMockData = (data) => {
-    fs.writeFileSync(mockDataPath, JSON.stringify(data, null, 2));
-};
-
-const getMockOtps = () => {
-    if (!fs.existsSync(mockOtpsPath)) return [];
-    return JSON.parse(fs.readFileSync(mockOtpsPath, 'utf8'));
-};
-
-const saveMockOtps = (data) => {
-    fs.writeFileSync(mockOtpsPath, JSON.stringify(data, null, 2));
-};
+import User from '../models/User.js';
+import Otp from '../models/Otp.js';
 
 export const registerUser = async (req, res) => {
     try {
@@ -40,10 +13,8 @@ export const registerUser = async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'Name, email, and password are required' });
         }
 
-        const users = getMockData();
-
         // Check if user already exists
-        const userExists = users.find((user) => user.email === email);
+        const userExists = await User.findOne({ email });
         if (userExists) {
             return res.status(409).json({ status: 'error', message: 'Email is already registered' });
         }
@@ -53,23 +24,17 @@ export const registerUser = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, salt);
 
         // Create new user
-        const newUser = {
-            id: Date.now().toString(),
+        const newUser = await User.create({
             name,
             email,
-            password: hashedPassword,
-            date: new Date().toISOString()
-        };
-
-        // Save mock user
-        users.push(newUser);
-        saveMockData(users);
+            password: hashedPassword
+        });
 
         res.status(201).json({
             status: 'success',
             message: 'User registered successfully',
             data: {
-                id: newUser.id,
+                id: newUser._id,
                 name: newUser.name,
                 email: newUser.email,
                 date: newUser.date
@@ -90,10 +55,8 @@ export const loginUser = async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'Email and password are required' });
         }
 
-        const users = getMockData();
-
         // Check if user exists
-        const user = users.find((u) => u.email === email);
+        const user = await User.findOne({ email });
         if (!user) {
             return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
         }
@@ -106,7 +69,7 @@ export const loginUser = async (req, res) => {
 
         // Generate JWT token
         const payload = {
-            id: user.id,
+            id: user._id,
             email: user.email
         };
 
@@ -121,9 +84,13 @@ export const loginUser = async (req, res) => {
             message: 'User logged in successfully',
             data: {
                 user: {
-                    id: user.id,
+                    id: user._id,
                     name: user.name,
-                    email: user.email
+                    email: user.email,
+                    avatar: user.avatar,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    team: user.team
                 },
                 token
             }
@@ -134,13 +101,32 @@ export const loginUser = async (req, res) => {
     }
 };
 
-export const getCurrentUser = (req, res) => {
-    res.status(200).json({
-        status: 'success',
-        data: {
-            user: req.user
+export const getCurrentUser = async (req, res) => {
+    try {
+        // req.user might just be payload from token, so fetch full user
+        const user = await User.findById(req.user.id).select('-password');
+        if (!user) {
+             return res.status(404).json({ status: 'error', message: 'User not found' });
         }
-    });
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                user: {
+                    id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    avatar: user.avatar,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    team: user.team
+                }
+            }
+        });
+    } catch(error) {
+        console.error('Get current user error:', error);
+        res.status(500).json({ status: 'error', message: 'Server error' });
+    }
 };
 
 export const forgotPassword = async (req, res) => {
@@ -150,9 +136,8 @@ export const forgotPassword = async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'Email is required' });
         }
 
-        const users = getMockData();
-        const userIndex = users.findIndex(u => u.email === email);
-        if (userIndex === -1) {
+        const user = await User.findOne({ email });
+        if (!user) {
             return res.status(404).json({ status: 'error', message: 'User not found' });
         }
 
@@ -160,17 +145,15 @@ export const forgotPassword = async (req, res) => {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         
         // Expiration time: 15 minutes from now
-        const otpExpires = Date.now() + 15 * 60 * 1000; 
+        const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
-        // Update OTP in mockOtps
-        const otps = getMockOtps();
-        const filteredOtps = otps.filter(o => o.id !== users[userIndex].id);
-        filteredOtps.push({
-            id: users[userIndex].id,
+        // Delete any existing OTP for this user and create a new one
+        await Otp.deleteMany({ userId: user._id });
+        await Otp.create({
+            userId: user._id,
             otp,
-            otpExpires
+            expiresAt
         });
-        saveMockOtps(filteredOtps);
 
         // Send Email
         const transporter = nodemailer.createTransport({
@@ -203,22 +186,19 @@ export const resetPassword = async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'Email, OTP, and new password are required' });
         }
 
-        const users = getMockData();
-        const userIndex = users.findIndex(u => u.email === email);
-        if (userIndex === -1) {
+        const user = await User.findOne({ email });
+        if (!user) {
             return res.status(404).json({ status: 'error', message: 'User not found' });
         }
 
-        const user = users[userIndex];
-        const otps = getMockOtps();
-        const userOtpRecord = otps.find(o => o.id === user.id);
+        const userOtpRecord = await Otp.findOne({ userId: user._id });
 
         // Validate OTP
         if (!userOtpRecord || userOtpRecord.otp !== otp) {
             return res.status(400).json({ status: 'error', message: 'Invalid OTP' });
         }
 
-        if (Date.now() > userOtpRecord.otpExpires) {
+        if (new Date() > userOtpRecord.expiresAt) {
             return res.status(400).json({ status: 'error', message: 'OTP has expired' });
         }
 
@@ -227,11 +207,10 @@ export const resetPassword = async (req, res) => {
         const hashedPassword = await bcrypt.hash(newPassword, salt);
 
         // Update password and clear OTP
-        users[userIndex].password = hashedPassword;
-        saveMockData(users);
+        user.password = hashedPassword;
+        await user.save();
 
-        const newOtps = otps.filter(o => o.id !== user.id);
-        saveMockOtps(newOtps);
+        await Otp.deleteOne({ _id: userOtpRecord._id });
 
         res.status(200).json({ status: 'success', message: 'Password reset successfully' });
     } catch (error) {
@@ -249,26 +228,33 @@ export const updateProfile = async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'First name and last name are required' });
         }
 
-        const users = getMockData();
-        const userIndex = users.findIndex(u => u.id === req.user.id);
+        const user = await User.findById(req.user.id);
 
-        if (userIndex === -1) {
+        if (!user) {
             return res.status(404).json({ status: 'error', message: 'User not found' });
         }
 
         // Update name fields — store both combined and split for compatibility
-        users[userIndex].firstName = firstName.trim();
-        users[userIndex].lastName = lastName.trim();
-        users[userIndex].name = `${firstName.trim()} ${lastName.trim()}`;
+        user.firstName = firstName.trim();
+        user.lastName = lastName.trim();
+        user.name = `${firstName.trim()} ${lastName.trim()}`;
 
-        saveMockData(users);
-
-        const { password, ...updatedUser } = users[userIndex];
+        await user.save();
 
         res.status(200).json({
             status: 'success',
             message: 'Profile updated successfully',
-            data: { user: updatedUser }
+            data: { 
+                user: {
+                    id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    avatar: user.avatar,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    team: user.team
+                } 
+            }
         });
     } catch (error) {
         console.error('Update profile error:', error);
@@ -285,35 +271,42 @@ export const updateEmail = async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'New email and current password are required' });
         }
 
-        const users = getMockData();
-        const userIndex = users.findIndex(u => u.id === req.user.id);
+        const user = await User.findById(req.user.id);
 
-        if (userIndex === -1) {
+        if (!user) {
             return res.status(404).json({ status: 'error', message: 'User not found' });
         }
 
         // Verify current password
-        const isMatch = await bcrypt.compare(currentPassword, users[userIndex].password);
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
         if (!isMatch) {
             return res.status(401).json({ status: 'error', message: 'Current password is incorrect' });
         }
 
         // Check if the new email is already taken by another user
-        const emailTaken = users.find(u => u.email === email && u.id !== req.user.id);
+        const emailTaken = await User.findOne({ email: email.trim().toLowerCase(), _id: { $ne: user._id } });
         if (emailTaken) {
             return res.status(409).json({ status: 'error', message: 'Email is already registered to another account' });
         }
 
         // Update email
-        users[userIndex].email = email.trim().toLowerCase();
-        saveMockData(users);
-
-        const { password, ...updatedUser } = users[userIndex];
+        user.email = email.trim().toLowerCase();
+        await user.save();
 
         res.status(200).json({
             status: 'success',
             message: 'Email updated successfully',
-            data: { user: updatedUser }
+            data: { 
+                user: {
+                    id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    avatar: user.avatar,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    team: user.team
+                } 
+            }
         });
     } catch (error) {
         console.error('Update email error:', error);
@@ -338,15 +331,14 @@ export const changePassword = async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'New password must be at least 6 characters' });
         }
 
-        const users = getMockData();
-        const userIndex = users.findIndex(u => u.id === req.user.id);
+        const user = await User.findById(req.user.id);
 
-        if (userIndex === -1) {
+        if (!user) {
             return res.status(404).json({ status: 'error', message: 'User not found' });
         }
 
         // Verify current password
-        const isMatch = await bcrypt.compare(currentPassword, users[userIndex].password);
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
         if (!isMatch) {
             return res.status(401).json({ status: 'error', message: 'Current password is incorrect' });
         }
@@ -355,8 +347,8 @@ export const changePassword = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-        users[userIndex].password = hashedPassword;
-        saveMockData(users);
+        user.password = hashedPassword;
+        await user.save();
 
         res.status(200).json({
             status: 'success',
@@ -367,4 +359,3 @@ export const changePassword = async (req, res) => {
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
-
