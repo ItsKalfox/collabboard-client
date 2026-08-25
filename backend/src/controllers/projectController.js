@@ -19,7 +19,12 @@ const uploadToCloudinary = (buffer, options) => {
 export const getProjects = async (req, res) => {
     try {
         const { q } = req.query;
-        let query = {};
+        let query = {
+            $or: [
+                { ownerId: req.user.id },
+                { 'members.userId': req.user.id }
+            ]
+        };
         if (q) {
             query.name = { $regex: q, $options: 'i' };
         }

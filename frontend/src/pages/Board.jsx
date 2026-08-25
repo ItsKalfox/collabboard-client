@@ -7,7 +7,6 @@ import ProjectDetailsModal from '../components/projects/ProjectDetailsModal';
 
 import { Search, X } from 'lucide-react';
 import { searchUsers } from '../services/projectService';
-import { INITIAL_PROJECTS } from '../mock/mockProjects';
 import { normalizeMember } from '../mock/mockMembers';
 import './Board.css';
 
@@ -21,8 +20,15 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
   });
 
   const [selectedProjectId, setSelectedProjectId] = useState(() => {
-    if (selectedProject) return typeof selectedProject === 'object' ? selectedProject.id : selectedProject;
-    if (initialProjectId) return typeof initialProjectId === 'object' ? initialProjectId.id : initialProjectId;
+    // If we're coming from the projects page and a project was selected
+    if (selectedProject && typeof selectedProject === 'object') {
+      return selectedProject.id;
+    }
+    // If an ID was explicitly passed
+    if (initialProjectId) {
+      return initialProjectId;
+    }
+    // Default fallback
     return null;
   });
 
@@ -96,12 +102,7 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
               const map = new Map();
               // Add API projects
               apiProjects.forEach(p => map.set(p.id, p));
-              // Fallback to mock initial projects only if API returns no projects
-              if (apiProjects.length === 0) {
-                INITIAL_PROJECTS.forEach(p => {
-                  if (!map.has(p.id)) map.set(p.id, p);
-                });
-              }
+              // Fallback removed to ensure true empty state when no projects exist
               // Add any dynamically selected project
               prev.forEach(p => {
                 if (!map.has(p.id)) map.set(p.id, p);
@@ -124,6 +125,8 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
                 }
                 return prev;
               });
+            } else {
+              setSelectedProjectId(null);
             }
           }
         }
