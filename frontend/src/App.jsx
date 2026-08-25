@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Sun, Moon } from 'lucide-react';
 import backgroundBL from './assets/background-BL.jpg';
 import backgroundWH from './assets/background-WH.jpg';
@@ -124,6 +124,21 @@ function App() {
     handleTabClick('Dashboard');
   };
 
+  const [indicatorStyle, setIndicatorStyle] = useState({ opacity: 0 });
+  const menuRefs = useRef({});
+
+  useEffect(() => {
+    const activeEl = menuRefs.current[activeTab];
+    if (activeEl) {
+      setIndicatorStyle({
+        top: activeEl.offsetTop,
+        height: activeEl.offsetHeight,
+        width: activeEl.offsetWidth,
+        opacity: 1
+      });
+    }
+  }, [activeTab, isMenuOpen]);
+
   const [selectedProject, setSelectedProject] = useState(null);
 
   const handleOpenBoard = (project) => {
@@ -248,12 +263,26 @@ function App() {
           </div>
 
           {/* Menu Items */}
-          <div className="menu-items">
+          <div className="menu-items" style={{ position: 'relative' }}>
+            {/* Sliding Active Indicator */}
+            <div 
+              style={{
+                position: 'absolute',
+                background: 'var(--item-active-bg)',
+                borderRadius: '30px',
+                transition: 'all 0.3s cubic-bezier(0.25, 1, 0.5, 1)',
+                zIndex: 0,
+                ...indicatorStyle
+              }}
+              className={!isDark ? 'light-shadow' : ''}
+            />
             {tabs.map(tab => (
               <div
                 key={tab}
-                className={`menu-item ${activeTab === tab ? 'active' : ''} ${!isDark && activeTab === tab ? 'light-shadow' : ''}`}
+                ref={el => menuRefs.current[tab] = el}
+                className={`menu-item ${activeTab === tab ? 'active' : ''}`}
                 onClick={() => handleTabClick(tab)}
+                style={{ zIndex: 1, position: 'relative' }}
               >
                 <span>{tab}</span>
               </div>

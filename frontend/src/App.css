@@ -123,12 +123,11 @@
 }
 
 .menu-item.active {
-  background: var(--item-active-bg);
   color: var(--item-active-color);
 }
 
 .menu-item.active.light-shadow {
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  /* shadow handled by the sliding pill */
 }
 
 .profile-container {
