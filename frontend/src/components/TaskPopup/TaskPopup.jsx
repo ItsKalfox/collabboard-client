@@ -172,14 +172,8 @@ export default function TaskPopup({ task: prop, project, onClose, onUpdate }) {
       const doneSubs = subs.filter(s => s.completed).length;
       
       let newStatus = task.status;
-      if (totalSubs > 0) {
-        if (doneSubs > 0 && doneSubs < totalSubs) {
-          newStatus = 'in_progress';
-        } else if (doneSubs === totalSubs && newStatus !== 'review' && newStatus !== 'completed') {
-          newStatus = 'review';
-        } else if (doneSubs === 0 && newStatus === 'review') {
-          newStatus = 'in_progress';
-        }
+      if (task.status === 'todo' && doneSubs > 0) {
+        newStatus = 'in_progress';
       }
 
       if (newStatus !== task.status) {
@@ -559,6 +553,19 @@ export default function TaskPopup({ task: prop, project, onClose, onUpdate }) {
           : <h2 className="popup-title">{task.title}</h2>
         }
 
+        {/* Description */}
+        {isEditing
+          ? <textarea
+            className="popup-desc-textarea"
+            value={draft.description}
+            onChange={e => setDraft(d => ({ ...d, description: e.target.value }))}
+            style={{ marginBottom: '24px' }}
+          />
+          : task.description && (
+            <p className="popup-description" style={{ marginBottom: '24px' }}>{task.description}</p>
+          )
+        }
+
         {/* ── Meta Grid ── */}
         <div className="popup-meta-grid">
 
@@ -570,16 +577,11 @@ export default function TaskPopup({ task: prop, project, onClose, onUpdate }) {
             </div>
             <div className="popup-meta-val">
               {isEditing
-                ? <select
-                  className="popup-mini-input"
-                  value={draft.priority || 'medium'}
-                  style={{ width: '85px', color: getPriorityColor(draft.priority || 'medium'), backgroundColor: 'transparent', border: '1px solid var(--popup-divider)', borderRadius: '4px', outline: 'none' }}
-                  onChange={e => setDraft(d => ({ ...d, priority: e.target.value }))}
-                >
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
-                </select>
+                ? <div style={{ display: 'flex', gap: '6px' }}>
+                    <button type="button" onClick={() => setDraft(d => ({ ...d, priority: 'low' }))} style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', borderRadius: '12px', border: draft.priority === 'low' ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid var(--popup-btn-border)', background: draft.priority === 'low' ? 'rgba(16, 185, 129, 0.15)' : 'transparent', color: draft.priority === 'low' ? '#10b981' : 'var(--popup-text-muted)', cursor: 'pointer', transition: 'all 0.2s' }}>Low</button>
+                    <button type="button" onClick={() => setDraft(d => ({ ...d, priority: 'medium' }))} style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', borderRadius: '12px', border: draft.priority === 'medium' ? '1px solid rgba(245, 158, 11, 0.5)' : '1px solid var(--popup-btn-border)', background: draft.priority === 'medium' ? 'rgba(245, 158, 11, 0.15)' : 'transparent', color: draft.priority === 'medium' ? '#f59e0b' : 'var(--popup-text-muted)', cursor: 'pointer', transition: 'all 0.2s' }}>Medium</button>
+                    <button type="button" onClick={() => setDraft(d => ({ ...d, priority: 'high' }))} style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', borderRadius: '12px', border: draft.priority === 'high' ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid var(--popup-btn-border)', background: draft.priority === 'high' ? 'rgba(239, 68, 68, 0.15)' : 'transparent', color: draft.priority === 'high' ? '#ef4444' : 'var(--popup-text-muted)', cursor: 'pointer', transition: 'all 0.2s' }}>High</button>
+                  </div>
                 : <span className={`task-tag-pill tag-${getTagColor(task.priority)}`}>
                   {getTagText(task.priority)}
                 </span>
@@ -664,18 +666,6 @@ export default function TaskPopup({ task: prop, project, onClose, onUpdate }) {
 
 
         </div>{/* /meta-grid */}
-
-        {/* Description */}
-        {isEditing
-          ? <textarea
-            className="popup-desc-textarea"
-            value={draft.description}
-            onChange={e => setDraft(d => ({ ...d, description: e.target.value }))}
-          />
-          : task.description && (
-            <p className="popup-description">{task.description}</p>
-          )
-        }
 
         <hr className="popup-divider" />
 
