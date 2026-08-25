@@ -380,17 +380,14 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
         {loading ? (
           <>
             <div className="board-header-container" style={{ padding: '16px 24px', paddingBottom: '0' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '60%' }}>
-                  <div className="skeleton-box" style={{ height: '36px', width: '40%', borderRadius: '8px' }} />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div className="skeleton-box" style={{ height: '14px', width: '100%', borderRadius: '4px' }} />
-                    <div className="skeleton-box" style={{ height: '14px', width: '95%', borderRadius: '4px' }} />
-                    <div className="skeleton-box" style={{ height: '14px', width: '80%', borderRadius: '4px' }} />
-                  </div>
+              {/* TOP ROW: Title & Deadline/Avatars */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '4px 0 0 0' }}>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', width: '40%' }}>
+                  <div className="skeleton-box" style={{ height: '36px', width: '80%', borderRadius: '8px' }} />
+                  <div className="skeleton-box" style={{ height: '26px', width: '26px', borderRadius: '50%' }} />
                 </div>
                 <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-                  <div className="skeleton-box" style={{ height: '24px', width: '120px', borderRadius: '6px' }} />
+                  <div className="skeleton-box" style={{ height: '16px', width: '100px', borderRadius: '4px' }} />
                   <div style={{ display: 'flex' }}>
                     <div className="skeleton-avatar" style={{ marginLeft: '0', zIndex: 4 }} />
                     <div className="skeleton-avatar" style={{ marginLeft: '-10px', zIndex: 3 }} />
@@ -399,12 +396,22 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
                   </div>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '12px', paddingBottom: '16px', borderBottom: '1px solid var(--border-color, #e5e7eb)', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <div className="skeleton-box" style={{ height: '32px', width: '80px', borderRadius: '16px' }} />
-                  <div className="skeleton-box" style={{ height: '32px', width: '80px', borderRadius: '16px' }} />
+
+              {/* SECOND ROW: Description & Add Task Button */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '16px', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, paddingRight: '16px' }}>
+                  <div className="skeleton-box" style={{ height: '14px', width: '100%', borderRadius: '4px' }} />
+                  <div className="skeleton-box" style={{ height: '14px', width: '95%', borderRadius: '4px' }} />
+                  <div className="skeleton-box" style={{ height: '14px', width: '80%', borderRadius: '4px' }} />
                 </div>
-                <div className="skeleton-box" style={{ height: '36px', width: '120px', borderRadius: '8px' }} />
+                <div className="skeleton-box" style={{ height: '36px', width: '130px', borderRadius: '6px', flexShrink: 0 }} />
+              </div>
+
+              {/* THIRD ROW: Subtabs */}
+              <div style={{ display: 'flex', gap: '12px', paddingBottom: '16px', borderBottom: '1px solid var(--border-color, #e5e7eb)', marginTop: '16px' }}>
+                <div className="skeleton-box" style={{ height: '24px', width: '60px', borderRadius: '4px' }} />
+                <div className="skeleton-box" style={{ height: '24px', width: '80px', borderRadius: '4px' }} />
+                <div className="skeleton-box" style={{ height: '24px', width: '90px', borderRadius: '4px' }} />
               </div>
             </div>
             <div className="board-content-area" style={{ padding: '24px' }}>

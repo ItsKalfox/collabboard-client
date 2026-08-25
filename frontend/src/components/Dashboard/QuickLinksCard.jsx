@@ -51,14 +51,6 @@ export default function QuickLinksCard() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="quick-links-card" style={{ justifyContent: 'center', alignItems: 'center' }}>
-        <Loader2 className="animate-spin" style={{ color: '#6b7280' }} />
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="quick-links-card" style={{ justifyContent: 'center', alignItems: 'center', color: '#ef4444' }}>
@@ -71,7 +63,6 @@ export default function QuickLinksCard() {
 
   return (
     <div className="quick-links-card">
-      {/* Header */}
       <div className="quick-links-header">
         <div className="quick-links-header-left">
           <div className="folder-icon-circle">
@@ -131,41 +122,62 @@ export default function QuickLinksCard() {
         </button>
       </div>
 
-      {/* Project Items List */}
-      <div className="quick-links-list" style={{ minHeight: '150px', display: isGridView ? 'grid' : 'flex', gridTemplateColumns: isGridView ? '1fr 1fr' : 'none' }}>
-        {projectFiles.slice(0, 3).map((project) => (
-          <div key={project.id} className="project-card" onClick={() => console.log('Selected project:', project.id)}>
-            <div className="project-card-header">
-              <div className="project-card-title-group">
-                <div className="file-icon-badge">
-                  {getProjectIcon(project.type, project.color)}
+      {loading ? (
+        <div className="quick-links-list" style={{ minHeight: '150px', display: isGridView ? 'grid' : 'flex', gridTemplateColumns: isGridView ? '1fr 1fr' : 'none' }}>
+          {[1, 2, 3].map(i => (
+            <div key={i} className="project-card">
+              <div className="project-card-header">
+                <div className="project-card-title-group">
+                  <div className="skeleton-box file-icon-badge" style={{ border: 'none' }} />
+                  <div className="skeleton-box" style={{ width: '100px', height: '16px', borderRadius: '4px' }} />
                 </div>
-                <span className="project-card-title">{project.name}</span>
+              </div>
+              <div className="project-card-footer">
+                 <div className="skeleton-box" style={{ width: '60px', height: '20px', borderRadius: '12px' }} />
+                 <div className="project-avatars">
+                   <div className="skeleton-box" style={{ width: '24px', height: '24px', borderRadius: '50%' }} />
+                   <div className="skeleton-box" style={{ width: '24px', height: '24px', borderRadius: '50%', marginLeft: '-8px' }} />
+                 </div>
               </div>
             </div>
-            
-            <div className="project-card-footer">
-               <span className={`project-card-status ${project.status === 'active' ? 'active' : 'completed'}`}>
-                  {project.status === 'active' ? 'In Progress' : 'Completed'}
-                </span>
-                <div className="project-avatars">
-                  {project.members && project.members.map((member, i) => (
-                    member.avatar ? (
-                      <img key={i} src={member.avatar} alt={member.name} className="project-avatar" title={member.name} />
-                    ) : (
-                      <div key={i} className="project-avatar" title={member.name} style={{ backgroundColor: '#3b82f6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold' }}>
-                        {getInitials(member.name)}
-                      </div>
-                    )
-                  ))}
+          ))}
+        </div>
+      ) : (
+        <div className="quick-links-list" style={{ minHeight: '150px', display: isGridView ? 'grid' : 'flex', gridTemplateColumns: isGridView ? '1fr 1fr' : 'none' }}>
+          {projectFiles.slice(0, 3).map((project) => (
+            <div key={project.id} className="project-card" onClick={() => console.log('Selected project:', project.id)}>
+              <div className="project-card-header">
+                <div className="project-card-title-group">
+                  <div className="file-icon-badge">
+                    {getProjectIcon(project.type, project.color)}
+                  </div>
+                  <span className="project-card-title">{project.name}</span>
                 </div>
+              </div>
+              
+              <div className="project-card-footer">
+                 <span className={`project-card-status ${project.status === 'active' ? 'active' : 'completed'}`}>
+                    {project.status === 'active' ? 'In Progress' : 'Completed'}
+                  </span>
+                  <div className="project-avatars">
+                    {project.members && project.members.map((member, i) => (
+                      member.avatar ? (
+                        <img key={i} src={member.avatar} alt={member.name} className="project-avatar" title={member.name} />
+                      ) : (
+                        <div key={i} className="project-avatar" title={member.name} style={{ backgroundColor: '#3b82f6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold' }}>
+                          {getInitials(member.name)}
+                        </div>
+                      )
+                    ))}
+                  </div>
+              </div>
             </div>
-          </div>
-        ))}
-        {projectFiles.length === 0 && (
-          <div style={{ textAlign: 'center', color: '#9ca3af', width: '100%' }}>No projects found.</div>
-        )}
-      </div>
+          ))}
+          {projectFiles.length === 0 && (
+            <div style={{ textAlign: 'center', color: '#9ca3af', width: '100%' }}>No projects found.</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

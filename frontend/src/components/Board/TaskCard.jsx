@@ -58,7 +58,7 @@ export default function TaskCard({ task, onOptionClick, isOverlay }) {
       {/* Task Title & Description */}
       <div className="task-card-body">
         <h3 className="task-card-title">{title}</h3>
-        {description && <p className="task-card-desc">{description}</p>}
+        {description && <p className="task-card-desc" style={{ textAlign: 'left' }}>{description}</p>}
       </div>
 
       {/* Optional Preview Image / Grid */}
@@ -88,7 +88,7 @@ export default function TaskCard({ task, onOptionClick, isOverlay }) {
           </div>
           <div className="progress-bar-track">
             <div
-              className={`progress-bar-fill fill-${tagColor}`}
+              className="progress-bar-fill"
               style={{ width: `${progressPercent}%` }}
             />
           </div>

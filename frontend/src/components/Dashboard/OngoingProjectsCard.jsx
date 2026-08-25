@@ -11,14 +11,7 @@ export default function OngoingProjectsCard() {
   const { data: response, loading, error, refetch } = useOngoingProjects();
   const data = response?.data;
 
-  // Fallback if loading to prevent layout shift
-  if (loading) {
-    return (
-      <div className="ongoing-projects-card" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-        <Loader2 className="animate-spin" style={{ color: '#6b7280' }} />
-      </div>
-    );
-  }
+  // The card shell is always returned to maintain layout
 
   // Error state
   if (error) {
@@ -99,7 +92,31 @@ export default function OngoingProjectsCard() {
           </div>
         </div>
 
-        {/* Main Stat Section */}
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '16px 0', flex: 1 }}>
+            <div className="ongoing-stat-section" style={{ alignItems: 'flex-start', paddingBottom: '0' }}>
+              <div className="skeleton-box" style={{ width: '100px', height: '14px', marginBottom: '8px' }} />
+              <div className="skeleton-box" style={{ width: '80px', height: '40px', marginBottom: '8px' }} />
+              <div className="skeleton-box" style={{ width: '140px', height: '12px' }} />
+            </div>
+            <div className="ongoing-chart-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80px' }}>
+              <div className="skeleton-box" style={{ width: '100%', height: '100%', borderRadius: '8px', opacity: 0.5 }} />
+            </div>
+            <div className="ongoing-categories-list">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="ongoing-category-item" style={{ padding: '8px 0' }}>
+                  <div className="ongoing-cat-left" style={{ width: '60%' }}>
+                    <div className="skeleton-box" style={{ width: '10px', height: '10px', borderRadius: '50%' }} />
+                    <div className="skeleton-box" style={{ width: '80%', height: '14px' }} />
+                  </div>
+                  <div className="skeleton-box" style={{ width: '25%', height: '14px' }} />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Main Stat Section */}
         <div className="ongoing-stat-section">
           <span className="ongoing-subtitle">Overall Progress</span>
           <div className="ongoing-percentage">{overallProgress}%</div>
@@ -150,6 +167,8 @@ export default function OngoingProjectsCard() {
              </div>
           )}
         </div>
+      </>
+        )}
       </div>
 
       {isDetailsModalOpen && (

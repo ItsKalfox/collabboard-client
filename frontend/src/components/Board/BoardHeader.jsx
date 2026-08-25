@@ -62,31 +62,22 @@ export default function BoardHeader({ project = {}, onAddTask, onAddMember, onAd
 
   return (
     <div className="board-header-container">
-      {/* Main Title & Team Avatars */}
-      <div className="board-title-row">
-        <div className="board-title-group" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <h1 className="board-main-title">{name}</h1>
-            <button className="info-icon-btn" title={description || 'Project Info'}>
-              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="16" x2="12" y2="12"></line>
-                <line x1="12" y1="8" x2="12.01" y2="8"></line>
-              </svg>
-            </button>
-          </div>
-          {description && (
-            <div style={{
-               fontSize: '13px', color: 'var(--text-dim, #6b7280)', 
-               display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', 
-               overflow: 'hidden', textOverflow: 'ellipsis',
-               maxWidth: '600px', lineHeight: '1.5'
-            }}>
-              {description}
-            </div>
-          )}
+      {/* TOP ROW: Title, Deadline, Avatars, Add Task */}
+      <div className="board-title-row" style={{ alignItems: 'flex-start', margin: 0 }}>
+        
+        {/* LEFT: Title & Info Icon */}
+        <div className="board-title-group" style={{ alignItems: 'center' }}>
+          <h1 className="board-main-title">{name}</h1>
+          <button className="info-icon-btn" title={description || 'Project Info'}>
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+          </button>
         </div>
 
+        {/* RIGHT: Deadline, Avatars, Add Task */}
         <div className="board-team-group" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
           {/* Deadline */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary, #6b7280)' }}>
@@ -98,6 +89,7 @@ export default function BoardHeader({ project = {}, onAddTask, onAddMember, onAd
             <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary, #111)' }}>{displayDeadline}</span>
           </div>
 
+          {/* Avatars */}
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <div className="pc-list-members" style={{ marginRight: '16px', display: 'flex', flexDirection: 'row-reverse' }}>
               {projectMembers.map(normalizeMember).slice(0, 4).map((member, idx, arr) => (
@@ -137,12 +129,26 @@ export default function BoardHeader({ project = {}, onAddTask, onAddMember, onAd
               </svg>
             </button>
           </div>
+
         </div>
       </div>
 
-      {/* Metadata Row & Add New Task Button */}
-      <div className="board-metadata-row" style={{ justifyContent: 'flex-end', marginTop: '-8px' }}>
-        <button className="add-task-header-btn" onClick={onAddTask}>
+      {/* SECOND ROW: Description & Add Task Button */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '-8px', marginBottom: '8px' }}>
+        <div style={{ flex: 1, paddingRight: '16px' }}>
+          {description && (
+            <div style={{
+               fontSize: '13px', color: 'var(--text-dim, #6b7280)', 
+               display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', 
+               overflow: 'hidden', textOverflow: 'ellipsis',
+               lineHeight: '1.5', textAlign: 'left'
+            }}>
+              {description}
+            </div>
+          )}
+        </div>
+        
+        <button className="add-task-header-btn" onClick={onAddTask} style={{ margin: 0, flexShrink: 0 }}>
           <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2.5" fill="none">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -150,6 +156,8 @@ export default function BoardHeader({ project = {}, onAddTask, onAddMember, onAd
           <span>Add new task</span>
         </button>
       </div>
+
+
 
       {/* Sub-Tabs Bar: Board, Timeline, Team Info */}
       <div className="board-subtabs-bar">

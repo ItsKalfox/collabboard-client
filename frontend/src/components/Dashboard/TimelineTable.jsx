@@ -228,8 +228,19 @@ export default function TimelineTable() {
       {/* Timeline Grid Body */}
       <div className="timeline-body" ref={trackRef}>
         {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px', color: '#6b7280' }}>
-            <Loader2 className="animate-spin" style={{ marginRight: '8px' }} /> Loading timeline...
+          <div className="timeline-grid-wrapper" style={{ minWidth: activeFilter === 'Day' ? '800px' : '580px', opacity: 0.7 }}>
+            <div className="timeline-rows-container">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="timeline-row">
+                  <div className="timeline-category-label">
+                    <div className="skeleton-box" style={{ width: '80%', height: '14px', borderRadius: '4px' }} />
+                  </div>
+                  <div className="timeline-track" style={{ display: 'flex', alignItems: 'center', padding: '0 16px' }}>
+                    <div className="skeleton-box" style={{ width: `${30 + (i % 3) * 15}%`, height: '20px', borderRadius: '4px', marginLeft: `${(i % 4) * 10}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : error ? (
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '200px', color: '#ef4444' }}>
