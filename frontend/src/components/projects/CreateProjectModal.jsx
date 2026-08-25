@@ -25,6 +25,7 @@ export default function CreateProjectModal({
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [validationErrors, setValidationErrors] = useState({});
   
   const imageInputRef = useRef();
   const docInputRef = useRef();
@@ -64,6 +65,7 @@ export default function CreateProjectModal({
     setNewTaskTitle('');
     setTasks([]);
     setError('');
+    setValidationErrors({});
     setIsSubmitting(false);
   }, []);
 
@@ -153,15 +155,22 @@ export default function CreateProjectModal({
     }
   };
 
+  const ownerName = typeof currentUser === 'string' ? currentUser : (currentUser?.name || 'Alex Johnson');
+
   // Filter API search results based on existing selected members
-  const availableMembers = searchResults.filter(user => 
-    !members.some(existing => 
+  const availableMembers = searchResults.filter(user => {
+    // Exclude owner
+    if (user.name && user.name.toLowerCase() === ownerName.toLowerCase()) return false;
+    if (user.email && currentUser?.email && user.email.toLowerCase() === currentUser.email.toLowerCase()) return false;
+    
+    // Exclude already added members
+    return !members.some(existing => 
       (existing.id && String(existing.id) === String(user.id)) ||
       (existing.userId && String(existing.userId) === String(user.id)) ||
       (existing.name && user.name && existing.name.toLowerCase() === user.name.toLowerCase()) ||
       (existing.email && user.email && existing.email.toLowerCase() === user.email.toLowerCase())
     )
-  );
+  });
 
   const addMember = (memberObj) => {
     const normalized = normalizeMember(memberObj);
@@ -185,7 +194,19 @@ export default function CreateProjectModal({
   };
 
   const handleSubmit = async () => {
-    if (!name.trim() || isSubmitting) return;
+    if (isSubmitting) return;
+
+    const errors = {};
+    if (!name.trim()) errors.name = 'Required';
+    if (!description.trim()) errors.description = 'Required';
+    if (!dueDate) errors.dueDate = 'Required';
+    if (tasks.length === 0) errors.tasks = 'At least 1 task required';
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+    setValidationErrors({});
 
     const todayStr = getTodayYYYYMMDD();
     if (dueDate && dueDate < todayStr) {
@@ -197,8 +218,6 @@ export default function CreateProjectModal({
     setError('');
 
     try {
-      // Owner is automatically current logged-in user
-      const ownerName = typeof currentUser === 'string' ? currentUser : (currentUser?.name || 'Alex Johnson');
       const ownerMember = normalizeMember(ownerName);
 
       // Ensure owner is included in members list
@@ -307,6 +326,7 @@ export default function CreateProjectModal({
     if (title) {
       setTasks([...tasks, { id: `t-${Date.now()}`, title, subtasks: [] }]);
       setNewTaskTitle('');
+      if (validationErrors.tasks) setValidationErrors(prev => ({ ...prev, tasks: null }));
     }
   };
 
@@ -349,23 +369,35 @@ export default function CreateProjectModal({
           )}
 
           {/* Title */}
-          <input
-            ref={titleInputRef}
-            className="popup-title-input"
-            placeholder="Project Name..."
-            value={name}
-            onChange={e => setName(e.target.value)}
-            style={{ marginBottom: '16px', textAlign: 'center' }}
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '16px' }}>
+            {validationErrors.name && <span style={{color: '#ef4444', fontSize: '11px', fontWeight: '600', alignSelf: 'flex-start', marginLeft: '4px'}}>* Required</span>}
+            <input
+              ref={titleInputRef}
+              className="popup-title-input"
+              placeholder="Project Name..."
+              value={name}
+              onChange={e => {
+                setName(e.target.value);
+                if (validationErrors.name) setValidationErrors(prev => ({ ...prev, name: null }));
+              }}
+              style={{ marginBottom: 0, textAlign: 'center', borderColor: validationErrors.name ? '#ef4444' : undefined }}
+            />
+          </div>
 
           {/* Description */}
-          <textarea
-            className="popup-desc-textarea"
-            placeholder="Add a detailed description..."
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-            style={{ marginBottom: '24px', minHeight: '90px' }}
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '24px' }}>
+            {validationErrors.description && <span style={{color: '#ef4444', fontSize: '11px', fontWeight: '600', alignSelf: 'flex-start', marginLeft: '4px'}}>* Required</span>}
+            <textarea
+              className="popup-desc-textarea"
+              placeholder="Add a detailed description..."
+              value={description}
+              onChange={e => {
+                setDescription(e.target.value);
+                if (validationErrors.description) setValidationErrors(prev => ({ ...prev, description: null }));
+              }}
+              style={{ marginBottom: 0, minHeight: '90px', borderColor: validationErrors.description ? '#ef4444' : undefined }}
+            />
+          </div>
 
           {/* Image Preview if available */}
           {projectImage && (
@@ -413,7 +445,7 @@ export default function CreateProjectModal({
                 <Calendar size={14} style={{ marginRight: '6px' }} />
                 Due date
               </div>
-              <div className="popup-meta-val">
+              <div className="popup-meta-val" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <input 
                   type="date"
                   className="popup-mini-input popup-mini-input--wide"
@@ -422,9 +454,11 @@ export default function CreateProjectModal({
                   onChange={e => {
                     setDueDate(e.target.value);
                     if (error) setError('');
+                    if (validationErrors.dueDate) setValidationErrors(prev => ({ ...prev, dueDate: null }));
                   }}
-                  style={{ colorScheme: theme === 'light' ? 'light' : 'dark' }}
+                  style={{ colorScheme: theme === 'light' ? 'light' : 'dark', borderColor: validationErrors.dueDate ? '#ef4444' : undefined }}
                 />
+                {validationErrors.dueDate && <span style={{color: '#ef4444', fontSize: '11px', fontWeight: '600'}}>* Required</span>}
               </div>
             </div>
             
@@ -608,7 +642,10 @@ export default function CreateProjectModal({
 
           {/* Initial Tasks Section */}
           <div style={{ marginBottom: '24px' }}>
-            <h4 style={{ fontSize: '14px', color: 'var(--popup-text-heading)', marginBottom: '12px', fontWeight: '600' }}>Initial Tasks</h4>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h4 style={{ fontSize: '14px', color: 'var(--popup-text-heading)', margin: 0, fontWeight: '600' }}>Initial Tasks</h4>
+              {validationErrors.tasks && <span style={{color: '#ef4444', fontSize: '11px', fontWeight: '600'}}>* {validationErrors.tasks}</span>}
+            </div>
             <form onSubmit={handleAddTask} style={{ display: 'flex', gap: '8px', marginBottom: '16px', alignItems: 'center' }}>
               <input
                 className="popup-mini-input"
@@ -651,7 +688,7 @@ export default function CreateProjectModal({
         {/* Footer */}
         <div style={{ padding: '16px 20px', display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: 'var(--popup-divider)' }}>
           <button className="popup-cancel-btn" onClick={handleClose} disabled={isSubmitting}>Cancel</button>
-          <button className="popup-save-btn" onClick={handleSubmit} disabled={!name.trim() || isSubmitting}>
+          <button className="popup-save-btn" onClick={handleSubmit} disabled={isSubmitting}>
             {isSubmitting ? 'Creating Project...' : 'Create Project'}
           </button>
         </div>
