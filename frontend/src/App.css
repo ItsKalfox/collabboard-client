@@ -20,7 +20,20 @@
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* Skeleton Loading Styles */
+@keyframes skeleton-pulse {
+  0% { opacity: 0.5; }
+  50% { opacity: 0.2; }
+  100% { opacity: 0.5; }
+}
+
+.skeleton-box {
+  background: rgba(150, 150, 150, 0.3);
+  border-radius: 6px;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
 }
 
 .app-container {
@@ -123,12 +136,11 @@
 }
 
 .menu-item.active {
-  background: var(--item-active-bg);
   color: var(--item-active-color);
 }
 
 .menu-item.active.light-shadow {
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  /* shadow handled by the sliding pill */
 }
 
 .profile-container {

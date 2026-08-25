@@ -43,8 +43,11 @@ function normalizeTaskForPopup(task, columnTitle) {
       url: att.url || null
     })),
     generalComments: task.generalComments || [],
-    activities: task.activities || [
-      { text: `Task "${task.title}" was created`, timestamp: task.createdAt || task.date || 'Mon, 20 Nov 2023' },
+    activities: (task.activities && task.activities.length > 0) ? task.activities.map(a => ({
+      ...a,
+      timestamp: new Date(a.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    })) : [
+      { text: `Task "${task.title}" was created`, timestamp: task.createdAt ? new Date(task.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Mon, 20 Nov 2023' },
     ],
   };
 }
@@ -333,27 +336,45 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject }) {
           {toastMessage}
         </div>
       )}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="kanban-board-container">
-          {columns.map((column) => (
-            <KanbanColumn
-              key={column.id}
-              column={{...column, count: column.tasks.length}}
-              onTaskOptionClick={handleOpenTaskPopup}
-            />
+      {loading ? (
+        <div className="kanban-board-container" style={{ display: 'flex', gap: '16px', overflow: 'hidden' }}>
+          {COLUMNS_DEF.map(col => (
+            <div key={col.id} className="kanban-column" style={{ display: 'flex', flexDirection: 'column' }}>
+              <div className="kanban-column-header">
+                <div className="column-header-left">
+                  <h3 className="column-title">{col.title}</h3>
+                  <span className="column-count-badge">0</span>
+                </div>
+              </div>
+              <div className="kanban-tasks-list" style={{ minHeight: '150px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div className="skeleton-box" style={{ height: '140px', width: '100%', borderRadius: '16px' }} />
+              </div>
+            </div>
           ))}
         </div>
+      ) : (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="kanban-board-container">
+            {columns.map((column) => (
+              <KanbanColumn
+                key={column.id}
+                column={{...column, count: column.tasks.length}}
+                onTaskOptionClick={handleOpenTaskPopup}
+              />
+            ))}
+          </div>
 
-        <DragOverlay>
-          {draggedTask ? <TaskCard task={draggedTask} isOverlay /> : null}
-        </DragOverlay>
-      </DndContext>
+          <DragOverlay>
+            {draggedTask ? <TaskCard task={draggedTask} isOverlay /> : null}
+          </DragOverlay>
+        </DndContext>
+      )}
 
       {activeTask && (
         <TaskPopup

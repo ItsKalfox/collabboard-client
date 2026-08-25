@@ -373,6 +373,32 @@
 }
 
 /* ============================================
+   Loading Skeleton
+   ============================================ */
+
+@keyframes skeleton-pulse {
+  0% { opacity: 0.5; }
+  50% { opacity: 0.15; }
+  100% { opacity: 0.5; }
+}
+
+.skeleton-box {
+  background: rgba(150, 150, 150, 0.3);
+  border-radius: 6px;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-image { width: 80px; height: 80px; border-radius: 14px; flex-shrink: 0; }
+.skeleton-title { width: 60%; height: 20px; margin-bottom: 8px; }
+.skeleton-desc { width: 40%; height: 16px; }
+.skeleton-progress { width: 100%; height: 6px; margin-top: 8px; }
+.skeleton-progress-label { width: 40px; height: 12px; }
+.skeleton-meta-label { width: 40px; height: 10px; margin-bottom: 6px; }
+.skeleton-meta-value { width: 60px; height: 14px; }
+.skeleton-avatar { width: 32px; height: 32px; border-radius: 50%; margin-left: -10px; }
+.skeleton-avatar:first-child { margin-left: 0; }
+
+/* ============================================
    Empty state
    ============================================ */
 

@@ -1,57 +1,22 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const mockTasksPath = path.join(__dirname, '../data/mockTasks.json');
-
-const getMockTasks = () => {
-    if (!fs.existsSync(mockTasksPath)) {
-        return [];
-    }
-    const data = fs.readFileSync(mockTasksPath, 'utf8');
-    return JSON.parse(data);
-};
-
-const saveMockTasks = (data) => {
-    fs.writeFileSync(mockTasksPath, JSON.stringify(data, null, 2));
-};
+import Task from '../models/Task.js';
 
 export const updateSubtask = async (req, res) => {
     try {
         const { subtaskId } = req.params;
         const { title, description, completed, comments } = req.body;
         
-        const tasks = getMockTasks();
-        let subtaskFound = false;
-        let targetSubtask = null;
+        const task = await Task.findOne({ "subtasks._id": subtaskId });
+        if (!task) return res.status(404).json({ status: 'error', message: 'Subtask not found' });
         
-        for (const task of tasks) {
-            if (task.subtasks) {
-                const subtaskIndex = task.subtasks.findIndex(st => st.id === subtaskId);
-                if (subtaskIndex !== -1) {
-                    if (title !== undefined) task.subtasks[subtaskIndex].title = title;
-                    if (description !== undefined) task.subtasks[subtaskIndex].description = description;
-                    if (completed !== undefined) task.subtasks[subtaskIndex].completed = completed;
-                    if (comments !== undefined) task.subtasks[subtaskIndex].comments = comments;
-                    targetSubtask = task.subtasks[subtaskIndex];
-                    subtaskFound = true;
-                    break;
-                }
-            }
-        }
+        const subtask = task.subtasks.id(subtaskId);
+        if (title !== undefined) subtask.title = title;
+        if (description !== undefined) subtask.description = description;
+        if (completed !== undefined) subtask.completed = completed;
+        if (comments !== undefined) subtask.comments = comments; // Assuming comments might be added to subtasks schema later if needed
         
-        if (!subtaskFound) {
-            return res.status(404).json({ status: 'error', message: 'Subtask not found' });
-        }
+        await task.save();
         
-        saveMockTasks(tasks);
-        
-        res.status(200).json({
-            status: 'success',
-            data: { subtask: targetSubtask }
-        });
+        res.status(200).json({ status: 'success', data: { subtask } });
     } catch (error) {
         console.error('Error updating subtask:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
@@ -61,30 +26,14 @@ export const updateSubtask = async (req, res) => {
 export const deleteSubtask = async (req, res) => {
     try {
         const { subtaskId } = req.params;
-        const tasks = getMockTasks();
-        let subtaskFound = false;
         
-        for (const task of tasks) {
-            if (task.subtasks) {
-                const subtaskIndex = task.subtasks.findIndex(st => st.id === subtaskId);
-                if (subtaskIndex !== -1) {
-                    task.subtasks.splice(subtaskIndex, 1);
-                    subtaskFound = true;
-                    break;
-                }
-            }
-        }
+        const task = await Task.findOne({ "subtasks._id": subtaskId });
+        if (!task) return res.status(404).json({ status: 'error', message: 'Subtask not found' });
         
-        if (!subtaskFound) {
-            return res.status(404).json({ status: 'error', message: 'Subtask not found' });
-        }
+        task.subtasks.pull(subtaskId);
+        await task.save();
         
-        saveMockTasks(tasks);
-        
-        res.status(200).json({
-            status: 'success',
-            message: 'Subtask deleted successfully'
-        });
+        res.status(200).json({ status: 'success', message: 'Subtask deleted successfully' });
     } catch (error) {
         console.error('Error deleting subtask:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });

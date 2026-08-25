@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Sun, Moon } from 'lucide-react';
 import backgroundBL from './assets/background-BL.jpg';
 import backgroundWH from './assets/background-WH.jpg';
@@ -124,6 +124,21 @@ function App() {
     handleTabClick('Dashboard');
   };
 
+  const [indicatorStyle, setIndicatorStyle] = useState({ opacity: 0 });
+  const menuRefs = useRef({});
+
+  useEffect(() => {
+    const activeEl = menuRefs.current[activeTab];
+    if (activeEl) {
+      setIndicatorStyle({
+        top: activeEl.offsetTop,
+        height: activeEl.offsetHeight,
+        width: activeEl.offsetWidth,
+        opacity: 1
+      });
+    }
+  }, [activeTab, isMenuOpen, currentUser]);
+
   const [selectedProject, setSelectedProject] = useState(null);
 
   const handleOpenBoard = (project) => {
@@ -248,12 +263,26 @@ function App() {
           </div>
 
           {/* Menu Items */}
-          <div className="menu-items">
+          <div className="menu-items" style={{ position: 'relative' }}>
+            {/* Sliding Active Indicator */}
+            <div 
+              style={{
+                position: 'absolute',
+                background: 'var(--item-active-bg)',
+                borderRadius: '30px',
+                transition: 'all 0.3s cubic-bezier(0.25, 1, 0.5, 1)',
+                zIndex: 0,
+                ...indicatorStyle
+              }}
+              className={!isDark ? 'light-shadow' : ''}
+            />
             {tabs.map(tab => (
               <div
                 key={tab}
-                className={`menu-item ${activeTab === tab ? 'active' : ''} ${!isDark && activeTab === tab ? 'light-shadow' : ''}`}
+                ref={el => menuRefs.current[tab] = el}
+                className={`menu-item ${activeTab === tab ? 'active' : ''}`}
                 onClick={() => handleTabClick(tab)}
+                style={{ zIndex: 1, position: 'relative' }}
               >
                 <span>{tab}</span>
               </div>
@@ -262,48 +291,60 @@ function App() {
 
           {/* Profile */}
           <div className="profile-container" style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' }}>
-            <div className="profile-pic" style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              fontSize: '22px',
-              fontWeight: '600',
-              color: 'var(--text-primary)',
-              width: '56px',
-              height: '56px',
-              marginBottom: '4px',
-              overflow: 'hidden'
-            }}>
-              {currentUser?.avatar ? (
-                <img
-                  src={currentUser.avatar}
-                  alt="Profile"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-                />
-              ) : (
-                currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'U'
-              )}
-            </div>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', alignItems: 'center', marginBottom: '8px' }}>
-              <div className="profile-name" style={{ 
-                whiteSpace: 'nowrap', 
-                overflow: 'hidden', 
-                textOverflow: 'ellipsis',
-                textAlign: 'center',
-                fontSize: '15px',
-                fontWeight: '600'
-              }}>{currentUser?.name || 'Loading...'}</div>
-              <div style={{ 
-                fontSize: '12px', 
-                color: 'var(--text-secondary)',
-                whiteSpace: 'nowrap', 
-                overflow: 'hidden', 
-                textOverflow: 'ellipsis',
-                textAlign: 'center',
-                marginTop: '2px'
-              }}>{currentUser?.email || '...'}</div>
-            </div>
+            {!currentUser ? (
+              <>
+                <div className="skeleton-box" style={{ width: '56px', height: '56px', borderRadius: '50%', marginBottom: '4px' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', alignItems: 'center', marginBottom: '8px', gap: '6px' }}>
+                  <div className="skeleton-box" style={{ width: '80%', height: '16px', borderRadius: '4px' }} />
+                  <div className="skeleton-box" style={{ width: '90%', height: '12px', borderRadius: '4px' }} />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="profile-pic" style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  fontSize: '22px',
+                  fontWeight: '600',
+                  color: 'var(--text-primary)',
+                  width: '56px',
+                  height: '56px',
+                  marginBottom: '4px',
+                  overflow: 'hidden'
+                }}>
+                  {currentUser.avatar ? (
+                    <img
+                      src={currentUser.avatar}
+                      alt="Profile"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                    />
+                  ) : (
+                    currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'
+                  )}
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', alignItems: 'center', marginBottom: '8px' }}>
+                  <div className="profile-name" style={{ 
+                    whiteSpace: 'nowrap', 
+                    overflow: 'hidden', 
+                    textOverflow: 'ellipsis',
+                    textAlign: 'center',
+                    fontSize: '15px',
+                    fontWeight: '600'
+                  }}>{currentUser.name || 'User'}</div>
+                  <div style={{ 
+                    fontSize: '12px', 
+                    color: 'var(--text-secondary)',
+                    whiteSpace: 'nowrap', 
+                    overflow: 'hidden', 
+                    textOverflow: 'ellipsis',
+                    textAlign: 'center',
+                    marginTop: '2px'
+                  }}>{currentUser.email || 'user@example.com'}</div>
+                </div>
+              </>
+            )}
             
             <button 
               onClick={() => {

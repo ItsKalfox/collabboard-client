@@ -1,94 +1,39 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import cloudinary from '../config/cloudinary.js';
+import Attachment from '../models/Attachment.js';
+import Task from '../models/Task.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const mockAttachmentsPath = path.join(__dirname, '../data/mockAttachments.json');
-
-const getMockAttachments = () => {
-    if (!fs.existsSync(mockAttachmentsPath)) {
-        return [];
-    }
-    const data = fs.readFileSync(mockAttachmentsPath, 'utf8');
-    return JSON.parse(data);
-};
-
-const saveMockAttachments = (data) => {
-    fs.writeFileSync(mockAttachmentsPath, JSON.stringify(data, null, 2));
-};
-
-export const getAttachmentById = (req, res) => {
+export const getAttachmentById = async (req, res) => {
     try {
-        const { attachmentId } = req.params;
-        const attachments = getMockAttachments();
-        const attachment = attachments.find(a => a.id === attachmentId);
-
-        if (!attachment) {
-            return res.status(404).json({ status: 'error', message: 'Attachment not found' });
-        }
-
-        res.status(200).json({
-            status: 'success',
-            data: { attachment }
-        });
+        const attachment = await Attachment.findById(req.params.attachmentId);
+        if (!attachment) return res.status(404).json({ status: 'error', message: 'Attachment not found' });
+        
+        res.status(200).json({ status: 'success', data: { attachment } });
     } catch (error) {
-        console.error('Get attachment by ID error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
 
 export const deleteAttachmentById = async (req, res) => {
     try {
-        const { attachmentId } = req.params;
-        const attachments = getMockAttachments();
-        const attachmentIndex = attachments.findIndex(a => a.id === attachmentId);
-
-        if (attachmentIndex === -1) {
-            return res.status(404).json({ status: 'error', message: 'Attachment not found' });
-        }
-
-        const attachment = attachments[attachmentIndex];
-
-        // Delete from Cloudinary
+        const attachment = await Attachment.findById(req.params.attachmentId);
+        if (!attachment) return res.status(404).json({ status: 'error', message: 'Attachment not found' });
+        
         if (attachment.publicId) {
-            try {
-                await cloudinary.uploader.destroy(attachment.publicId);
-            } catch (err) {
-                console.error('Failed to delete attachment from Cloudinary:', err.message);
-                // We still proceed to delete the local reference even if cloud deletion fails
+            try { await cloudinary.uploader.destroy(attachment.publicId); } catch (e) {}
+        }
+        
+        await Attachment.findByIdAndDelete(req.params.attachmentId);
+        
+        if (attachment.taskId) {
+            const task = await Task.findById(attachment.taskId);
+            if (task && task.attachments) {
+                task.attachments.pull(attachment._id);
+                await task.save();
             }
         }
-
-        attachments.splice(attachmentIndex, 1);
-        saveMockAttachments(attachments);
-
-        // Also remove from task's attachments array in mockTasks.json
-        const mockTasksPath = path.join(__dirname, '../data/mockTasks.json');
-        if (fs.existsSync(mockTasksPath)) {
-            const tasksData = JSON.parse(fs.readFileSync(mockTasksPath, 'utf8'));
-            let tasksModified = false;
-            tasksData.forEach(task => {
-                if (task.attachments) {
-                    const idx = task.attachments.findIndex(a => a.id === attachmentId);
-                    if (idx !== -1) {
-                        task.attachments.splice(idx, 1);
-                        tasksModified = true;
-                    }
-                }
-            });
-            if (tasksModified) {
-                fs.writeFileSync(mockTasksPath, JSON.stringify(tasksData, null, 2));
-            }
-        }
-
-        res.status(200).json({
-            status: 'success',
-            message: 'Attachment deleted successfully'
-        });
+        
+        res.status(200).json({ status: 'success', message: 'Attachment deleted successfully' });
     } catch (error) {
-        console.error('Delete attachment error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };

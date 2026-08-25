@@ -1,21 +1,7 @@
 import jwt from 'jsonwebtoken';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import User from '../models/User.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const mockDataPath = path.join(__dirname, '../data/mockData.json');
-
-const getMockData = () => {
-    if (!fs.existsSync(mockDataPath)) {
-        return [];
-    }
-    const data = fs.readFileSync(mockDataPath, 'utf8');
-    return JSON.parse(data);
-};
-
-export const protect = (req, res, next) => {
+export const protect = async (req, res, next) => {
     try {
         let token;
         
@@ -31,17 +17,15 @@ export const protect = (req, res, next) => {
         // Verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'super_secret_key_12345');
 
-        // Find user by ID
-        const users = getMockData();
-        const user = users.find(u => u.id === decoded.id);
+        // Find user by ID in MongoDB
+        const user = await User.findById(decoded.id).select('-password');
 
         if (!user) {
             return res.status(401).json({ status: 'error', message: 'User not found or token invalid' });
         }
 
-        // Attach user to request (exclude password)
-        const { password, ...userWithoutPassword } = user;
-        req.user = userWithoutPassword;
+        // Attach user to request
+        req.user = user;
 
         next();
     } catch (error) {

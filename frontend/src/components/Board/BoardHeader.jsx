@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { AlertCircle } from 'lucide-react';
 import { normalizeMember, getInitials } from '../../mock/mockMembers';
 import './BoardHeader.css';
 
@@ -10,11 +11,18 @@ const COLOR_HEX = {
   purple: '#a855f7',
 };
 
-export default function BoardHeader({ project = {}, onAddTask, onAddMember, onAddTag }) {
-  const [activeSubTab, setActiveSubTab] = useState('Board');
+export default function BoardHeader({ 
+  project = {}, 
+  onAddTask, 
+  onAddMember, 
+  onAddTag, 
+  onInfoClick,
+  activeSubTab = 'Board',
+  onSubTabChange
+}) {
   const [projectMembers, setProjectMembers] = useState([]);
 
-  const subTabs = ['Board', 'Timeline', 'Team Info'];
+  const subTabs = ['Board', 'Timeline', 'Activity'];
 
   const { 
     id: projectId,
@@ -62,99 +70,89 @@ export default function BoardHeader({ project = {}, onAddTask, onAddMember, onAd
 
   return (
     <div className="board-header-container">
-      {/* Main Title & Team Avatars */}
-      <div className="board-title-row">
-        <div className="board-title-group">
+      {/* TOP ROW: Title, Deadline, Avatars, Add Task */}
+      <div className="board-title-row" style={{ alignItems: 'flex-start', margin: 0 }}>
+        
+        {/* LEFT: Title & Info Icon */}
+        <div className="board-title-group" style={{ alignItems: 'center' }}>
           <h1 className="board-main-title">{name}</h1>
-          <button className="info-icon-btn" title={description || 'Project Info'}>
-            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="16" x2="12" y2="12"></line>
-              <line x1="12" y1="8" x2="12.01" y2="8"></line>
-            </svg>
+          <button className="info-icon-btn" title={description || 'Project Info'} onClick={onInfoClick} style={{ cursor: 'pointer', background: 'transparent', border: 'none', color: 'var(--text-secondary, #6b7280)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <AlertCircle size={18} strokeWidth={2} />
           </button>
         </div>
 
-        <div className="board-team-group">
-          <div className="pc-list-members" style={{ marginRight: '16px' }}>
-            {projectMembers.map(normalizeMember).slice(0, 4).map((member, idx) => (
-              <div
-                key={idx}
-                className="pc-list-avatar"
-                style={{ backgroundColor: member.avatar ? 'transparent' : (member.bg || COLOR_HEX.blue), zIndex: 10 - idx }}
-              >
-                <div className="avatar-inner">
-                  {member.avatar ? (
-                    <img src={member.avatar} alt={member.name} />
-                  ) : (
-                    member.initials || getInitials(member.name)
-                  )}
-                </div>
-                <div className="custom-avatar-tooltip">
-                  <div className="tooltip-avatar" style={{ backgroundColor: member.bg || COLOR_HEX.blue }}>
-                    {member.avatar ? <img src={member.avatar} alt="" /> : (member.initials || getInitials(member.name))}
-                  </div>
-                  <div className="tooltip-info">
-                    <span className="name">{member.name}</span>
-                    <span className="email">{member.email || member.role || 'Member'}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-            {projectMembers.length > 4 && (
-              <div className="pc-list-avatar-more" style={{ zIndex: 1 }}>
-                +{projectMembers.length - 4}
-              </div>
-            )}
-          </div>
-          <button className="invite-member-btn" title="Add Member" onClick={onAddMember}>
-            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2.5" fill="none">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      {/* Metadata Row & Add New Task Button */}
-      <div className="board-metadata-row">
-        <div className="metadata-left-items">
-          <div className="meta-item">
-            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
-              <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
-              <line x1="4" y1="22" x2="4" y2="15"></line>
-            </svg>
-            <span className="meta-label">Priority:</span>
-            <span className="priority-badge">{displayPriority}</span>
-          </div>
-
-          <div className="meta-item">
+        {/* RIGHT: Deadline, Avatars, Add Task */}
+        <div className="board-team-group" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+          {/* Deadline */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary, #6b7280)' }}>
             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
               <circle cx="12" cy="12" r="10"></circle>
               <polyline points="12 6 12 12 16 14"></polyline>
             </svg>
-            <span className="meta-label">Deadline:</span>
-            <span className="meta-value">{displayDeadline}</span>
+            <span style={{ fontSize: '12px', fontWeight: '500' }}>Deadline:</span>
+            <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary, #111)' }}>{displayDeadline}</span>
           </div>
 
-          <div className="meta-item">
-            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
-              <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-              <line x1="7" y1="7" x2="7.01" y2="7"></line>
-            </svg>
-            <span className="meta-label">Tags:</span>
-            <div className="tags-list">
-              {displayTags.map((tag, idx) => (
-                <span key={idx} className={`tag-pill tag-${idx % 2 === 0 ? 'blue' : 'purple'}`}>
-                  {tag}
-                </span>
+          {/* Avatars */}
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <div className="pc-list-members" style={{ marginRight: '16px', display: 'flex', flexDirection: 'row-reverse' }}>
+              {projectMembers.map(normalizeMember).slice(0, 4).map((member, idx, arr) => (
+                <div
+                  key={idx}
+                  className="pc-list-avatar"
+                  style={{ backgroundColor: member.avatar ? 'transparent' : (member.bg || COLOR_HEX.blue), zIndex: idx, marginLeft: idx !== arr.length - 1 ? '-10px' : '0' }}
+                >
+                  <div className="avatar-inner">
+                    {member.avatar ? (
+                      <img src={member.avatar} alt={member.name} />
+                    ) : (
+                      member.initials || getInitials(member.name)
+                    )}
+                  </div>
+                  <div className="custom-avatar-tooltip">
+                    <div className="tooltip-avatar" style={{ backgroundColor: member.bg || COLOR_HEX.blue }}>
+                      {member.avatar ? <img src={member.avatar} alt="" /> : (member.initials || getInitials(member.name))}
+                    </div>
+                    <div className="tooltip-info">
+                      <span className="name">{member.name}</span>
+                      <span className="email">{member.email || member.role || 'Member'}</span>
+                    </div>
+                  </div>
+                </div>
               ))}
-              <button className="add-tag-btn" onClick={onAddTag}>+ Add more</button>
+              {projectMembers.length > 4 && (
+                <div className="pc-list-avatar-more" style={{ zIndex: 10 }}>
+                  +{projectMembers.length - 4}
+                </div>
+              )}
             </div>
+            <button className="invite-member-btn" title="Add Member" onClick={onAddMember}>
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2.5" fill="none">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
           </div>
-        </div>
 
-        <button className="add-task-header-btn" onClick={onAddTask}>
+        </div>
+      </div>
+
+      {/* SECOND ROW: Description & Add Task Button */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '-8px', marginBottom: '8px' }}>
+        <div style={{ flex: 1, paddingRight: '16px' }}>
+          {description && (
+            <div style={{
+               fontSize: '13px', color: 'var(--text-dim, #6b7280)', 
+               display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', 
+               overflow: 'hidden', textOverflow: 'ellipsis',
+               lineHeight: '1.5', textAlign: 'left'
+            }}>
+              {description}
+            </div>
+          )}
+        </div>
+        
+        <button className="add-task-header-btn" onClick={onAddTask} style={{ margin: 0, flexShrink: 0 }}>
           <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2.5" fill="none">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -163,6 +161,8 @@ export default function BoardHeader({ project = {}, onAddTask, onAddMember, onAd
         </button>
       </div>
 
+
+
       {/* Sub-Tabs Bar: Board, Timeline, Team Info */}
       <div className="board-subtabs-bar">
         <div className="subtabs-list">
@@ -170,7 +170,7 @@ export default function BoardHeader({ project = {}, onAddTask, onAddMember, onAd
             <button
               key={tab}
               className={`subtab-btn ${activeSubTab === tab ? 'active' : ''}`}
-              onClick={() => setActiveSubTab(tab)}
+              onClick={() => onSubTabChange && onSubTabChange(tab)}
             >
               {tab}
               {activeSubTab === tab && <div className="subtab-active-indicator" />}

@@ -2,11 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import ProjectsSidebar from '../components/Board/ProjectsSidebar';
 import BoardHeader from '../components/Board/BoardHeader';
 import KanbanBoard from '../components/Board/KanbanBoard';
+import ProjectTimeline from '../components/Board/ProjectTimeline';
+import ProjectActivity from '../components/Board/ProjectActivity';
 import ActionModal from '../components/Board/ActionModal';
+import ProjectDetailsModal from '../components/projects/ProjectDetailsModal';
 
 import { Search, X } from 'lucide-react';
 import { searchUsers } from '../services/projectService';
-import { INITIAL_PROJECTS } from '../mock/mockProjects';
 import { normalizeMember } from '../mock/mockMembers';
 import './Board.css';
 
@@ -20,14 +22,22 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
   });
 
   const [selectedProjectId, setSelectedProjectId] = useState(() => {
-    if (selectedProject) return typeof selectedProject === 'object' ? selectedProject.id : selectedProject;
-    if (initialProjectId) return typeof initialProjectId === 'object' ? initialProjectId.id : initialProjectId;
+    // If we're coming from the projects page and a project was selected
+    if (selectedProject && typeof selectedProject === 'object') {
+      return selectedProject.id;
+    }
+    // If an ID was explicitly passed
+    if (initialProjectId) {
+      return initialProjectId;
+    }
+    // Default fallback
     return null;
   });
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [activeSubTab, setActiveSubTab] = useState('Board');
 
   useEffect(() => {
     const target = selectedProject || initialProjectId;
@@ -47,6 +57,7 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
 
 
   // Modal states
+  const [isProjectDetailsOpen, setIsProjectDetailsOpen] = useState(false);
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [isAddTagModalOpen, setIsAddTagModalOpen] = useState(false);
@@ -74,6 +85,7 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
 
   useEffect(() => {
     const fetchProjects = async () => {
+      setLoading(true);
       try {
         const token = localStorage.getItem('token');
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -93,12 +105,7 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
               const map = new Map();
               // Add API projects
               apiProjects.forEach(p => map.set(p.id, p));
-              // Fallback to mock initial projects only if API returns no projects
-              if (apiProjects.length === 0) {
-                INITIAL_PROJECTS.forEach(p => {
-                  if (!map.has(p.id)) map.set(p.id, p);
-                });
-              }
+              // Fallback removed to ensure true empty state when no projects exist
               // Add any dynamically selected project
               prev.forEach(p => {
                 if (!map.has(p.id)) map.set(p.id, p);
@@ -121,6 +128,8 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
                 }
                 return prev;
               });
+            } else {
+              setSelectedProjectId(null);
             }
           }
         }
@@ -346,37 +355,122 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
   return (
     <div className="board-page-container">
       {/* Left side: Projects Preview Sidebar */}
-      <ProjectsSidebar 
-        projects={projects} 
-        activeProjectId={selectedProjectId} 
-        onSelectProject={handleSelectProject} 
-        currentUser={currentUser}
-      />
+      {loading ? (
+        <div className="projects-preview-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div>
+            <div className="skeleton-box" style={{ height: '16px', width: '50%', borderRadius: '4px', marginBottom: '16px' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {[1, 2, 3].map(i => (
+                <div key={i} className="skeleton-box" style={{ height: '36px', width: '100%', borderRadius: '8px' }} />
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="skeleton-box" style={{ height: '16px', width: '60%', borderRadius: '4px', marginBottom: '16px' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {[1, 2].map(i => (
+                <div key={i} className="skeleton-box" style={{ height: '36px', width: '100%', borderRadius: '8px' }} />
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <ProjectsSidebar 
+          projects={projects} 
+          activeProjectId={selectedProjectId} 
+          onSelectProject={handleSelectProject} 
+          currentUser={currentUser}
+        />
+      )}
 
       {/* Right side: Main Board Workspace */}
       <div className="board-main-view">
-        {/* Top Header & Navigation */}
-        {currentProject && (
-          <BoardHeader 
-            project={currentProject} 
-            onAddTask={() => setIsAddTaskModalOpen(true)} 
-            onAddMember={() => setIsAddMemberModalOpen(true)} 
-            onAddTag={() => setIsAddTagModalOpen(true)}
-          />
-        )}
+        {loading ? (
+          <>
+            <div className="board-header-container" style={{ padding: '16px 24px', paddingBottom: '0' }}>
+              {/* TOP ROW: Title & Deadline/Avatars */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '4px 0 0 0' }}>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', width: '40%' }}>
+                  <div className="skeleton-box" style={{ height: '36px', width: '80%', borderRadius: '8px' }} />
+                  <div className="skeleton-box" style={{ height: '26px', width: '26px', borderRadius: '50%' }} />
+                </div>
+                <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+                  <div className="skeleton-box" style={{ height: '16px', width: '100px', borderRadius: '4px' }} />
+                  <div style={{ display: 'flex' }}>
+                    <div className="skeleton-avatar" style={{ marginLeft: '0', zIndex: 4 }} />
+                    <div className="skeleton-avatar" style={{ marginLeft: '-10px', zIndex: 3 }} />
+                    <div className="skeleton-avatar" style={{ marginLeft: '-10px', zIndex: 2 }} />
+                    <div className="skeleton-avatar" style={{ marginLeft: '-10px', zIndex: 1 }} />
+                  </div>
+                </div>
+              </div>
 
-        {/* Kanban Board Columns */}
-        <div className="board-content-area">
-          {loading ? (
-            <div style={{ padding: '20px', color: 'var(--text-secondary)' }}>Loading projects...</div>
-          ) : error ? (
-            <div style={{ padding: '20px', color: 'var(--text-secondary)' }}>Error: {error}</div>
-          ) : selectedProjectId ? (
-            <KanbanBoard projectId={selectedProjectId} currentProject={currentProject} refreshKey={refreshKey} />
-          ) : (
-            <div style={{ padding: '20px', color: 'var(--text-secondary)' }}>No projects found. Please create a project.</div>
-          )}
-        </div>
+              {/* SECOND ROW: Description & Add Task Button */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '16px', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, paddingRight: '16px' }}>
+                  <div className="skeleton-box" style={{ height: '14px', width: '100%', borderRadius: '4px' }} />
+                  <div className="skeleton-box" style={{ height: '14px', width: '95%', borderRadius: '4px' }} />
+                  <div className="skeleton-box" style={{ height: '14px', width: '80%', borderRadius: '4px' }} />
+                </div>
+                <div className="skeleton-box" style={{ height: '36px', width: '130px', borderRadius: '6px', flexShrink: 0 }} />
+              </div>
+
+              {/* THIRD ROW: Subtabs */}
+              <div style={{ display: 'flex', gap: '12px', paddingBottom: '16px', borderBottom: '1px solid var(--border-color, #e5e7eb)', marginTop: '16px' }}>
+                <div className="skeleton-box" style={{ height: '24px', width: '60px', borderRadius: '4px' }} />
+                <div className="skeleton-box" style={{ height: '24px', width: '80px', borderRadius: '4px' }} />
+                <div className="skeleton-box" style={{ height: '24px', width: '90px', borderRadius: '4px' }} />
+              </div>
+            </div>
+            <div className="board-content-area" style={{ padding: '24px' }}>
+              <div className="kanban-board-container" style={{ display: 'flex', gap: '16px', overflow: 'hidden' }}>
+                {[{id: 'todo', title: 'To Do'}, {id: 'in_progress', title: 'In Progress'}, {id: 'review', title: 'Need Review'}, {id: 'completed', title: 'Done'}].map(col => (
+                  <div key={col.id} className="kanban-column" style={{ display: 'flex', flexDirection: 'column' }}>
+                    <div className="kanban-column-header">
+                      <div className="column-header-left">
+                        <h3 className="column-title">{col.title}</h3>
+                        <span className="column-count-badge">0</span>
+                      </div>
+                    </div>
+                    <div className="kanban-tasks-list" style={{ minHeight: '150px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div className="skeleton-box" style={{ height: '140px', width: '100%', borderRadius: '16px' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Top Header & Navigation */}
+            {currentProject && (
+              <BoardHeader 
+                project={currentProject} 
+                onAddTask={() => setIsAddTaskModalOpen(true)} 
+                onAddMember={() => setIsAddMemberModalOpen(true)} 
+                onAddTag={() => setIsAddTagModalOpen(true)}
+                onInfoClick={() => setIsProjectDetailsOpen(true)}
+                activeSubTab={activeSubTab}
+                onSubTabChange={setActiveSubTab}
+              />
+            )}
+
+            {/* Kanban Board Columns */}
+            <div className="board-content-area">
+              {error ? (
+                <div style={{ padding: '20px', color: 'var(--text-secondary)' }}>Error: {error}</div>
+              ) : selectedProjectId ? (
+                <>
+                  {activeSubTab === 'Board' && <KanbanBoard projectId={selectedProjectId} currentProject={currentProject} refreshKey={refreshKey} />}
+                  {activeSubTab === 'Timeline' && <ProjectTimeline project={currentProject} />}
+                  {activeSubTab === 'Activity' && <ProjectActivity projectId={selectedProjectId} />}
+                </>
+              ) : (
+                <div style={{ padding: '20px', color: 'var(--text-secondary)' }}>No projects found. Please create a project.</div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Add Task Modal */}
@@ -706,6 +800,17 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
           </div>
         </div>
       </ActionModal>
+
+      <ProjectDetailsModal
+        isOpen={isProjectDetailsOpen}
+        onClose={() => setIsProjectDetailsOpen(false)}
+        project={currentProject}
+        currentUser={currentUser}
+        hideActions={true}
+        onSaveProject={(updated) => {
+          setProjects(prev => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p));
+        }}
+      />
     </div>
   );
 }

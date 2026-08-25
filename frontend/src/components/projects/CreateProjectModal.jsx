@@ -25,9 +25,18 @@ export default function CreateProjectModal({
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [validationErrors, setValidationErrors] = useState({});
   
   const imageInputRef = useRef();
   const docInputRef = useRef();
+  const titleInputRef = useRef();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (titleInputRef.current) titleInputRef.current.focus();
+    }, 350);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Member search state connected to API
   const [memberSearch, setMemberSearch] = useState('');
@@ -39,6 +48,8 @@ export default function CreateProjectModal({
   const memberSearchWrapRef = useRef(null);
 
   const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskDescription, setNewTaskDescription] = useState('');
+  const [newTaskPriority, setNewTaskPriority] = useState('low');
   const [tasks, setTasks] = useState([]);
 
   const resetForm = useCallback(() => {
@@ -54,8 +65,11 @@ export default function CreateProjectModal({
     setSearchError('');
     setMembers([]);
     setNewTaskTitle('');
+    setNewTaskDescription('');
+    setNewTaskPriority('low');
     setTasks([]);
     setError('');
+    setValidationErrors({});
     setIsSubmitting(false);
   }, []);
 
@@ -145,15 +159,22 @@ export default function CreateProjectModal({
     }
   };
 
+  const ownerName = typeof currentUser === 'string' ? currentUser : (currentUser?.name || 'Alex Johnson');
+
   // Filter API search results based on existing selected members
-  const availableMembers = searchResults.filter(user => 
-    !members.some(existing => 
+  const availableMembers = searchResults.filter(user => {
+    // Exclude owner
+    if (user.name && user.name.toLowerCase() === ownerName.toLowerCase()) return false;
+    if (user.email && currentUser?.email && user.email.toLowerCase() === currentUser.email.toLowerCase()) return false;
+    
+    // Exclude already added members
+    return !members.some(existing => 
       (existing.id && String(existing.id) === String(user.id)) ||
       (existing.userId && String(existing.userId) === String(user.id)) ||
       (existing.name && user.name && existing.name.toLowerCase() === user.name.toLowerCase()) ||
       (existing.email && user.email && existing.email.toLowerCase() === user.email.toLowerCase())
     )
-  );
+  });
 
   const addMember = (memberObj) => {
     const normalized = normalizeMember(memberObj);
@@ -177,7 +198,26 @@ export default function CreateProjectModal({
   };
 
   const handleSubmit = async () => {
-    if (!name.trim() || isSubmitting) return;
+    if (isSubmitting) return;
+
+    const errors = {};
+    if (!name.trim()) errors.name = 'Required';
+    if (!description.trim()) errors.description = 'Required';
+    if (!dueDate) errors.dueDate = 'Required';
+    const hasPendingTask = newTaskTitle.trim() || newTaskDescription.trim();
+    if (tasks.length === 0 && !hasPendingTask) {
+      errors.tasks = 'At least 1 initial task with title and description is required';
+    } else if (hasPendingTask) {
+      if (!newTaskTitle.trim() || !newTaskDescription.trim()) {
+        errors.tasks = 'Both title and description are required for a task';
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+    setValidationErrors({});
 
     const todayStr = getTodayYYYYMMDD();
     if (dueDate && dueDate < todayStr) {
@@ -189,8 +229,6 @@ export default function CreateProjectModal({
     setError('');
 
     try {
-      // Owner is automatically current logged-in user
-      const ownerName = typeof currentUser === 'string' ? currentUser : (currentUser?.name || 'Alex Johnson');
       const ownerMember = normalizeMember(ownerName);
 
       // Ensure owner is included in members list
@@ -199,10 +237,10 @@ export default function CreateProjectModal({
         finalMembers.unshift(ownerMember);
       }
 
-      // Auto-commit any pending task title in newTaskTitle field
+      // Auto-commit any pending task in fields
       let finalTasks = [...tasks];
-      if (newTaskTitle.trim()) {
-        finalTasks.push({ id: `t-${Date.now()}`, title: newTaskTitle.trim(), subtasks: [] });
+      if (newTaskTitle.trim() && newTaskDescription.trim()) {
+        finalTasks.push({ id: `t-${Date.now()}`, title: newTaskTitle.trim(), description: newTaskDescription.trim(), priority: newTaskPriority, subtasks: [] });
       }
 
       // Format display date if date picker date is provided (e.g. YYYY-MM-DD -> DD MMM YYYY)
@@ -229,6 +267,8 @@ export default function CreateProjectModal({
         })),
         tasks: finalTasks.map(t => ({
           title: t.title,
+          description: t.description || '',
+          priority: t.priority || 'medium',
           status: 'todo',
           subtasks: t.subtasks || []
         }))
@@ -296,10 +336,16 @@ export default function CreateProjectModal({
   const handleAddTask = (e) => {
     e.preventDefault();
     const title = newTaskTitle.trim();
-    if (title) {
-      setTasks([...tasks, { id: `t-${Date.now()}`, title, subtasks: [] }]);
-      setNewTaskTitle('');
+    const description = newTaskDescription.trim();
+    if (!title || !description) {
+      setValidationErrors(prev => ({ ...prev, tasks: 'Both task title and description are required' }));
+      return;
     }
+    setTasks([...tasks, { id: `t-${Date.now()}`, title, description, priority: newTaskPriority, subtasks: [] }]);
+    setNewTaskTitle('');
+    setNewTaskDescription('');
+    setNewTaskPriority('low');
+    if (validationErrors.tasks) setValidationErrors(prev => ({ ...prev, tasks: null }));
   };
 
   const removeTask = (taskId) => {
@@ -341,23 +387,35 @@ export default function CreateProjectModal({
           )}
 
           {/* Title */}
-          <input
-            className="popup-title-input"
-            placeholder="Project Name..."
-            value={name}
-            onChange={e => setName(e.target.value)}
-            style={{ marginBottom: '16px', textAlign: 'center' }}
-            autoFocus
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '16px' }}>
+            {validationErrors.name && <span style={{color: '#ef4444', fontSize: '11px', fontWeight: '600', alignSelf: 'flex-start', marginLeft: '4px'}}>* Required</span>}
+            <input
+              ref={titleInputRef}
+              className="popup-title-input"
+              placeholder="Project Name..."
+              value={name}
+              onChange={e => {
+                setName(e.target.value);
+                if (validationErrors.name) setValidationErrors(prev => ({ ...prev, name: null }));
+              }}
+              style={{ marginBottom: 0, textAlign: 'center', borderColor: validationErrors.name ? '#ef4444' : undefined }}
+            />
+          </div>
 
           {/* Description */}
-          <textarea
-            className="popup-desc-textarea"
-            placeholder="Add a detailed description..."
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-            style={{ marginBottom: '24px', minHeight: '90px' }}
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '24px' }}>
+            {validationErrors.description && <span style={{color: '#ef4444', fontSize: '11px', fontWeight: '600', alignSelf: 'flex-start', marginLeft: '4px'}}>* Required</span>}
+            <textarea
+              className="popup-desc-textarea"
+              placeholder="Add a detailed description..."
+              value={description}
+              onChange={e => {
+                setDescription(e.target.value);
+                if (validationErrors.description) setValidationErrors(prev => ({ ...prev, description: null }));
+              }}
+              style={{ marginBottom: 0, minHeight: '90px', borderColor: validationErrors.description ? '#ef4444' : undefined }}
+            />
+          </div>
 
           {/* Image Preview if available */}
           {projectImage && (
@@ -405,7 +463,7 @@ export default function CreateProjectModal({
                 <Calendar size={14} style={{ marginRight: '6px' }} />
                 Due date
               </div>
-              <div className="popup-meta-val">
+              <div className="popup-meta-val" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <input 
                   type="date"
                   className="popup-mini-input popup-mini-input--wide"
@@ -414,9 +472,11 @@ export default function CreateProjectModal({
                   onChange={e => {
                     setDueDate(e.target.value);
                     if (error) setError('');
+                    if (validationErrors.dueDate) setValidationErrors(prev => ({ ...prev, dueDate: null }));
                   }}
-                  style={{ colorScheme: theme === 'light' ? 'light' : 'dark' }}
+                  style={{ colorScheme: theme === 'light' ? 'light' : 'dark', borderColor: validationErrors.dueDate ? '#ef4444' : undefined }}
                 />
+                {validationErrors.dueDate && <span style={{color: '#ef4444', fontSize: '11px', fontWeight: '600'}}>* Required</span>}
               </div>
             </div>
             
@@ -600,37 +660,75 @@ export default function CreateProjectModal({
 
           {/* Initial Tasks Section */}
           <div style={{ marginBottom: '24px' }}>
-            <h4 style={{ fontSize: '14px', color: 'var(--popup-text-heading)', marginBottom: '12px', fontWeight: '600' }}>Initial Tasks</h4>
-            <form onSubmit={handleAddTask} style={{ display: 'flex', gap: '8px', marginBottom: '16px', alignItems: 'center' }}>
-              <input
-                className="popup-mini-input"
-                style={{ fontSize: '13px', padding: '0 12px', flex: 1, fontWeight: '400', height: '34px', margin: 0, boxSizing: 'border-box' }}
-                placeholder="Task title..."
-                value={newTaskTitle}
-                onChange={e => setNewTaskTitle(e.target.value)}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h4 style={{ fontSize: '14px', color: 'var(--popup-text-heading)', margin: 0, fontWeight: '600' }}>Initial Tasks</h4>
+              {validationErrors.tasks && <span style={{color: '#ef4444', fontSize: '11px', fontWeight: '600'}}>* {validationErrors.tasks}</span>}
+            </div>
+            
+            <div className="popup-add-subtask-bar" style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '8px', padding: '12px', background: 'var(--bg-sec)', borderRadius: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" style={{ flexShrink: 0 }}>
+                  <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                <input
+                  className="popup-add-subtask-input"
+                  placeholder="Task title…"
+                  value={newTaskTitle}
+                  onChange={e => {
+                    setNewTaskTitle(e.target.value);
+                    if (validationErrors.tasks) setValidationErrors(prev => ({ ...prev, tasks: null }));
+                  }}
+                  style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', color: 'inherit', textAlign: 'left', fontFamily: 'inherit' }}
+                />
+              </div>
+              <textarea
+                placeholder="Task description…"
+                value={newTaskDescription}
+                onChange={e => {
+                  setNewTaskDescription(e.target.value);
+                  if (validationErrors.tasks) setValidationErrors(prev => ({ ...prev, tasks: null }));
+                }}
+                style={{ width: '100%', minHeight: '60px', background: 'var(--popup-input-bg)', border: 'var(--popup-input-border)', borderRadius: '6px', padding: '10px', color: 'var(--popup-input-text)', resize: 'vertical', fontFamily: 'inherit', textAlign: 'left', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
               />
-              <button 
-                type="submit" 
-                className="popup-save-btn" 
-                style={{ padding: '0 16px', background: 'var(--popup-btn-bg)', color: 'var(--popup-text-main)', border: 'var(--popup-btn-border)', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' }}
-                disabled={!newTaskTitle.trim()}
-              >
-                <Plus size={16} strokeWidth={2.5} />
-              </button>
-            </form>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button type="button" onClick={() => setNewTaskPriority('low')} style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', borderRadius: '12px', border: newTaskPriority === 'low' ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid var(--popup-btn-border)', background: newTaskPriority === 'low' ? 'rgba(16, 185, 129, 0.15)' : 'transparent', color: newTaskPriority === 'low' ? '#10b981' : 'var(--popup-text-muted)', cursor: 'pointer', transition: 'all 0.2s' }}>Low Priority</button>
+                  <button type="button" onClick={() => setNewTaskPriority('medium')} style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', borderRadius: '12px', border: newTaskPriority === 'medium' ? '1px solid rgba(245, 158, 11, 0.5)' : '1px solid var(--popup-btn-border)', background: newTaskPriority === 'medium' ? 'rgba(245, 158, 11, 0.15)' : 'transparent', color: newTaskPriority === 'medium' ? '#f59e0b' : 'var(--popup-text-muted)', cursor: 'pointer', transition: 'all 0.2s' }}>Medium Priority</button>
+                  <button type="button" onClick={() => setNewTaskPriority('high')} style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', borderRadius: '12px', border: newTaskPriority === 'high' ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid var(--popup-btn-border)', background: newTaskPriority === 'high' ? 'rgba(239, 68, 68, 0.15)' : 'transparent', color: newTaskPriority === 'high' ? '#ef4444' : 'var(--popup-text-muted)', cursor: 'pointer', transition: 'all 0.2s' }}>High Priority</button>
+                </div>
+                <button type="button" className="popup-add-subtask-btn" onClick={handleAddTask} style={{ background: 'var(--popup-btn-bg)', border: 'var(--popup-btn-border)', color: 'var(--popup-text-main)', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>
+                  Add Task
+                </button>
+              </div>
+            </div>
 
             {tasks.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {tasks.map(t => (
-                  <div key={t.id} style={{ background: 'var(--popup-card-bg)', border: 'var(--popup-card-border)', borderRadius: '8px', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '14px', fontWeight: '500', color: 'var(--popup-text-main)' }}>{t.title}</span>
+                  <div key={t.id} style={{ background: 'var(--popup-card-bg)', border: 'var(--popup-card-border)', borderRadius: '8px', padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, paddingRight: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--popup-text-main)' }}>{t.title}</span>
+                        {t.priority && (
+                          <span style={{
+                            padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase',
+                            background: t.priority === 'low' ? 'rgba(16, 185, 129, 0.15)' : t.priority === 'high' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                            color: t.priority === 'low' ? '#10b981' : t.priority === 'high' ? '#ef4444' : '#f59e0b',
+                            border: t.priority === 'low' ? '1px solid rgba(16, 185, 129, 0.3)' : t.priority === 'high' ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(245, 158, 11, 0.3)'
+                          }}>
+                            {t.priority}
+                          </span>
+                        )}
+                      </div>
+                      <span style={{ fontSize: '13px', color: 'var(--popup-text-muted)', whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>{t.description}</span>
+                    </div>
                     <button 
                       type="button"
                       onClick={() => removeTask(t.id)}
-                      style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                      style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', marginTop: '2px' }}
                       title="Remove task"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 ))}
@@ -643,7 +741,7 @@ export default function CreateProjectModal({
         {/* Footer */}
         <div style={{ padding: '16px 20px', display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: 'var(--popup-divider)' }}>
           <button className="popup-cancel-btn" onClick={handleClose} disabled={isSubmitting}>Cancel</button>
-          <button className="popup-save-btn" onClick={handleSubmit} disabled={!name.trim() || isSubmitting}>
+          <button className="popup-save-btn" onClick={handleSubmit} disabled={isSubmitting}>
             {isSubmitting ? 'Creating Project...' : 'Create Project'}
           </button>
         </div>

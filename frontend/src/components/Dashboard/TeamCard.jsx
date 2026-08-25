@@ -92,8 +92,29 @@ export default function TeamCard() {
         {/* Inner Dark Panel */}
         <div className="team-dark-panel">
           {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
-              <Loader2 className="animate-spin" style={{ color: '#9ca3af' }} />
+            <div className="team-columns-grid" style={{ minHeight: '200px' }}>
+              {[1, 2].map(i => (
+                <div key={i} className={`team-dept-col ${i === 2 ? 'chart-col' : ''}`}>
+                  <div className="dept-info">
+                    <div className="skeleton-box" style={{ width: '120px', height: '16px', borderRadius: '4px', marginBottom: '6px' }} />
+                    <div className="skeleton-box" style={{ width: '90px', height: '12px', borderRadius: '4px' }} />
+                  </div>
+                  {i === 1 && (
+                    <div className="dept-avatars" style={{ marginTop: '16px' }}>
+                      {[1, 2, 3].map(j => (
+                        <div key={j} className="skeleton-box" style={{ width: '40px', height: '40px', borderRadius: '50%', display: 'inline-block', marginRight: '-12px' }} />
+                      ))}
+                    </div>
+                  )}
+                  {i === 2 && (
+                    <div className="dept-bars" style={{ marginTop: '16px' }}>
+                      {[1, 2, 3, 4, 5].map(j => (
+                        <div key={j} className="skeleton-box" style={{ width: '20px', height: `${40 + Math.random() * 40}px`, borderRadius: '4px' }} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           ) : error ? (
             <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#ef4444', minHeight: '200px' }}>
