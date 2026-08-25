@@ -28,6 +28,14 @@ export default function CreateProjectModal({
   
   const imageInputRef = useRef();
   const docInputRef = useRef();
+  const titleInputRef = useRef();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (titleInputRef.current) titleInputRef.current.focus();
+    }, 350);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Member search state connected to API
   const [memberSearch, setMemberSearch] = useState('');
@@ -342,12 +350,12 @@ export default function CreateProjectModal({
 
           {/* Title */}
           <input
+            ref={titleInputRef}
             className="popup-title-input"
             placeholder="Project Name..."
             value={name}
             onChange={e => setName(e.target.value)}
             style={{ marginBottom: '16px', textAlign: 'center' }}
-            autoFocus
           />
 
           {/* Description */}
