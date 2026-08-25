@@ -5,7 +5,6 @@ import DeleteConfirmModal from './DeleteConfirmModal';
 import ProjectDetailsModal from './ProjectDetailsModal';
 import { Plus, Search } from 'lucide-react';
 import { normalizeMember } from '../../mock/mockMembers';
-import { INITIAL_PROJECTS } from '../../mock/mockProjects';
 import { calculateProjectProgress, isProjectOwner, isProjectMember } from '../../utils/projectUtils';
 import { getProjects } from '../../services/projectService';
 import './projects.css';
@@ -17,12 +16,8 @@ export default function ProjectsPage({ theme = 'dark', currentUser, onOpenBoard 
   // Active user object or fallback
   const activeUser = currentUser || { name: 'Alex Johnson', email: 'alex.dev@collabboard.com' };
 
-  const [projects, setProjects] = useState(() => {
-    return INITIAL_PROJECTS.map(p => ({
-      ...p,
-      progress: calculateProjectProgress(p)
-    }));
-  });
+  const [projects, setProjects] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -44,14 +39,12 @@ export default function ProjectsPage({ theme = 'dark', currentUser, onOpenBoard 
             progress: calculateProjectProgress(p)
           }));
           
-          setProjects(prev => {
-            const apiIds = new Set(formatted.map(p => p.id));
-            const remainingMock = prev.filter(p => !apiIds.has(p.id));
-            return [...formatted, ...remainingMock];
-          });
+          setProjects(formatted);
         }
       } catch (err) {
         console.warn('Could not fetch projects from API:', err.message);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -78,10 +71,6 @@ export default function ProjectsPage({ theme = 'dark', currentUser, onOpenBoard 
   };
 
   const handleDeleteConfirm = (projectId) => {
-    const idx = INITIAL_PROJECTS.findIndex(p => p.id === projectId);
-    if (idx !== -1) {
-      INITIAL_PROJECTS.splice(idx, 1);
-    }
     setProjects(prev => prev.filter((p) => p.id !== projectId));
     if (selectedDetailsProject && selectedDetailsProject.id === projectId) {
       setSelectedDetailsProject(null);
@@ -120,7 +109,40 @@ export default function ProjectsPage({ theme = 'dark', currentUser, onOpenBoard 
         </div>
       </div>
 
-      {projects.length === 0 ? (
+      {isLoading ? (
+        <div className="projects-sections">
+          <div className="projects-category-section">
+            <h3 className={`projects-category-title${lightCls}`}>Loading Projects</h3>
+            <div className="projects-grid">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="pc-list-card" style={{ cursor: 'default' }}>
+                  <div className="skeleton-box skeleton-image" />
+                  <div className="pc-list-info">
+                    <div className="skeleton-box skeleton-title" />
+                    <div className="skeleton-box skeleton-desc" />
+                  </div>
+                  <div className="pc-list-progress-section" style={{ flex: 1 }}>
+                    <div className="pc-list-progress-header">
+                      <div className="skeleton-box skeleton-progress-label" />
+                      <div className="skeleton-box skeleton-progress-label" />
+                    </div>
+                    <div className="skeleton-box skeleton-progress" />
+                  </div>
+                  <div className="pc-list-meta" style={{ flex: 0.5 }}>
+                    <div className="skeleton-box skeleton-meta-label" />
+                    <div className="skeleton-box skeleton-meta-value" />
+                  </div>
+                  <div className="pc-list-members">
+                    <div className="skeleton-box skeleton-avatar" />
+                    <div className="skeleton-box skeleton-avatar" />
+                    <div className="skeleton-box skeleton-avatar" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : projects.length === 0 ? (
         <div className={`${isDark ? 'glass-card' : 'glass-card-light'} empty-state${lightCls}`}>
           <p className={`empty-state-title${lightCls}`}>No projects found</p>
           <p className={`empty-state-sub${lightCls}`}>Click below to create your first project.</p>

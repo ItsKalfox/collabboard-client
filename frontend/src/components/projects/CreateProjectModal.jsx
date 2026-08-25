@@ -49,6 +49,7 @@ export default function CreateProjectModal({
 
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDescription, setNewTaskDescription] = useState('');
+  const [newTaskPriority, setNewTaskPriority] = useState('low');
   const [tasks, setTasks] = useState([]);
 
   const resetForm = useCallback(() => {
@@ -65,6 +66,7 @@ export default function CreateProjectModal({
     setMembers([]);
     setNewTaskTitle('');
     setNewTaskDescription('');
+    setNewTaskPriority('low');
     setTasks([]);
     setError('');
     setValidationErrors({});
@@ -238,7 +240,7 @@ export default function CreateProjectModal({
       // Auto-commit any pending task in fields
       let finalTasks = [...tasks];
       if (newTaskTitle.trim() && newTaskDescription.trim()) {
-        finalTasks.push({ id: `t-${Date.now()}`, title: newTaskTitle.trim(), description: newTaskDescription.trim(), subtasks: [] });
+        finalTasks.push({ id: `t-${Date.now()}`, title: newTaskTitle.trim(), description: newTaskDescription.trim(), priority: newTaskPriority, subtasks: [] });
       }
 
       // Format display date if date picker date is provided (e.g. YYYY-MM-DD -> DD MMM YYYY)
@@ -266,6 +268,7 @@ export default function CreateProjectModal({
         tasks: finalTasks.map(t => ({
           title: t.title,
           description: t.description || '',
+          priority: t.priority || 'medium',
           status: 'todo',
           subtasks: t.subtasks || []
         }))
@@ -338,9 +341,10 @@ export default function CreateProjectModal({
       setValidationErrors(prev => ({ ...prev, tasks: 'Both task title and description are required' }));
       return;
     }
-    setTasks([...tasks, { id: `t-${Date.now()}`, title, description, subtasks: [] }]);
+    setTasks([...tasks, { id: `t-${Date.now()}`, title, description, priority: newTaskPriority, subtasks: [] }]);
     setNewTaskTitle('');
     setNewTaskDescription('');
+    setNewTaskPriority('low');
     if (validationErrors.tasks) setValidationErrors(prev => ({ ...prev, tasks: null }));
   };
 
@@ -686,17 +690,36 @@ export default function CreateProjectModal({
                 }}
                 style={{ width: '100%', minHeight: '60px', background: 'var(--popup-input-bg)', border: 'var(--popup-input-border)', borderRadius: '6px', padding: '10px', color: 'var(--popup-input-text)', resize: 'vertical', fontFamily: 'inherit', textAlign: 'left', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
               />
-              <button type="button" className="popup-add-subtask-btn" onClick={handleAddTask} style={{ alignSelf: 'flex-end', marginTop: '4px', background: 'var(--popup-btn-bg)', border: 'var(--popup-btn-border)', color: 'var(--popup-text-main)', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>
-                Add Task
-              </button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button type="button" onClick={() => setNewTaskPriority('low')} style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', borderRadius: '12px', border: newTaskPriority === 'low' ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid var(--popup-btn-border)', background: newTaskPriority === 'low' ? 'rgba(16, 185, 129, 0.15)' : 'transparent', color: newTaskPriority === 'low' ? '#10b981' : 'var(--popup-text-muted)', cursor: 'pointer', transition: 'all 0.2s' }}>Low Priority</button>
+                  <button type="button" onClick={() => setNewTaskPriority('medium')} style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', borderRadius: '12px', border: newTaskPriority === 'medium' ? '1px solid rgba(245, 158, 11, 0.5)' : '1px solid var(--popup-btn-border)', background: newTaskPriority === 'medium' ? 'rgba(245, 158, 11, 0.15)' : 'transparent', color: newTaskPriority === 'medium' ? '#f59e0b' : 'var(--popup-text-muted)', cursor: 'pointer', transition: 'all 0.2s' }}>Medium Priority</button>
+                  <button type="button" onClick={() => setNewTaskPriority('high')} style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', borderRadius: '12px', border: newTaskPriority === 'high' ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid var(--popup-btn-border)', background: newTaskPriority === 'high' ? 'rgba(239, 68, 68, 0.15)' : 'transparent', color: newTaskPriority === 'high' ? '#ef4444' : 'var(--popup-text-muted)', cursor: 'pointer', transition: 'all 0.2s' }}>High Priority</button>
+                </div>
+                <button type="button" className="popup-add-subtask-btn" onClick={handleAddTask} style={{ background: 'var(--popup-btn-bg)', border: 'var(--popup-btn-border)', color: 'var(--popup-text-main)', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>
+                  Add Task
+                </button>
+              </div>
             </div>
 
             {tasks.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {tasks.map(t => (
                   <div key={t.id} style={{ background: 'var(--popup-card-bg)', border: 'var(--popup-card-border)', borderRadius: '8px', padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, paddingRight: '12px' }}>
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--popup-text-main)' }}>{t.title}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, paddingRight: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--popup-text-main)' }}>{t.title}</span>
+                        {t.priority && (
+                          <span style={{
+                            padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase',
+                            background: t.priority === 'low' ? 'rgba(16, 185, 129, 0.15)' : t.priority === 'high' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                            color: t.priority === 'low' ? '#10b981' : t.priority === 'high' ? '#ef4444' : '#f59e0b',
+                            border: t.priority === 'low' ? '1px solid rgba(16, 185, 129, 0.3)' : t.priority === 'high' ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(245, 158, 11, 0.3)'
+                          }}>
+                            {t.priority}
+                          </span>
+                        )}
+                      </div>
                       <span style={{ fontSize: '13px', color: 'var(--popup-text-muted)', whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>{t.description}</span>
                     </div>
                     <button 

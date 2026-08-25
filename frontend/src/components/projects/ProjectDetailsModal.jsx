@@ -791,18 +791,7 @@ export default function ProjectDetailsModal({
               Created date
             </div>
             <div className="popup-meta-val">
-              {isEditing ? (
-                <input 
-                  type="date"
-                  className="popup-mini-input popup-mini-input--wide"
-                  value={draft.rawCreatedDate || ''}
-                  readOnly
-                  disabled
-                  style={{ colorScheme: theme === 'light' ? 'light' : 'dark', cursor: 'not-allowed', opacity: 0.8 }}
-                />
-              ) : (
-                <span className="popup-meta-text">{project.createdDate || '—'}</span>
-              )}
+              <span className="popup-meta-text">{project.createdDate || '—'}</span>
             </div>
           </div>
 
