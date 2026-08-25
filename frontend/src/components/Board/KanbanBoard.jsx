@@ -43,8 +43,11 @@ function normalizeTaskForPopup(task, columnTitle) {
       url: att.url || null
     })),
     generalComments: task.generalComments || [],
-    activities: task.activities || [
-      { text: `Task "${task.title}" was created`, timestamp: task.createdAt || task.date || 'Mon, 20 Nov 2023' },
+    activities: (task.activities && task.activities.length > 0) ? task.activities.map(a => ({
+      ...a,
+      timestamp: new Date(a.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    })) : [
+      { text: `Task "${task.title}" was created`, timestamp: task.createdAt ? new Date(task.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Mon, 20 Nov 2023' },
     ],
   };
 }

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import ProjectsSidebar from '../components/Board/ProjectsSidebar';
 import BoardHeader from '../components/Board/BoardHeader';
 import KanbanBoard from '../components/Board/KanbanBoard';
+import ProjectTimeline from '../components/Board/ProjectTimeline';
 import ActionModal from '../components/Board/ActionModal';
 import ProjectDetailsModal from '../components/projects/ProjectDetailsModal';
 
@@ -35,6 +36,7 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [activeSubTab, setActiveSubTab] = useState('Board');
 
   useEffect(() => {
     const target = selectedProject || initialProjectId;
@@ -447,6 +449,8 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
                 onAddMember={() => setIsAddMemberModalOpen(true)} 
                 onAddTag={() => setIsAddTagModalOpen(true)}
                 onInfoClick={() => setIsProjectDetailsOpen(true)}
+                activeSubTab={activeSubTab}
+                onSubTabChange={setActiveSubTab}
               />
             )}
 
@@ -455,7 +459,10 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
               {error ? (
                 <div style={{ padding: '20px', color: 'var(--text-secondary)' }}>Error: {error}</div>
               ) : selectedProjectId ? (
-                <KanbanBoard projectId={selectedProjectId} currentProject={currentProject} refreshKey={refreshKey} />
+                <>
+                  {activeSubTab === 'Board' && <KanbanBoard projectId={selectedProjectId} currentProject={currentProject} refreshKey={refreshKey} />}
+                  {activeSubTab === 'Timeline' && <ProjectTimeline project={currentProject} />}
+                </>
               ) : (
                 <div style={{ padding: '20px', color: 'var(--text-secondary)' }}>No projects found. Please create a project.</div>
               )}

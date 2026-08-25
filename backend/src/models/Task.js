@@ -21,7 +21,15 @@ const taskSchema = new mongoose.Schema({
         completed: { type: Boolean, default: false },
         description: { type: String }
     }],
-    attachments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Attachment' }]
+    attachments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Attachment' }],
+    activities: [{
+        text: String,
+        type: { type: String, enum: ['created', 'moved', 'completed', 'approved', 'rejected', 'updated'] },
+        fromStatus: String,
+        toStatus: String,
+        timestamp: { type: Date, default: Date.now },
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+    }]
 }, {
     timestamps: true
 });

@@ -38,7 +38,12 @@ export const createTask = async (req, res) => {
             status: status || 'todo',
             priority: priority || 'medium',
             assigneeId: assigneeId || req.user.id,
-            dueDate
+            dueDate,
+            activities: [{
+                type: 'created',
+                text: `Task "${title}" created`,
+                userId: req.user.id
+            }]
         });
 
         res.status(201).json({ status: 'success', message: 'Task created successfully', data: { task } });
@@ -89,8 +94,23 @@ export const updateTaskStatus = async (req, res) => {
         const { status } = req.body;
         if (!status) return res.status(400).json({ status: 'error', message: 'Status is required' });
         
-        const task = await Task.findByIdAndUpdate(req.params.taskId, { status }, { new: true });
+        const task = await Task.findById(req.params.taskId);
         if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
+        
+        const oldStatus = task.status;
+        task.status = status;
+        
+        if (oldStatus !== status) {
+            task.activities.push({
+                type: 'moved',
+                text: `Moved from ${oldStatus} to ${status}`,
+                fromStatus: oldStatus,
+                toStatus: status,
+                userId: req.user.id
+            });
+        }
+        
+        await task.save();
         
         res.status(200).json({ status: 'success', message: 'Status updated', data: { task } });
     } catch (error) {
@@ -105,7 +125,18 @@ export const reviewTask = async (req, res) => {
         if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
         
         task.reviews.push({ reviewerId: req.user.id, status: 'approved', comment });
+        
+        const oldStatus = task.status;
         task.status = 'completed'; // Assuming approval completes it
+        
+        task.activities.push({
+            type: 'approved',
+            text: 'Task was approved',
+            fromStatus: oldStatus,
+            toStatus: 'completed',
+            userId: req.user.id
+        });
+        
         await task.save();
         
         res.status(200).json({ status: 'success', message: 'Task approved', data: { task } });
@@ -123,7 +154,18 @@ export const rejectTask = async (req, res) => {
         if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
         
         task.reviews.push({ reviewerId: req.user.id, status: 'rejected', comment });
+        
+        const oldStatus = task.status;
         task.status = 'in_progress'; // Send back to progress
+        
+        task.activities.push({
+            type: 'rejected',
+            text: 'Task was rejected',
+            fromStatus: oldStatus,
+            toStatus: 'in_progress',
+            userId: req.user.id
+        });
+        
         await task.save();
         
         res.status(200).json({ status: 'success', message: 'Task rejected', data: { task } });

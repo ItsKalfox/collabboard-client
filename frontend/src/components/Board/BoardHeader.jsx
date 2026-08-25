@@ -11,8 +11,15 @@ const COLOR_HEX = {
   purple: '#a855f7',
 };
 
-export default function BoardHeader({ project = {}, onAddTask, onAddMember, onAddTag, onInfoClick }) {
-  const [activeSubTab, setActiveSubTab] = useState('Board');
+export default function BoardHeader({ 
+  project = {}, 
+  onAddTask, 
+  onAddMember, 
+  onAddTag, 
+  onInfoClick,
+  activeSubTab = 'Board',
+  onSubTabChange
+}) {
   const [projectMembers, setProjectMembers] = useState([]);
 
   const subTabs = ['Board', 'Timeline', 'Team Info'];
@@ -163,7 +170,7 @@ export default function BoardHeader({ project = {}, onAddTask, onAddMember, onAd
             <button
               key={tab}
               className={`subtab-btn ${activeSubTab === tab ? 'active' : ''}`}
-              onClick={() => setActiveSubTab(tab)}
+              onClick={() => onSubTabChange && onSubTabChange(tab)}
             >
               {tab}
               {activeSubTab === tab && <div className="subtab-active-indicator" />}

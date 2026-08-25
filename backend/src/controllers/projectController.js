@@ -131,7 +131,12 @@ export const createProject = async (req, res) => {
                 subtasks: (t.subtasks || []).map(s => ({
                     title: s.title || s.label || '',
                     completed: Boolean(s.completed || s.done)
-                }))
+                })),
+                activities: [{
+                    type: 'created',
+                    text: `Task "${t.title}" created`,
+                    userId: req.user.id
+                }]
             }));
             await Task.insertMany(taskDocs);
         }
