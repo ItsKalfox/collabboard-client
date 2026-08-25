@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { AlertCircle } from 'lucide-react';
 import { normalizeMember, getInitials } from '../../mock/mockMembers';
 import './BoardHeader.css';
 
@@ -10,7 +11,7 @@ const COLOR_HEX = {
   purple: '#a855f7',
 };
 
-export default function BoardHeader({ project = {}, onAddTask, onAddMember, onAddTag }) {
+export default function BoardHeader({ project = {}, onAddTask, onAddMember, onAddTag, onInfoClick }) {
   const [activeSubTab, setActiveSubTab] = useState('Board');
   const [projectMembers, setProjectMembers] = useState([]);
 
@@ -68,12 +69,8 @@ export default function BoardHeader({ project = {}, onAddTask, onAddMember, onAd
         {/* LEFT: Title & Info Icon */}
         <div className="board-title-group" style={{ alignItems: 'center' }}>
           <h1 className="board-main-title">{name}</h1>
-          <button className="info-icon-btn" title={description || 'Project Info'}>
-            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="16" x2="12" y2="12"></line>
-              <line x1="12" y1="8" x2="12.01" y2="8"></line>
-            </svg>
+          <button className="info-icon-btn" title={description || 'Project Info'} onClick={onInfoClick} style={{ cursor: 'pointer', background: 'transparent', border: 'none', color: 'var(--text-secondary, #6b7280)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <AlertCircle size={18} strokeWidth={2} />
           </button>
         </div>
 

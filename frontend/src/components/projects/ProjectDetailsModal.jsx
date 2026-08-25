@@ -32,7 +32,8 @@ export default function ProjectDetailsModal({
   onEdit,
   theme = 'dark',
   currentUser,
-  initialEditMode = false
+  initialEditMode = false,
+  hideActions = false
 }) {
   const lightCls = theme === 'light' ? ' light' : '';
   const fileInputRef = useRef();
@@ -661,23 +662,25 @@ export default function ProjectDetailsModal({
                 <button className="popup-cancel-btn" onClick={() => setIsEditing(false)}>Cancel</button>
               </>
             ) : (
-              <button 
-                className="popup-icon-btn" 
-                onClick={() => {
-                  if (onEdit) {
-                    onEdit(project);
-                  } else {
-                    startEdit();
-                  }
-                }} 
-                aria-label="Edit"
-                title="Edit Project"
-              >
+              !hideActions && (
+                <button 
+                  className="popup-icon-btn" 
+                  onClick={() => {
+                    if (onEdit) {
+                      onEdit(project);
+                    } else {
+                      startEdit();
+                    }
+                  }} 
+                  aria-label="Edit"
+                  title="Edit Project"
+                >
                 <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                 </svg>
               </button>
+              )
             )}
           </div>
         </div>
@@ -791,7 +794,11 @@ export default function ProjectDetailsModal({
               Created date
             </div>
             <div className="popup-meta-val">
-              <span className="popup-meta-text">{project.createdDate || '—'}</span>
+              <span className="popup-meta-text">
+                {project.createdAt 
+                  ? new Date(project.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) 
+                  : (project.createdDate || '—')}
+              </span>
             </div>
           </div>
 
@@ -1318,18 +1325,19 @@ export default function ProjectDetailsModal({
         </div>
 
         {/* Footer */}
-        <div style={{ 
-          marginTop: '24px', 
-          display: 'flex', 
-          justifyContent: isOwner ? 'space-between' : 'flex-end', 
-          alignItems: 'center', 
-          paddingTop: '16px', 
-          borderTop: 'var(--popup-divider)' 
-        }}>
-          {isOwner && (
-            <button
-              type="button"
-              className="popup-delete-btn"
+        {!hideActions && (
+          <div style={{ 
+            marginTop: '24px', 
+            display: 'flex', 
+            justifyContent: isOwner ? 'space-between' : 'flex-end', 
+            alignItems: 'center', 
+            paddingTop: '16px', 
+            borderTop: 'var(--popup-divider)' 
+          }}>
+            {isOwner && (
+              <button
+                type="button"
+                className="popup-delete-btn"
               onClick={() => setIsDeleteConfirmOpen(true)}
               title="Delete Project"
               style={{
@@ -1353,11 +1361,12 @@ export default function ProjectDetailsModal({
             </button>
           )}
 
-          <button className="popup-save-btn" onClick={handleOpenBoard} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>Open Project Board</span>
-            <ArrowRight size={14} />
-          </button>
-        </div>
+            <button className="popup-save-btn" onClick={handleOpenBoard} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>Open Project Board</span>
+              <ArrowRight size={14} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Confirmation Modal for Removing Project Member */}

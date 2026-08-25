@@ -3,6 +3,7 @@ import ProjectsSidebar from '../components/Board/ProjectsSidebar';
 import BoardHeader from '../components/Board/BoardHeader';
 import KanbanBoard from '../components/Board/KanbanBoard';
 import ActionModal from '../components/Board/ActionModal';
+import ProjectDetailsModal from '../components/projects/ProjectDetailsModal';
 
 import { Search, X } from 'lucide-react';
 import { searchUsers } from '../services/projectService';
@@ -47,6 +48,7 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
 
 
   // Modal states
+  const [isProjectDetailsOpen, setIsProjectDetailsOpen] = useState(false);
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [isAddTagModalOpen, setIsAddTagModalOpen] = useState(false);
@@ -441,6 +443,7 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
                 onAddTask={() => setIsAddTaskModalOpen(true)} 
                 onAddMember={() => setIsAddMemberModalOpen(true)} 
                 onAddTag={() => setIsAddTagModalOpen(true)}
+                onInfoClick={() => setIsProjectDetailsOpen(true)}
               />
             )}
 
@@ -785,6 +788,17 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
           </div>
         </div>
       </ActionModal>
+
+      <ProjectDetailsModal
+        isOpen={isProjectDetailsOpen}
+        onClose={() => setIsProjectDetailsOpen(false)}
+        project={currentProject}
+        currentUser={currentUser}
+        hideActions={true}
+        onSaveProject={(updated) => {
+          setProjects(prev => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p));
+        }}
+      />
     </div>
   );
 }
