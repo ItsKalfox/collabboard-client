@@ -29,7 +29,7 @@ export default function OfflineBanner() {
     }
 
     return () => clearTimeout(hideTimer.current);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOnline, isSyncing, pendingCount]);
 
   if (state === 'hidden') return null;
@@ -47,7 +47,7 @@ export default function OfflineBanner() {
           <circle cx="12" cy="20" r="1" />
         </svg>
       ),
-      text: 'Offline — You are currently offline',
+      text: <><span style={{ color: '#ef4444', fontWeight: 700 }}>Offline</span> - You are currently offline</>,
       className: 'offline-banner--offline',
     },
     syncing: {
@@ -58,7 +58,7 @@ export default function OfflineBanner() {
           <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
         </svg>
       ),
-      text: 'Online — Updating…',
+      text: <><span style={{ color: '#10b981', fontWeight: 700 }}>Online</span> - Updating…</>,
       className: 'offline-banner--syncing',
     },
     online: {

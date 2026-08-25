@@ -1,7 +1,7 @@
-/* ─── Base pill ─────────────────────────────────────────────────── */
+/* ─── Base pill — identical to .kanban-toast ─────────────────────── */
 .offline-banner {
   position: fixed;
-  bottom: 28px;
+  bottom: 70px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 99999;
@@ -11,72 +11,51 @@
   gap: 8px;
 
   padding: 10px 20px;
-  border-radius: 999px;
+  border-radius: 9999px;
   font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  font-family: var(--font-family, 'Inter', sans-serif);
+  font-weight: 500;
   white-space: nowrap;
 
+  background-color: #b2beb5;
+  color: #1f2937;
+  border: none;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
 
-  animation: banner-slide-up 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   pointer-events: none;
+  animation: banner-slide-up 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
+/* ─── Dark mode — match both system preference and data-theme attr ── */
+@media (prefers-color-scheme: dark) {
+  .offline-banner {
+    background-color: #4b5563;
+    color: #f9fafb;
+  }
+}
+
+[data-theme="dark"] .offline-banner {
+  background-color: #4b5563;
+  color: #f9fafb;
+}
+
+/* ─── Slide-up appear ────────────────────────────────────────────── */
 @keyframes banner-slide-up {
   from {
     opacity: 0;
-    transform: translateX(-50%) translateY(16px);
+    transform: translateX(-50%) translateY(14px);
   }
+
   to {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
 }
 
-/* ─── Icon wrapper ───────────────────────────────────────────────── */
-.offline-banner-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.offline-banner-text {
-  line-height: 1;
-}
-
-/* ─── Spin animation for syncing icon ───────────────────────────── */
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-.offline-banner-spin {
-  animation: spin 1.2s linear infinite;
-}
-
-/* ─── State variants ─────────────────────────────────────────────── */
-
-/* Offline — red */
-.offline-banner--offline {
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  color: #ef4444;
-}
-
-/* Syncing — amber */
-.offline-banner--syncing {
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid rgba(245, 158, 11, 0.4);
-  color: #f59e0b;
-}
-
-/* Back online — green, fades out */
+/* ─── "Back online" fades out after 2 s ─────────────────────────── */
 .offline-banner--online {
-  background: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(16, 185, 129, 0.4);
-  color: #10b981;
   animation:
     banner-slide-up 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both,
     banner-fade-out 0.5s ease 2s both;
@@ -89,16 +68,25 @@
   }
 }
 
-/* ─── Dark mode adjustments ─────────────────────────────────────── */
-[data-theme="dark"] .offline-banner--offline {
-  background: rgba(239, 68, 68, 0.2);
-  border-color: rgba(239, 68, 68, 0.5);
+/* ─── Spin for the syncing icon ──────────────────────────────────── */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
-[data-theme="dark"] .offline-banner--syncing {
-  background: rgba(245, 158, 11, 0.2);
-  border-color: rgba(245, 158, 11, 0.5);
+
+.offline-banner-spin {
+  animation: spin 1.2s linear infinite;
 }
-[data-theme="dark"] .offline-banner--online {
-  background: rgba(16, 185, 129, 0.2);
-  border-color: rgba(16, 185, 129, 0.5);
+
+/* ─── Icon + text wrappers ──────────────────────────────────────── */
+.offline-banner-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.offline-banner-text {
+  line-height: 1;
 }
