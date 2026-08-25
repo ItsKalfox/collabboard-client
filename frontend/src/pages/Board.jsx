@@ -25,7 +25,7 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
     return null;
   });
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -74,6 +74,7 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
 
   useEffect(() => {
     const fetchProjects = async () => {
+      setLoading(true);
       try {
         const token = localStorage.getItem('token');
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -346,37 +347,116 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
   return (
     <div className="board-page-container">
       {/* Left side: Projects Preview Sidebar */}
-      <ProjectsSidebar 
-        projects={projects} 
-        activeProjectId={selectedProjectId} 
-        onSelectProject={handleSelectProject} 
-        currentUser={currentUser}
-      />
+      {loading ? (
+        <div className="projects-preview-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div>
+            <div className="skeleton-box" style={{ height: '16px', width: '50%', borderRadius: '4px', marginBottom: '16px' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {[1, 2, 3].map(i => (
+                <div key={i} className="skeleton-box" style={{ height: '36px', width: '100%', borderRadius: '8px' }} />
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="skeleton-box" style={{ height: '16px', width: '60%', borderRadius: '4px', marginBottom: '16px' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {[1, 2].map(i => (
+                <div key={i} className="skeleton-box" style={{ height: '36px', width: '100%', borderRadius: '8px' }} />
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <ProjectsSidebar 
+          projects={projects} 
+          activeProjectId={selectedProjectId} 
+          onSelectProject={handleSelectProject} 
+          currentUser={currentUser}
+        />
+      )}
 
       {/* Right side: Main Board Workspace */}
       <div className="board-main-view">
-        {/* Top Header & Navigation */}
-        {currentProject && (
-          <BoardHeader 
-            project={currentProject} 
-            onAddTask={() => setIsAddTaskModalOpen(true)} 
-            onAddMember={() => setIsAddMemberModalOpen(true)} 
-            onAddTag={() => setIsAddTagModalOpen(true)}
-          />
-        )}
+        {loading ? (
+          <>
+            <div className="board-header-container" style={{ padding: '16px 24px', paddingBottom: '0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '60%' }}>
+                  <div className="skeleton-box" style={{ height: '36px', width: '40%', borderRadius: '8px' }} />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div className="skeleton-box" style={{ height: '14px', width: '100%', borderRadius: '4px' }} />
+                    <div className="skeleton-box" style={{ height: '14px', width: '95%', borderRadius: '4px' }} />
+                    <div className="skeleton-box" style={{ height: '14px', width: '80%', borderRadius: '4px' }} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+                  <div className="skeleton-box" style={{ height: '24px', width: '120px', borderRadius: '6px' }} />
+                  <div style={{ display: 'flex' }}>
+                    <div className="skeleton-box skeleton-avatar" style={{ marginLeft: '0', zIndex: 4 }} />
+                    <div className="skeleton-box skeleton-avatar" style={{ marginLeft: '-10px', zIndex: 3 }} />
+                    <div className="skeleton-box skeleton-avatar" style={{ marginLeft: '-10px', zIndex: 2 }} />
+                    <div className="skeleton-box skeleton-avatar" style={{ marginLeft: '-10px', zIndex: 1 }} />
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '12px', paddingBottom: '16px', borderBottom: '1px solid var(--border-color, #e5e7eb)', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <div className="skeleton-box" style={{ height: '32px', width: '80px', borderRadius: '16px' }} />
+                  <div className="skeleton-box" style={{ height: '32px', width: '80px', borderRadius: '16px' }} />
+                </div>
+                <div className="skeleton-box" style={{ height: '36px', width: '120px', borderRadius: '8px' }} />
+              </div>
+            </div>
+            <div className="board-content-area" style={{ padding: '24px' }}>
+              <div className="kanban-board-container" style={{ display: 'flex', gap: '16px', overflow: 'hidden' }}>
+                {[{id: 'todo', title: 'To Do'}, {id: 'in_progress', title: 'In Progress'}, {id: 'review', title: 'Need Review'}, {id: 'completed', title: 'Done'}].map(col => (
+                  <div key={col.id} className="kanban-column" style={{ display: 'flex', flexDirection: 'column' }}>
+                    <div className="kanban-column-header">
+                      <div className="column-header-left">
+                        <h3 className="column-title">{col.title}</h3>
+                        <span className="column-count-badge">0</span>
+                      </div>
+                    </div>
+                    <div className="kanban-tasks-list" style={{ minHeight: '150px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div className="task-card" style={{ height: '140px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', cursor: 'default', boxShadow: 'none' }}>
+                        <div className="skeleton-box" style={{ height: '20px', width: '70%', borderRadius: '4px', background: 'rgba(150, 150, 150, 0.15)' }} />
+                        <div className="skeleton-box" style={{ height: '14px', width: '100%', borderRadius: '4px', background: 'rgba(150, 150, 150, 0.15)' }} />
+                        <div className="skeleton-box" style={{ height: '14px', width: '80%', borderRadius: '4px', background: 'rgba(150, 150, 150, 0.15)' }} />
+                        <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                           <div className="skeleton-box" style={{ height: '20px', width: '60px', borderRadius: '10px', background: 'rgba(150, 150, 150, 0.15)' }} />
+                           <div className="skeleton-box skeleton-avatar" style={{ width: '24px', height: '24px', background: 'rgba(150, 150, 150, 0.15)' }} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Top Header & Navigation */}
+            {currentProject && (
+              <BoardHeader 
+                project={currentProject} 
+                onAddTask={() => setIsAddTaskModalOpen(true)} 
+                onAddMember={() => setIsAddMemberModalOpen(true)} 
+                onAddTag={() => setIsAddTagModalOpen(true)}
+              />
+            )}
 
-        {/* Kanban Board Columns */}
-        <div className="board-content-area">
-          {loading ? (
-            <div style={{ padding: '20px', color: 'var(--text-secondary)' }}>Loading projects...</div>
-          ) : error ? (
-            <div style={{ padding: '20px', color: 'var(--text-secondary)' }}>Error: {error}</div>
-          ) : selectedProjectId ? (
-            <KanbanBoard projectId={selectedProjectId} currentProject={currentProject} refreshKey={refreshKey} />
-          ) : (
-            <div style={{ padding: '20px', color: 'var(--text-secondary)' }}>No projects found. Please create a project.</div>
-          )}
-        </div>
+            {/* Kanban Board Columns */}
+            <div className="board-content-area">
+              {error ? (
+                <div style={{ padding: '20px', color: 'var(--text-secondary)' }}>Error: {error}</div>
+              ) : selectedProjectId ? (
+                <KanbanBoard projectId={selectedProjectId} currentProject={currentProject} refreshKey={refreshKey} />
+              ) : (
+                <div style={{ padding: '20px', color: 'var(--text-secondary)' }}>No projects found. Please create a project.</div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Add Task Modal */}

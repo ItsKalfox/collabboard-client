@@ -45,6 +45,29 @@
   margin-bottom: 8px;
 }
 
+
+/* Skeleton Loading Styles */
+@keyframes skeleton-pulse {
+  0% { opacity: 0.5; }
+  50% { opacity: 0.2; }
+  100% { opacity: 0.5; }
+}
+
+.skeleton-box {
+  background: rgba(150, 150, 150, 0.3);
+  border-radius: 6px;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--bg-color, #fff);
+  background: rgba(150, 150, 150, 0.3);
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
 .board-placeholder-header p {
   font-size: 14px;
   color: var(--text-secondary, #666);

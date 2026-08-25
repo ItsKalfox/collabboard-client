@@ -333,27 +333,53 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject }) {
           {toastMessage}
         </div>
       )}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="kanban-board-container">
-          {columns.map((column) => (
-            <KanbanColumn
-              key={column.id}
-              column={{...column, count: column.tasks.length}}
-              onTaskOptionClick={handleOpenTaskPopup}
-            />
+      {loading ? (
+        <div className="kanban-board-container" style={{ display: 'flex', gap: '16px', overflow: 'hidden' }}>
+          {COLUMNS_DEF.map(col => (
+            <div key={col.id} className="kanban-column" style={{ display: 'flex', flexDirection: 'column' }}>
+              <div className="kanban-column-header">
+                <div className="column-header-left">
+                  <h3 className="column-title">{col.title}</h3>
+                  <span className="column-count-badge">0</span>
+                </div>
+              </div>
+              <div className="kanban-tasks-list" style={{ minHeight: '150px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div className="task-card" style={{ height: '140px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', cursor: 'default', boxShadow: 'none' }}>
+                  <div className="skeleton-box" style={{ height: '20px', width: '70%', borderRadius: '4px', background: 'rgba(150, 150, 150, 0.15)' }} />
+                  <div className="skeleton-box" style={{ height: '14px', width: '100%', borderRadius: '4px', background: 'rgba(150, 150, 150, 0.15)' }} />
+                  <div className="skeleton-box" style={{ height: '14px', width: '80%', borderRadius: '4px', background: 'rgba(150, 150, 150, 0.15)' }} />
+                  <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                     <div className="skeleton-box" style={{ height: '20px', width: '60px', borderRadius: '10px', background: 'rgba(150, 150, 150, 0.15)' }} />
+                     <div className="skeleton-box skeleton-avatar" style={{ width: '24px', height: '24px', background: 'rgba(150, 150, 150, 0.15)' }} />
+                  </div>
+                </div>
+              </div>
+            </div>
           ))}
         </div>
+      ) : (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="kanban-board-container">
+            {columns.map((column) => (
+              <KanbanColumn
+                key={column.id}
+                column={{...column, count: column.tasks.length}}
+                onTaskOptionClick={handleOpenTaskPopup}
+              />
+            ))}
+          </div>
 
-        <DragOverlay>
-          {draggedTask ? <TaskCard task={draggedTask} isOverlay /> : null}
-        </DragOverlay>
-      </DndContext>
+          <DragOverlay>
+            {draggedTask ? <TaskCard task={draggedTask} isOverlay /> : null}
+          </DragOverlay>
+        </DndContext>
+      )}
 
       {activeTask && (
         <TaskPopup
