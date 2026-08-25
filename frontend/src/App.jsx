@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard';
 import Board from './pages/Board';
 import Settings from './pages/Settings';
 import AuthModule from './components/auth/AuthModule';
+import OfflineBanner from './components/shared/OfflineBanner';
 import './App.css';
 
 function App() {
@@ -189,6 +190,7 @@ function App() {
 
   return (
     <div className="app-container" style={themeVars}>
+      <OfflineBanner />
       {sessionExpired && (
         <div style={{
           position: 'fixed',

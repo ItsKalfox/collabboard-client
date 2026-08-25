@@ -30,7 +30,7 @@ const COLORS = [
 ];
 
 export default function ProjectTimeline({ project }) {
-  const [activeFilter, setActiveFilter] = useState('Month');
+  const [activeFilter, setActiveFilter] = useState('Day');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(selectedDate.getMonth());

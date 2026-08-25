@@ -9,6 +9,8 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
+import { useOfflineQueue } from '../../hooks/useOfflineQueue';
 import KanbanColumn from './KanbanColumn';
 import TaskCard from './TaskCard';
 import TaskPopup from '../TaskPopup/TaskPopup';
@@ -59,6 +61,8 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject }) {
   const [loading, setLoading] = useState(true);
   const [localRefresh, setLocalRefresh] = useState(0);
   const [toastMessage, setToastMessage] = useState(null);
+  const { isOnline } = useNetworkStatus();
+  const { enqueueAction } = useOfflineQueue();
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -311,11 +315,21 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject }) {
         return c;
       }));
 
-      // Persist to backend API
+      // Persist to backend API — queue if offline
       try {
+        if (!isOnline) {
+          // Offline: save to queue, move already happened optimistically
+          enqueueAction({
+            type: 'UPDATE_TASK_STATUS',
+            taskId: activeId,
+            payload: { status: newStatus },
+          });
+          return;
+        }
+
         const token = localStorage.getItem('token');
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-        await fetch(`${apiUrl}/tasks/${activeId}/status`, {
+        const res = await fetch(`${apiUrl}/tasks/${activeId}/status`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -323,8 +337,20 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject }) {
           },
           body: JSON.stringify({ status: newStatus })
         });
-      } catch (err) {
-        console.error('Failed to update task status:', err);
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          // Business-logic rejection — revert the move
+          showToast(data.message || 'Failed to update task status.');
+          revertMove();
+        }
+      } catch {
+        // Network failure while online — queue for retry
+        enqueueAction({
+          type: 'UPDATE_TASK_STATUS',
+          taskId: activeId,
+          payload: { status: newStatus },
+        });
       }
     }
   };
