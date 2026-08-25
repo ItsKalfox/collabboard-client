@@ -48,6 +48,7 @@ export default function CreateProjectModal({
   const memberSearchWrapRef = useRef(null);
 
   const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskDescription, setNewTaskDescription] = useState('');
   const [tasks, setTasks] = useState([]);
 
   const resetForm = useCallback(() => {
@@ -63,6 +64,7 @@ export default function CreateProjectModal({
     setSearchError('');
     setMembers([]);
     setNewTaskTitle('');
+    setNewTaskDescription('');
     setTasks([]);
     setError('');
     setValidationErrors({});
@@ -200,7 +202,14 @@ export default function CreateProjectModal({
     if (!name.trim()) errors.name = 'Required';
     if (!description.trim()) errors.description = 'Required';
     if (!dueDate) errors.dueDate = 'Required';
-    if (tasks.length === 0) errors.tasks = 'At least 1 task required';
+    const hasPendingTask = newTaskTitle.trim() || newTaskDescription.trim();
+    if (tasks.length === 0 && !hasPendingTask) {
+      errors.tasks = 'At least 1 initial task with title and description is required';
+    } else if (hasPendingTask) {
+      if (!newTaskTitle.trim() || !newTaskDescription.trim()) {
+        errors.tasks = 'Both title and description are required for a task';
+      }
+    }
 
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
@@ -226,10 +235,10 @@ export default function CreateProjectModal({
         finalMembers.unshift(ownerMember);
       }
 
-      // Auto-commit any pending task title in newTaskTitle field
+      // Auto-commit any pending task in fields
       let finalTasks = [...tasks];
-      if (newTaskTitle.trim()) {
-        finalTasks.push({ id: `t-${Date.now()}`, title: newTaskTitle.trim(), subtasks: [] });
+      if (newTaskTitle.trim() && newTaskDescription.trim()) {
+        finalTasks.push({ id: `t-${Date.now()}`, title: newTaskTitle.trim(), description: newTaskDescription.trim(), subtasks: [] });
       }
 
       // Format display date if date picker date is provided (e.g. YYYY-MM-DD -> DD MMM YYYY)
@@ -256,6 +265,7 @@ export default function CreateProjectModal({
         })),
         tasks: finalTasks.map(t => ({
           title: t.title,
+          description: t.description || '',
           status: 'todo',
           subtasks: t.subtasks || []
         }))
@@ -323,11 +333,15 @@ export default function CreateProjectModal({
   const handleAddTask = (e) => {
     e.preventDefault();
     const title = newTaskTitle.trim();
-    if (title) {
-      setTasks([...tasks, { id: `t-${Date.now()}`, title, subtasks: [] }]);
-      setNewTaskTitle('');
-      if (validationErrors.tasks) setValidationErrors(prev => ({ ...prev, tasks: null }));
+    const description = newTaskDescription.trim();
+    if (!title || !description) {
+      setValidationErrors(prev => ({ ...prev, tasks: 'Both task title and description are required' }));
+      return;
     }
+    setTasks([...tasks, { id: `t-${Date.now()}`, title, description, subtasks: [] }]);
+    setNewTaskTitle('');
+    setNewTaskDescription('');
+    if (validationErrors.tasks) setValidationErrors(prev => ({ ...prev, tasks: null }));
   };
 
   const removeTask = (taskId) => {
@@ -646,36 +660,52 @@ export default function CreateProjectModal({
               <h4 style={{ fontSize: '14px', color: 'var(--popup-text-heading)', margin: 0, fontWeight: '600' }}>Initial Tasks</h4>
               {validationErrors.tasks && <span style={{color: '#ef4444', fontSize: '11px', fontWeight: '600'}}>* {validationErrors.tasks}</span>}
             </div>
-            <form onSubmit={handleAddTask} style={{ display: 'flex', gap: '8px', marginBottom: '16px', alignItems: 'center' }}>
-              <input
-                className="popup-mini-input"
-                style={{ fontSize: '13px', padding: '0 12px', flex: 1, fontWeight: '400', height: '34px', margin: 0, boxSizing: 'border-box' }}
-                placeholder="Task title..."
-                value={newTaskTitle}
-                onChange={e => setNewTaskTitle(e.target.value)}
+            
+            <div className="popup-add-subtask-bar" style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '8px', padding: '12px', background: 'var(--bg-sec)', borderRadius: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" style={{ flexShrink: 0 }}>
+                  <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                <input
+                  className="popup-add-subtask-input"
+                  placeholder="Task title…"
+                  value={newTaskTitle}
+                  onChange={e => {
+                    setNewTaskTitle(e.target.value);
+                    if (validationErrors.tasks) setValidationErrors(prev => ({ ...prev, tasks: null }));
+                  }}
+                  style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', color: 'inherit', textAlign: 'left', fontFamily: 'inherit' }}
+                />
+              </div>
+              <textarea
+                placeholder="Task description…"
+                value={newTaskDescription}
+                onChange={e => {
+                  setNewTaskDescription(e.target.value);
+                  if (validationErrors.tasks) setValidationErrors(prev => ({ ...prev, tasks: null }));
+                }}
+                style={{ width: '100%', minHeight: '60px', background: 'var(--popup-input-bg)', border: 'var(--popup-input-border)', borderRadius: '6px', padding: '10px', color: 'var(--popup-input-text)', resize: 'vertical', fontFamily: 'inherit', textAlign: 'left', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
               />
-              <button 
-                type="submit" 
-                className="popup-save-btn" 
-                style={{ padding: '0 16px', background: 'var(--popup-btn-bg)', color: 'var(--popup-text-main)', border: 'var(--popup-btn-border)', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' }}
-                disabled={!newTaskTitle.trim()}
-              >
-                <Plus size={16} strokeWidth={2.5} />
+              <button type="button" className="popup-add-subtask-btn" onClick={handleAddTask} style={{ alignSelf: 'flex-end', marginTop: '4px', background: 'var(--popup-btn-bg)', border: 'var(--popup-btn-border)', color: 'var(--popup-text-main)', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>
+                Add Task
               </button>
-            </form>
+            </div>
 
             {tasks.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {tasks.map(t => (
-                  <div key={t.id} style={{ background: 'var(--popup-card-bg)', border: 'var(--popup-card-border)', borderRadius: '8px', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '14px', fontWeight: '500', color: 'var(--popup-text-main)' }}>{t.title}</span>
+                  <div key={t.id} style={{ background: 'var(--popup-card-bg)', border: 'var(--popup-card-border)', borderRadius: '8px', padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, paddingRight: '12px' }}>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--popup-text-main)' }}>{t.title}</span>
+                      <span style={{ fontSize: '13px', color: 'var(--popup-text-muted)', whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>{t.description}</span>
+                    </div>
                     <button 
                       type="button"
                       onClick={() => removeTask(t.id)}
-                      style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                      style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', marginTop: '2px' }}
                       title="Remove task"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 ))}

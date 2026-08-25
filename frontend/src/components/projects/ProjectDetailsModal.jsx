@@ -31,7 +31,8 @@ export default function ProjectDetailsModal({
   onOpenBoard, 
   onEdit,
   theme = 'dark',
-  currentUser
+  currentUser,
+  initialEditMode = false
 }) {
   const lightCls = theme === 'light' ? ' light' : '';
   const fileInputRef = useRef();
@@ -79,7 +80,7 @@ export default function ProjectDetailsModal({
   const [expandedTasks, setExpandedTasks] = useState({});
 
   // Edit Mode state
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(initialEditMode);
   const [draft, setDraft] = useState({});
 
   // Member search in members tab
@@ -116,7 +117,17 @@ export default function ProjectDetailsModal({
         members: Array.isArray(propProject.members) ? propProject.members.map(normalizeMember) : [],
         attachments: Array.isArray(propProject.attachments) ? propProject.attachments.map(formatAttachment) : []
       });
-      setIsEditing(false);
+      setIsEditing(initialEditMode);
+      if (initialEditMode) {
+        setDraft({
+          name: propProject.name,
+          description: propProject.description,
+          rawCreatedDate: propProject.rawCreatedDate || '',
+          createdDate: propProject.createdDate || '',
+          rawDueDate: propProject.rawDueDate || '',
+          dueDate: propProject.dueDate || '',
+        });
+      }
       setAttachmentError('');
       setCoverError('');
       setMembersError('');
@@ -264,6 +275,22 @@ export default function ProjectDetailsModal({
   }, []);
 
   if (!isOpen || !project) return null;
+
+  // Filter search results
+  const ownerName = project.owner || (currentUser?.name || 'Alex Johnson');
+  const filteredSearchResults = searchResults.filter(user => {
+    // Exclude owner
+    if (user.name && user.name.toLowerCase() === ownerName.toLowerCase()) return false;
+    if (user.email && currentUser?.email && user.email.toLowerCase() === currentUser.email.toLowerCase()) return false;
+    
+    // Exclude already added members
+    return !(project.members || []).some(existing => 
+      (existing.id && String(existing.id) === String(user.id)) ||
+      (existing.userId && String(existing.userId) === String(user.id)) ||
+      (existing.name && user.name && existing.name.toLowerCase() === user.name.toLowerCase()) ||
+      (existing.email && user.email && existing.email.toLowerCase() === user.email.toLowerCase())
+    );
+  });
 
   // Edit functions
   const startEdit = () => {
@@ -698,23 +725,25 @@ export default function ProjectDetailsModal({
                 onChange={handleCoverImageChange} 
                 accept="image/*" 
               />
-              <button
-                type="button"
-                className="popup-save-btn"
-                onClick={() => coverImageInputRef.current?.click()}
-                disabled={isUploadingCover}
-                style={{ 
-                  padding: '5px 12px', 
-                  fontSize: '12px', 
-                  background: 'rgba(0,0,0,0.75)', 
-                  color: '#ffffff', 
-                  border: '1px solid rgba(255,255,255,0.25)', 
-                  backdropFilter: 'blur(6px)',
-                  cursor: isUploadingCover ? 'not-allowed' : 'pointer'
-                }}
-              >
-                {isUploadingCover ? 'Uploading...' : 'Change Cover'}
-              </button>
+              {isEditing && (
+                <button
+                  type="button"
+                  className="popup-save-btn"
+                  onClick={() => coverImageInputRef.current?.click()}
+                  disabled={isUploadingCover}
+                  style={{ 
+                    padding: '5px 12px', 
+                    fontSize: '12px', 
+                    background: 'rgba(0,0,0,0.75)', 
+                    color: '#ffffff', 
+                    border: '1px solid rgba(255,255,255,0.25)', 
+                    backdropFilter: 'blur(6px)',
+                    cursor: isUploadingCover ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {isUploadingCover ? 'Uploading...' : 'Change Cover'}
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -800,31 +829,33 @@ export default function ProjectDetailsModal({
           </div>
 
           {/* Cover Image row in meta-grid (if not yet uploaded or to upload easily) */}
-          <div className="popup-meta-row">
-            <div className="popup-meta-label">
-              <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" style={{ marginRight: '6px' }}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-              Cover Image
+          {(!project.coverImage && !project.image && isEditing) && (
+            <div className="popup-meta-row">
+              <div className="popup-meta-label">
+                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" style={{ marginRight: '6px' }}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                Cover Image
+              </div>
+              <div className="popup-meta-val" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input 
+                  type="file" 
+                  hidden 
+                  ref={coverImageInputRef} 
+                  onChange={handleCoverImageChange} 
+                  accept="image/*" 
+                />
+                <button 
+                  type="button"
+                  className="popup-save-btn" 
+                  onClick={() => coverImageInputRef.current?.click()}
+                  disabled={isUploadingCover}
+                  style={{ padding: '4px 10px', fontSize: '12px', background: 'var(--popup-btn-bg)', color: 'var(--popup-text-main)', border: 'var(--popup-btn-border)' }}
+                >
+                  {isUploadingCover ? 'Uploading...' : 'Upload Image'}
+                </button>
+                {isUploadingCover && <span style={{ fontSize: '12px', color: 'var(--popup-text-muted)' }}>Uploading...</span>}
+              </div>
             </div>
-            <div className="popup-meta-val" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <input 
-                type="file" 
-                hidden 
-                ref={coverImageInputRef} 
-                onChange={handleCoverImageChange} 
-                accept="image/*" 
-              />
-              <button 
-                type="button"
-                className="popup-save-btn" 
-                onClick={() => coverImageInputRef.current?.click()}
-                disabled={isUploadingCover}
-                style={{ padding: '4px 10px', fontSize: '12px', background: 'var(--popup-btn-bg)', color: 'var(--popup-text-main)', border: 'var(--popup-btn-border)' }}
-              >
-                {isUploadingCover ? 'Uploading...' : ((project.coverImage || project.image) ? 'Change Image' : 'Upload Image')}
-              </button>
-              {isUploadingCover && <span style={{ fontSize: '12px', color: 'var(--popup-text-muted)' }}>Uploading...</span>}
-            </div>
-          </div>
+          )}
 
           {/* Progress (Read-only, calculated from tasks & subtasks) */}
           <div className="popup-meta-row">
@@ -970,7 +1001,7 @@ export default function ProjectDetailsModal({
 
         {/* Tabs */}
         <div className="popup-tabs" style={{ display: 'flex', gap: '16px', borderBottom: 'var(--popup-divider)', marginBottom: '20px' }}>
-          {['tasks', 'members', 'timeline'].map(t => (
+          {['tasks', 'members'].map(t => (
             <button
               key={t}
               onClick={() => setActiveTab(t)}
@@ -987,7 +1018,7 @@ export default function ProjectDetailsModal({
                 transition: 'all 0.2s'
               }}
             >
-              {t === 'tasks' ? 'Tasks & Subtasks' : t === 'members' ? 'Team Members' : 'Activity Timeline'}
+              {t === 'tasks' ? 'Tasks & Subtasks' : 'Team Members'}
             </button>
           ))}
         </div>
@@ -1136,72 +1167,6 @@ export default function ProjectDetailsModal({
             </div>
           )}
 
-          {/* Activity Timeline Tab */}
-          {activeTab === 'timeline' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontSize: '13px', color: 'var(--popup-text-main)', fontWeight: '600' }}>
-                  {apiTimeline.length} Activities
-                </span>
-                <button
-                  type="button"
-                  onClick={handleRefreshTimeline}
-                  disabled={isRefreshingTimeline}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '6px',
-                    background: 'var(--popup-btn-bg)', border: 'var(--popup-btn-border)',
-                    color: 'var(--popup-text-main)', padding: '6px 12px', borderRadius: '8px',
-                    cursor: isRefreshingTimeline ? 'not-allowed' : 'pointer', fontSize: '12px', fontWeight: '500'
-                  }}
-                  title="Check for new activity"
-                >
-                  <RefreshCw size={13} style={{ animation: isRefreshingTimeline ? 'spin 1s linear infinite' : 'none' }} />
-                  <span>{isRefreshingTimeline ? 'Refreshing...' : 'Refresh'}</span>
-                </button>
-              </div>
-
-              {timelineError && (
-                <div style={{
-                  background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.35)',
-                  color: theme === 'light' ? '#b91c1c' : '#fca5a5', padding: '8px 12px',
-                  borderRadius: '8px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px'
-                }}>
-                  <AlertCircle size={14} style={{ flexShrink: 0 }} />
-                  <span>{timelineError}</span>
-                </div>
-              )}
-
-              {isLoadingTimeline ? (
-                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--popup-text-muted)', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                  <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                  <span>Loading activity timeline...</span>
-                </div>
-              ) : apiTimeline.length === 0 ? (
-                <div style={{ padding: '16px', textAlign: 'center', color: 'var(--popup-text-muted)', fontSize: '13px' }}>
-                  No timeline history recorded for this project yet.
-                </div>
-              ) : (
-                apiTimeline.map((item, idx) => {
-                  const actorName = typeof item.actor === 'string' ? item.actor : (item.actor?.name || item.user || 'Team Member');
-                  const timeFormatted = item.timestamp ? new Date(item.timestamp).toLocaleString() : 'Just now';
-                  return (
-                    <div key={item.id || idx} style={{ display: 'flex', gap: '12px', padding: '12px', background: 'var(--popup-card-bg)', border: 'var(--popup-card-border)', borderRadius: '12px', alignItems: 'flex-start' }}>
-                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(99, 102, 241, 0.15)', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px' }}>
-                        <Clock size={15} />
-                      </div>
-                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        <div style={{ fontSize: '13px', color: 'var(--popup-text-main)' }}>
-                          <strong style={{ fontWeight: '600' }}>{actorName}</strong> {item.action || 'updated project'} {item.target ? <span style={{ color: '#6366f1' }}>"{item.target}"</span> : ''}
-                        </div>
-                        {item.details && <div style={{ fontSize: '12px', color: 'var(--popup-text-muted)' }}>{item.details}</div>}
-                        <div style={{ fontSize: '11px', color: 'var(--popup-text-muted)', marginTop: '2px' }}>{timeFormatted}</div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          )}
 
           {/* Members Tab with Member Search & Add */}
           {activeTab === 'members' && (
@@ -1272,7 +1237,7 @@ export default function ProjectDetailsModal({
                     </div>
                   )}
 
-                  {memberSearch && !isSearchingUsers && searchResults.length > 0 && (
+                  {memberSearch && !isSearchingUsers && filteredSearchResults.length > 0 && (
                     <div style={{
                       position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 999,
                       maxHeight: '160px', overflowY: 'auto',
@@ -1280,7 +1245,7 @@ export default function ProjectDetailsModal({
                       border: theme === 'light' ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.18)',
                       borderRadius: '8px', boxShadow: '0 12px 32px rgba(0,0,0,0.7)', marginTop: '4px'
                     }}>
-                      {searchResults.map(user => {
+                      {filteredSearchResults.map(user => {
                         const emp = normalizeMember(user);
                         return (
                           <div
@@ -1311,7 +1276,7 @@ export default function ProjectDetailsModal({
                     </div>
                   )}
 
-                  {memberSearch && !isSearchingUsers && searchResults.length === 0 && !searchError && (
+                  {memberSearch && !isSearchingUsers && filteredSearchResults.length === 0 && !searchError && (
                     <div style={{
                       position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 99,
                       background: 'var(--popup-card-bg)', border: 'var(--popup-card-border)',

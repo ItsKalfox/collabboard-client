@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import ProjectCard from './ProjectCard';
 import CreateProjectModal from './CreateProjectModal';
-import EditProjectModal from './EditProjectModal';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import ProjectDetailsModal from './ProjectDetailsModal';
 import { Plus, Search } from 'lucide-react';
@@ -27,9 +26,9 @@ export default function ProjectsPage({ theme = 'dark', currentUser, onOpenBoard 
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [editingProject, setEditingProject] = useState(null);
   const [deletingProject, setDeletingProject] = useState(null);
   const [selectedDetailsProject, setSelectedDetailsProject] = useState(null);
+  const [detailsInitialEditMode, setDetailsInitialEditMode] = useState(false);
 
   useEffect(() => {
     const fetchApiProjects = async () => {
@@ -143,7 +142,10 @@ export default function ProjectsPage({ theme = 'dark', currentUser, onOpenBoard 
                     key={project.id}
                     project={project}
                     theme={theme}
-                    onEdit={(p) => setEditingProject(p)}
+                    onEdit={(p) => {
+                      setSelectedDetailsProject(p);
+                      setDetailsInitialEditMode(true);
+                    }}
                     onDelete={(p) => setDeletingProject(p)}
                     onViewDetails={(p) => setSelectedDetailsProject(p)}
                     onOpenBoard={onOpenBoard}
@@ -168,7 +170,10 @@ export default function ProjectsPage({ theme = 'dark', currentUser, onOpenBoard 
                     key={project.id}
                     project={project}
                     theme={theme}
-                    onEdit={(p) => setEditingProject(p)}
+                    onEdit={(p) => {
+                      setSelectedDetailsProject(p);
+                      setDetailsInitialEditMode(true);
+                    }}
                     onDelete={(p) => setDeletingProject(p)}
                     onViewDetails={(p) => setSelectedDetailsProject(p)}
                     onOpenBoard={onOpenBoard}
@@ -183,14 +188,17 @@ export default function ProjectsPage({ theme = 'dark', currentUser, onOpenBoard 
 
       <ProjectDetailsModal 
         isOpen={!!selectedDetailsProject} 
-        onClose={() => setSelectedDetailsProject(null)} 
+        onClose={() => {
+          setSelectedDetailsProject(null);
+          setDetailsInitialEditMode(false);
+        }} 
         project={selectedDetailsProject} 
         onSaveProject={handleSaveEdit}
         onDeleteProject={handleDeleteConfirm}
         onOpenBoard={onOpenBoard} 
-        onEdit={(p) => setEditingProject(p)}
         theme={theme} 
         currentUser={activeUser}
+        initialEditMode={detailsInitialEditMode}
       />
       <CreateProjectModal 
         isOpen={isCreateOpen} 
@@ -198,13 +206,6 @@ export default function ProjectsPage({ theme = 'dark', currentUser, onOpenBoard 
         onCreate={handleCreateProject} 
         theme={theme} 
         currentUser={currentUser}
-      />
-      <EditProjectModal 
-        isOpen={!!editingProject} 
-        onClose={() => setEditingProject(null)} 
-        project={editingProject} 
-        onSave={handleSaveEdit} 
-        theme={theme} 
       />
       <DeleteConfirmModal 
         isOpen={!!deletingProject} 

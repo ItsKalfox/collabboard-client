@@ -26,9 +26,20 @@ export const getProjects = async (req, res) => {
 
         const projects = await Project.find(query).populate('members.userId', 'name email avatar').exec();
 
+        const projectIds = projects.map(p => p._id);
+        const allTasks = await Task.find({ projectId: { $in: projectIds } }).exec();
+        
+        const tasksByProject = {};
+        allTasks.forEach(t => {
+            const pid = t.projectId.toString();
+            if (!tasksByProject[pid]) tasksByProject[pid] = [];
+            tasksByProject[pid].push(t);
+        });
+
         // Format members as requested by frontend
         const projectsWithMembers = projects.map(project => {
             const projObj = project.toObject();
+            projObj.tasks = tasksByProject[project._id.toString()] || [];
             projObj.members = projObj.members.map(m => {
                 const user = m.userId;
                 return {

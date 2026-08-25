@@ -15,7 +15,7 @@ const uploadToCloudinary = (buffer, options) => {
 
 export const getTasksByProject = async (req, res) => {
     try {
-        const { projectId } = req.query;
+        const projectId = req.params.projectId || req.query.projectId;
         if (!projectId) return res.status(400).json({ status: 'error', message: 'Project ID is required' });
         
         const tasks = await Task.find({ projectId }).populate('assigneeId', 'name avatar').exec();
@@ -27,7 +27,8 @@ export const getTasksByProject = async (req, res) => {
 
 export const createTask = async (req, res) => {
     try {
-        const { projectId, title, description, status, priority, assigneeId, dueDate } = req.body;
+        const { title, description, status, priority, assigneeId, dueDate } = req.body;
+        const projectId = req.params.projectId || req.body.projectId;
         if (!projectId || !title) return res.status(400).json({ status: 'error', message: 'Project ID and title are required' });
         
         const task = await Task.create({
@@ -48,7 +49,7 @@ export const createTask = async (req, res) => {
 
 export const getTaskById = async (req, res) => {
     try {
-        const task = await Task.findById(req.params.id).populate('assigneeId', 'name avatar').exec();
+        const task = await Task.findById(req.params.taskId).populate('assigneeId', 'name avatar').exec();
         if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
         res.status(200).json({ status: 'success', data: { task } });
     } catch (error) {
@@ -58,7 +59,7 @@ export const getTaskById = async (req, res) => {
 
 export const updateTask = async (req, res) => {
     try {
-        const task = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const task = await Task.findByIdAndUpdate(req.params.taskId, req.body, { new: true });
         if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
         res.status(200).json({ status: 'success', message: 'Task updated', data: { task } });
     } catch (error) {
@@ -68,14 +69,14 @@ export const updateTask = async (req, res) => {
 
 export const deleteTask = async (req, res) => {
     try {
-        const task = await Task.findById(req.params.id);
+        const task = await Task.findById(req.params.taskId);
         if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
         
         if (task.imagePublicId) {
             try { await cloudinary.uploader.destroy(task.imagePublicId); } catch (e) {}
         }
-        await Task.findByIdAndDelete(req.params.id);
-        await Attachment.deleteMany({ taskId: req.params.id });
+        await Task.findByIdAndDelete(req.params.taskId);
+        await Attachment.deleteMany({ taskId: req.params.taskId });
 
         res.status(200).json({ status: 'success', message: 'Task deleted successfully' });
     } catch (error) {
@@ -88,7 +89,7 @@ export const updateTaskStatus = async (req, res) => {
         const { status } = req.body;
         if (!status) return res.status(400).json({ status: 'error', message: 'Status is required' });
         
-        const task = await Task.findByIdAndUpdate(req.params.id, { status }, { new: true });
+        const task = await Task.findByIdAndUpdate(req.params.taskId, { status }, { new: true });
         if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
         
         res.status(200).json({ status: 'success', message: 'Status updated', data: { task } });
@@ -100,7 +101,7 @@ export const updateTaskStatus = async (req, res) => {
 export const reviewTask = async (req, res) => {
     try {
         const { comment } = req.body;
-        const task = await Task.findById(req.params.id);
+        const task = await Task.findById(req.params.taskId);
         if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
         
         task.reviews.push({ reviewerId: req.user.id, status: 'approved', comment });
@@ -118,7 +119,7 @@ export const rejectTask = async (req, res) => {
         const { comment } = req.body;
         if (!comment) return res.status(400).json({ status: 'error', message: 'Comment is required for rejection' });
         
-        const task = await Task.findById(req.params.id);
+        const task = await Task.findById(req.params.taskId);
         if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
         
         task.reviews.push({ reviewerId: req.user.id, status: 'rejected', comment });
@@ -133,7 +134,7 @@ export const rejectTask = async (req, res) => {
 
 export const getTaskReviews = async (req, res) => {
     try {
-        const task = await Task.findById(req.params.id).populate('reviews.reviewerId', 'name avatar').exec();
+        const task = await Task.findById(req.params.taskId).populate('reviews.reviewerId', 'name avatar').exec();
         if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
         
         res.status(200).json({ status: 'success', data: { reviews: task.reviews } });
@@ -144,7 +145,7 @@ export const getTaskReviews = async (req, res) => {
 
 export const getSubtasks = async (req, res) => {
     try {
-        const task = await Task.findById(req.params.id);
+        const task = await Task.findById(req.params.taskId);
         if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
         res.status(200).json({ status: 'success', data: { subtasks: task.subtasks } });
     } catch (error) {
@@ -157,7 +158,7 @@ export const createSubtask = async (req, res) => {
         const { title, completed } = req.body;
         if (!title) return res.status(400).json({ status: 'error', message: 'Title is required' });
         
-        const task = await Task.findById(req.params.id);
+        const task = await Task.findById(req.params.taskId);
         if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
         
         task.subtasks.push({ title, completed: completed || false });
@@ -174,7 +175,7 @@ export const updateSubtasksList = async (req, res) => {
         const { subtasks } = req.body;
         if (!Array.isArray(subtasks)) return res.status(400).json({ status: 'error', message: 'Subtasks array is required' });
         
-        const task = await Task.findById(req.params.id);
+        const task = await Task.findById(req.params.taskId);
         if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
         
         task.subtasks = subtasks;
