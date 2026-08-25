@@ -1,38 +1,8 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import cloudinary from '../config/cloudinary.js';
+import Task from '../models/Task.js';
+import Project from '../models/Project.js';
+import Attachment from '../models/Attachment.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const mockTasksPath = path.join(__dirname, '../data/mockTasks.json');
-const mockAttachmentsPath = path.join(__dirname, '../data/mockAttachments.json');
-
-const getMockTasks = () => {
-    if (!fs.existsSync(mockTasksPath)) {
-        return [];
-    }
-    const data = fs.readFileSync(mockTasksPath, 'utf8');
-    return JSON.parse(data);
-};
-
-const saveMockTasks = (data) => {
-    fs.writeFileSync(mockTasksPath, JSON.stringify(data, null, 2));
-};
-
-const getMockAttachments = () => {
-    if (!fs.existsSync(mockAttachmentsPath)) {
-        return [];
-    }
-    const data = fs.readFileSync(mockAttachmentsPath, 'utf8');
-    return JSON.parse(data);
-};
-
-const saveMockAttachments = (data) => {
-    fs.writeFileSync(mockAttachmentsPath, JSON.stringify(data, null, 2));
-};
-
-// Helper to upload a buffer to Cloudinary
 const uploadToCloudinary = (buffer, options) => {
     return new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(options, (error, result) => {
@@ -45,562 +15,278 @@ const uploadToCloudinary = (buffer, options) => {
 
 export const getTasksByProject = async (req, res) => {
     try {
-        const { projectId } = req.params;
-        const tasks = getMockTasks();
-        const projectTasks = tasks.filter(t => t.projectId === projectId);
+        const { projectId } = req.query;
+        if (!projectId) return res.status(400).json({ status: 'error', message: 'Project ID is required' });
         
-        res.status(200).json({
-            status: 'success',
-            data: { tasks: projectTasks }
-        });
+        const tasks = await Task.find({ projectId }).populate('assigneeId', 'name avatar').exec();
+        res.status(200).json({ status: 'success', data: { tasks } });
     } catch (error) {
-        console.error('Error fetching project tasks:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
 
 export const createTask = async (req, res) => {
     try {
-        const { projectId } = req.params;
-        const { title, description, status, assignee, priority, dueDate, progress, assignees, subtasks, attachments } = req.body;
+        const { projectId, title, description, status, priority, assigneeId, dueDate } = req.body;
+        if (!projectId || !title) return res.status(400).json({ status: 'error', message: 'Project ID and title are required' });
         
-        if (!title) {
-            return res.status(400).json({ status: 'error', message: 'Title is required' });
-        }
-        
-        const tasks = getMockTasks();
-        const newTask = {
-            id: Date.now().toString(),
+        const task = await Task.create({
             projectId,
             title,
-            description: description || '',
+            description,
             status: status || 'todo',
-            assignee: assignee || null,
-            assignees: assignees || [],
-            priority: priority !== undefined ? priority : 'medium',
-            dueDate: dueDate || null,
-            progress: progress || 0,
-            subtasks: subtasks || [],
-            attachments: attachments || [],
-            reviews: [],
-            createdAt: new Date().toISOString()
-        };
-        
-        tasks.push(newTask);
-        saveMockTasks(tasks);
-        
-        res.status(201).json({
-            status: 'success',
-            data: { task: newTask }
+            priority: priority || 'medium',
+            assigneeId: assigneeId || req.user.id,
+            dueDate
         });
+
+        res.status(201).json({ status: 'success', message: 'Task created successfully', data: { task } });
     } catch (error) {
-        console.error('Error creating task:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
 
 export const getTaskById = async (req, res) => {
     try {
-        const { taskId } = req.params;
-        const tasks = getMockTasks();
-        const task = tasks.find(t => t.id === taskId);
-        
-        if (!task) {
-            return res.status(404).json({ status: 'error', message: 'Task not found' });
-        }
-        
-        res.status(200).json({
-            status: 'success',
-            data: { task }
-        });
+        const task = await Task.findById(req.params.id).populate('assigneeId', 'name avatar').exec();
+        if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
+        res.status(200).json({ status: 'success', data: { task } });
     } catch (error) {
-        console.error('Error fetching task:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
 
 export const updateTask = async (req, res) => {
     try {
-        const { taskId } = req.params;
-        const { title, description, status, assignee, priority, dueDate, progress, assignees, generalComments } = req.body;
-        
-        const tasks = getMockTasks();
-        const taskIndex = tasks.findIndex(t => t.id === taskId);
-        
-        if (taskIndex === -1) {
-            return res.status(404).json({ status: 'error', message: 'Task not found' });
-        }
-        
-        if (title !== undefined) tasks[taskIndex].title = title;
-        if (description !== undefined) tasks[taskIndex].description = description;
-        if (status !== undefined) tasks[taskIndex].status = status;
-        if (assignee !== undefined) tasks[taskIndex].assignee = assignee;
-        if (assignees !== undefined) tasks[taskIndex].assignees = assignees;
-        if (priority !== undefined) tasks[taskIndex].priority = priority;
-        if (dueDate !== undefined) tasks[taskIndex].dueDate = dueDate;
-        if (progress !== undefined) tasks[taskIndex].progress = progress;
-        if (generalComments !== undefined) tasks[taskIndex].generalComments = generalComments;
-        
-        saveMockTasks(tasks);
-        
-        res.status(200).json({
-            status: 'success',
-            data: { task: tasks[taskIndex] }
-        });
+        const task = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
+        res.status(200).json({ status: 'success', message: 'Task updated', data: { task } });
     } catch (error) {
-        console.error('Error updating task:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
 
 export const deleteTask = async (req, res) => {
     try {
-        const { taskId } = req.params;
-        const tasks = getMockTasks();
-        const taskIndex = tasks.findIndex(t => t.id === taskId);
+        const task = await Task.findById(req.params.id);
+        if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
         
-        if (taskIndex === -1) {
-            return res.status(404).json({ status: 'error', message: 'Task not found' });
+        if (task.imagePublicId) {
+            try { await cloudinary.uploader.destroy(task.imagePublicId); } catch (e) {}
         }
-        
-        tasks.splice(taskIndex, 1);
-        saveMockTasks(tasks);
-        
-        res.status(200).json({
-            status: 'success',
-            message: 'Task deleted successfully'
-        });
+        await Task.findByIdAndDelete(req.params.id);
+        await Attachment.deleteMany({ taskId: req.params.id });
+
+        res.status(200).json({ status: 'success', message: 'Task deleted successfully' });
     } catch (error) {
-        console.error('Error deleting task:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
 
 export const updateTaskStatus = async (req, res) => {
     try {
-        const { taskId } = req.params;
-        const { status, isApproved } = req.body;
+        const { status } = req.body;
+        if (!status) return res.status(400).json({ status: 'error', message: 'Status is required' });
         
-        if (!status) {
-            return res.status(400).json({ status: 'error', message: 'Status is required' });
-        }
+        const task = await Task.findByIdAndUpdate(req.params.id, { status }, { new: true });
+        if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
         
-        const tasks = getMockTasks();
-        const taskIndex = tasks.findIndex(t => t.id === taskId);
-        
-        if (taskIndex === -1) {
-            return res.status(404).json({ status: 'error', message: 'Task not found' });
-        }
-        
-        tasks[taskIndex].status = status;
-        if (isApproved !== undefined) {
-            tasks[taskIndex].isApproved = isApproved;
-        }
-        saveMockTasks(tasks);
-        
-        res.status(200).json({
-            status: 'success',
-            data: { task: tasks[taskIndex] }
-        });
+        res.status(200).json({ status: 'success', message: 'Status updated', data: { task } });
     } catch (error) {
-        console.error('Error updating task status:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
 
-
-
-
 export const reviewTask = async (req, res) => {
     try {
-        const { taskId } = req.params;
         const { comment } = req.body;
+        const task = await Task.findById(req.params.id);
+        if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
         
-        const tasks = getMockTasks();
-        const taskIndex = tasks.findIndex(t => t.id === taskId);
+        task.reviews.push({ reviewerId: req.user.id, status: 'approved', comment });
+        task.status = 'completed'; // Assuming approval completes it
+        await task.save();
         
-        if (taskIndex === -1) {
-            return res.status(404).json({ status: 'error', message: 'Task not found' });
-        }
-        
-        const newReview = {
-            id: Date.now().toString(),
-            reviewerId: req.user ? req.user.id : 'anonymous',
-            comment: comment || '',
-            decision: 'approved',
-            createdAt: new Date().toISOString()
-        };
-        
-        if (!tasks[taskIndex].reviews) tasks[taskIndex].reviews = [];
-        tasks[taskIndex].reviews.push(newReview);
-        tasks[taskIndex].status = 'reviewed';
-        
-        saveMockTasks(tasks);
-        
-        res.status(201).json({
-            status: 'success',
-            data: { review: newReview, task: tasks[taskIndex] }
-        });
+        res.status(200).json({ status: 'success', message: 'Task approved', data: { task } });
     } catch (error) {
-        console.error('Error reviewing task:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
 
 export const rejectTask = async (req, res) => {
     try {
-        const { taskId } = req.params;
         const { comment } = req.body;
+        if (!comment) return res.status(400).json({ status: 'error', message: 'Comment is required for rejection' });
         
-        const tasks = getMockTasks();
-        const taskIndex = tasks.findIndex(t => t.id === taskId);
+        const task = await Task.findById(req.params.id);
+        if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
         
-        if (taskIndex === -1) {
-            return res.status(404).json({ status: 'error', message: 'Task not found' });
-        }
+        task.reviews.push({ reviewerId: req.user.id, status: 'rejected', comment });
+        task.status = 'in_progress'; // Send back to progress
+        await task.save();
         
-        const newReview = {
-            id: Date.now().toString(),
-            reviewerId: req.user ? req.user.id : 'anonymous',
-            comment: comment || 'Task rejected',
-            decision: 'rejected',
-            createdAt: new Date().toISOString()
-        };
-        
-        if (!tasks[taskIndex].reviews) tasks[taskIndex].reviews = [];
-        tasks[taskIndex].reviews.push(newReview);
-        tasks[taskIndex].status = 'rejected';
-        
-        saveMockTasks(tasks);
-        
-        res.status(201).json({
-            status: 'success',
-            data: { review: newReview, task: tasks[taskIndex] }
-        });
+        res.status(200).json({ status: 'success', message: 'Task rejected', data: { task } });
     } catch (error) {
-        console.error('Error rejecting task:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
 
 export const getTaskReviews = async (req, res) => {
     try {
-        const { taskId } = req.params;
-        const tasks = getMockTasks();
-        const task = tasks.find(t => t.id === taskId);
+        const task = await Task.findById(req.params.id).populate('reviews.reviewerId', 'name avatar').exec();
+        if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
         
-        if (!task) {
-            return res.status(404).json({ status: 'error', message: 'Task not found' });
-        }
-        
-        res.status(200).json({
-            status: 'success',
-            data: { reviews: task.reviews || [] }
-        });
+        res.status(200).json({ status: 'success', data: { reviews: task.reviews } });
     } catch (error) {
-        console.error('Error fetching task reviews:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
 
 export const getSubtasks = async (req, res) => {
     try {
-        const { taskId } = req.params;
-        const tasks = getMockTasks();
-        const task = tasks.find(t => t.id === taskId);
-        
-        if (!task) {
-            return res.status(404).json({ status: 'error', message: 'Task not found' });
-        }
-        
-        res.status(200).json({
-            status: 'success',
-            data: { subtasks: task.subtasks || [] }
-        });
+        const task = await Task.findById(req.params.id);
+        if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
+        res.status(200).json({ status: 'success', data: { subtasks: task.subtasks } });
     } catch (error) {
-        console.error('Error fetching subtasks:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
 
 export const createSubtask = async (req, res) => {
     try {
-        const { taskId } = req.params;
-        const { title, description, completed } = req.body;
+        const { title, completed } = req.body;
+        if (!title) return res.status(400).json({ status: 'error', message: 'Title is required' });
         
-        if (!title) {
-            return res.status(400).json({ status: 'error', message: 'Title is required' });
-        }
+        const task = await Task.findById(req.params.id);
+        if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
         
-        const tasks = getMockTasks();
-        const taskIndex = tasks.findIndex(t => t.id === taskId);
+        task.subtasks.push({ title, completed: completed || false });
+        await task.save();
         
-        if (taskIndex === -1) {
-            return res.status(404).json({ status: 'error', message: 'Task not found' });
-        }
-        
-        const newSubtask = {
-            id: `sub_${Date.now()}`,
-            title,
-            description: description || '',
-            completed: completed || false
-        };
-        
-        if (!tasks[taskIndex].subtasks) tasks[taskIndex].subtasks = [];
-        tasks[taskIndex].subtasks.push(newSubtask);
-        
-        saveMockTasks(tasks);
-        
-        res.status(201).json({
-            status: 'success',
-            data: { subtask: newSubtask }
-        });
+        res.status(201).json({ status: 'success', message: 'Subtask created', data: { subtasks: task.subtasks } });
     } catch (error) {
-        console.error('Error creating subtask:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
 
 export const updateSubtasksList = async (req, res) => {
     try {
-        const { taskId } = req.params;
         const { subtasks } = req.body;
+        if (!Array.isArray(subtasks)) return res.status(400).json({ status: 'error', message: 'Subtasks array is required' });
         
-        if (!Array.isArray(subtasks)) {
-            return res.status(400).json({ status: 'error', message: 'Subtasks array is required' });
-        }
+        const task = await Task.findById(req.params.id);
+        if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
         
-        const tasks = getMockTasks();
-        const taskIndex = tasks.findIndex(t => t.id === taskId);
+        task.subtasks = subtasks;
+        await task.save();
         
-        if (taskIndex === -1) {
-            return res.status(404).json({ status: 'error', message: 'Task not found' });
-        }
-        
-        tasks[taskIndex].subtasks = subtasks;
-        
-        saveMockTasks(tasks);
-        
-        res.status(200).json({
-            status: 'success',
-            data: { subtasks: tasks[taskIndex].subtasks }
-        });
+        res.status(200).json({ status: 'success', data: { subtasks: task.subtasks } });
     } catch (error) {
-        console.error('Error updating subtasks list:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
 
 export const uploadTaskImage = async (req, res) => {
     try {
-        const { taskId } = req.params;
-
-        if (!req.file) {
-            return res.status(400).json({ status: 'error', message: 'Image file is required' });
-        }
-
-        const tasks = getMockTasks();
-        const taskIndex = tasks.findIndex(t => t.id === taskId);
-
-        if (taskIndex === -1) {
-            return res.status(404).json({ status: 'error', message: 'Task not found' });
-        }
-
-        const task = tasks[taskIndex];
-
+        if (!req.file) return res.status(400).json({ status: 'error', message: 'Image file is required' });
+        
+        const task = await Task.findById(req.params.taskId);
+        if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
+        
         if (task.imagePublicId) {
-            try {
-                await cloudinary.uploader.destroy(task.imagePublicId);
-            } catch (err) {
-                console.warn('Failed to delete old task image from Cloudinary:', err.message);
-            }
+            try { await cloudinary.uploader.destroy(task.imagePublicId); } catch (e) {}
         }
-
+        
         const result = await uploadToCloudinary(req.file.buffer, {
-            folder: `collabboard/tasks/${taskId}`,
-            public_id: `image_${Date.now()}`,
-            overwrite: true,
+            folder: `collabboard/tasks/${req.params.taskId}`,
             resource_type: 'image'
         });
-
+        
         task.imageUrl = result.secure_url;
         task.imagePublicId = result.public_id;
-        task.updatedAt = new Date().toISOString();
-
-        tasks[taskIndex] = task;
-        saveMockTasks(tasks);
-
-        res.status(200).json({
-            status: 'success',
-            message: 'Task image uploaded successfully',
-            data: {
-                imageUrl: result.secure_url
-            }
-        });
+        await task.save();
+        
+        res.status(200).json({ status: 'success', data: { imageUrl: task.imageUrl } });
     } catch (error) {
-        console.error('Upload task image error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
 
 export const deleteTaskImage = async (req, res) => {
     try {
-        const { taskId } = req.params;
-
-        const tasks = getMockTasks();
-        const taskIndex = tasks.findIndex(t => t.id === taskId);
-
-        if (taskIndex === -1) {
-            return res.status(404).json({ status: 'error', message: 'Task not found' });
+        const task = await Task.findById(req.params.taskId);
+        if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
+        
+        if (task.imagePublicId) {
+            try { await cloudinary.uploader.destroy(task.imagePublicId); } catch (e) {}
         }
-
-        const task = tasks[taskIndex];
-
-        if (!task.imagePublicId) {
-            return res.status(400).json({ status: 'error', message: 'Task has no image to delete' });
-        }
-
-        try {
-            await cloudinary.uploader.destroy(task.imagePublicId);
-        } catch (err) {
-            console.error('Failed to delete task image from Cloudinary:', err.message);
-            return res.status(500).json({ status: 'error', message: 'Failed to delete image from cloud storage' });
-        }
-
+        
         task.imageUrl = null;
         task.imagePublicId = null;
-        task.updatedAt = new Date().toISOString();
-
-        tasks[taskIndex] = task;
-        saveMockTasks(tasks);
-
-        res.status(200).json({
-            status: 'success',
-            message: 'Task image deleted successfully'
-        });
+        await task.save();
+        
+        res.status(200).json({ status: 'success', message: 'Image deleted' });
     } catch (error) {
-        console.error('Delete task image error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
 
-export const getTaskAttachments = (req, res) => {
+export const getTaskAttachments = async (req, res) => {
     try {
-        const { taskId } = req.params;
-
-        const tasks = getMockTasks();
-        const task = tasks.find(t => t.id === taskId);
-
-        if (!task) {
-            return res.status(404).json({ status: 'error', message: 'Task not found' });
-        }
-
-        const allAttachments = getMockAttachments();
-        const taskAttachments = allAttachments.filter(a => a.taskId === taskId);
-
-        res.status(200).json({
-            status: 'success',
-            data: { attachments: taskAttachments }
-        });
+        const attachments = await Attachment.find({ taskId: req.params.taskId });
+        res.status(200).json({ status: 'success', data: { attachments } });
     } catch (error) {
-        console.error('Get task attachments error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
 
 export const addTaskAttachment = async (req, res) => {
     try {
-        const { taskId } = req.params;
-
-        if (!req.file) {
-            return res.status(400).json({ status: 'error', message: 'Attachment file is required' });
-        }
-
-        const tasks = getMockTasks();
-        const taskIndex = tasks.findIndex(t => t.id === taskId);
+        let fileUrl = req.body.url || '';
+        let publicId = req.body.publicId || '';
+        let filename = req.body.filename || req.file?.originalname || 'document';
+        let mimeType = req.body.mimeType || req.file?.mimetype;
+        let size = req.body.size || req.file?.size;
         
-        if (taskIndex === -1) {
-            return res.status(404).json({ status: 'error', message: 'Task not found' });
+        if (req.file) {
+            const result = await uploadToCloudinary(req.file.buffer, {
+                folder: `collabboard/attachments/tasks/${req.params.taskId}`,
+                resource_type: 'auto'
+            });
+            fileUrl = result.secure_url;
+            publicId = result.public_id;
         }
         
-        const task = tasks[taskIndex];
-
-        const result = await uploadToCloudinary(req.file.buffer, {
-            folder: `collabboard/attachments/tasks/${taskId}`,
-            public_id: `att_${Date.now()}`,
-            resource_type: 'auto'
+        if (!fileUrl) return res.status(400).json({ status: 'error', message: 'File is required' });
+        
+        const attachment = await Attachment.create({
+            taskId: req.params.taskId,
+            filename,
+            url: fileUrl,
+            publicId,
+            mimeType,
+            size,
+            uploadedBy: req.user.id
         });
-
-        const attachments = getMockAttachments();
-        const newAttachment = {
-            id: `att_${Date.now()}`,
-            taskId,
-            filename: req.file.originalname,
-            url: result.secure_url,
-            publicId: result.public_id,
-            mimeType: req.file.mimetype,
-            size: req.file.size,
-            uploadedBy: req.user.id,
-            uploadedAt: new Date().toISOString()
-        };
-
-        attachments.push(newAttachment);
-        saveMockAttachments(attachments);
-
-        if (!tasks[taskIndex].attachments) tasks[taskIndex].attachments = [];
-        tasks[taskIndex].attachments.push(newAttachment);
-        saveMockTasks(tasks);
-
-        res.status(201).json({
-            status: 'success',
-            message: 'Attachment uploaded successfully',
-            data: { attachment: newAttachment }
-        });
+        
+        res.status(201).json({ status: 'success', data: { attachment } });
     } catch (error) {
-        console.error('Add task attachment error:', error);
-        res.status(500).json({ status: 'error', message: 'Server error while uploading attachment' });
+        res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
 
 export const deleteTaskAttachment = async (req, res) => {
     try {
-        const { taskId, attachmentId } = req.params;
-
-        const attachments = getMockAttachments();
-        const attachmentIndex = attachments.findIndex(a => a.id === attachmentId && a.taskId === taskId);
-
-        if (attachmentIndex === -1) {
-            return res.status(404).json({ status: 'error', message: 'Attachment not found' });
-        }
-
-        const attachment = attachments[attachmentIndex];
-
-        // Delete from Cloudinary
+        const attachment = await Attachment.findOne({ _id: req.params.attachmentId, taskId: req.params.taskId });
+        if (!attachment) return res.status(404).json({ status: 'error', message: 'Attachment not found' });
+        
         if (attachment.publicId) {
-            await cloudinary.uploader.destroy(attachment.publicId, { resource_type: 'raw' }).catch(err => {
-                console.error("Cloudinary destroy raw failed, trying image/video:", err);
-                cloudinary.uploader.destroy(attachment.publicId);
-            });
+            try { await cloudinary.uploader.destroy(attachment.publicId); } catch (e) {}
         }
-
-        // Remove from global attachments mock
-        attachments.splice(attachmentIndex, 1);
-        saveMockAttachments(attachments);
-
-        // Remove from task mock
-        const tasks = getMockTasks();
-        const taskIndex = tasks.findIndex(t => t.id === taskId);
-        if (taskIndex !== -1 && tasks[taskIndex].attachments) {
-            tasks[taskIndex].attachments = tasks[taskIndex].attachments.filter(a => a.id !== attachmentId);
-            saveMockTasks(tasks);
-        }
-
-        res.status(200).json({
-            status: 'success',
-            message: 'Attachment deleted successfully'
-        });
+        await Attachment.findByIdAndDelete(req.params.attachmentId);
+        
+        res.status(200).json({ status: 'success', message: 'Attachment deleted' });
     } catch (error) {
-        console.error('Delete task attachment error:', error);
-        res.status(500).json({ status: 'error', message: 'Server error while deleting attachment' });
+        res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
