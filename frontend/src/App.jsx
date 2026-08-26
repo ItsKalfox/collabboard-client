@@ -10,6 +10,7 @@ import Board from './pages/Board';
 import Settings from './pages/Settings';
 import AuthModule from './components/auth/AuthModule';
 import OfflineBanner from './components/shared/OfflineBanner';
+import ConfirmModal from './components/Board/ConfirmModal';
 import './App.css';
 
 function App() {
@@ -44,6 +45,14 @@ function App() {
   const isAuthRoute = authRoutes.includes(activeTab);
 
   const [currentUser, setCurrentUser] = useState(null);
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setCurrentUser(null);
+    handleTabClick('login');
+    setIsLogoutConfirmOpen(false);
+  };
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -191,6 +200,14 @@ function App() {
   return (
     <div className="app-container" style={themeVars}>
       <OfflineBanner />
+      <ConfirmModal
+        isOpen={isLogoutConfirmOpen}
+        onClose={() => setIsLogoutConfirmOpen(false)}
+        title="Log Out"
+        message="Are you sure you want to log out?"
+        onConfirm={handleLogout}
+        confirmText="Logout"
+      />
       {sessionExpired && (
         <div style={{
           position: 'fixed',
@@ -349,11 +366,7 @@ function App() {
             )}
             
             <button 
-              onClick={() => {
-                localStorage.removeItem('token');
-                setCurrentUser(null);
-                handleTabClick('login');
-              }}
+              onClick={() => setIsLogoutConfirmOpen(true)}
               style={{
                 display: 'flex',
                 alignItems: 'center',

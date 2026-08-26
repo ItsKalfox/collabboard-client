@@ -7,6 +7,7 @@ const projectSchema = new mongoose.Schema({
     status: { type: String, default: 'active' },
     ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     coverImage: { type: String, default: null },
+    dueDate: { type: Date, default: null },
     members: [{
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         role: { type: String, default: 'member' },

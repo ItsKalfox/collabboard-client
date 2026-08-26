@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, ArrowRight, ChevronDown, ChevronRight, UserPlus, Trash2, Calendar, Search, AlertCircle, Loader2, RefreshCw, Clock, CheckSquare } from 'lucide-react';
+import { X, ArrowRight, ChevronDown, ChevronRight, UserPlus, Trash2, Calendar, Search, AlertCircle, Loader2, RefreshCw, Clock, CheckSquare, FileText, Image as ImageIcon, FileCode, FileArchive, FileSpreadsheet, File } from 'lucide-react';
 import { MOCK_MEMBERS, normalizeMember } from '../../mock/mockMembers';
-import { uploadCoverImage, getAttachments, uploadAttachment, deleteAttachment, getProjectMembers, searchUsers, addProjectMember, removeProjectMember, getProjectTasks, getProjectTimeline, refreshProjectTimeline, downloadAttachment } from '../../services/projectService';
+import { uploadCoverImage, getAttachments, uploadAttachment, deleteAttachment, getProjectMembers, searchUsers, addProjectMember, removeProjectMember, getProjectTasks, getProjectTimeline, refreshProjectTimeline, downloadAttachment, updateProject } from '../../services/projectService';
 import { calculateProjectProgress, isProjectOwner } from '../../utils/projectUtils';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import '../TaskPopup/TaskPopup.css';
@@ -21,6 +21,18 @@ const Icon = ({ d, size = 16 }) => (
   <path d={d} />
   </svg>
 );
+
+const getFileIcon = (ext) => {
+  const e = (ext || '').toLowerCase();
+  const props = { size: 20, strokeWidth: 2 };
+  if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(e)) return <ImageIcon {...props} color="#10b981" />;
+  if (['pdf'].includes(e)) return <FileText {...props} color="#ef4444" />;
+  if (['doc', 'docx', 'txt', 'rtf'].includes(e)) return <FileText {...props} color="#3b82f6" />;
+  if (['xls', 'xlsx', 'csv'].includes(e)) return <FileSpreadsheet {...props} color="#10b981" />;
+  if (['zip', 'rar', 'tar', 'gz', '7z'].includes(e)) return <FileArchive {...props} color="#f59e0b" />;
+  if (['json', 'js', 'html', 'css', 'ts', 'jsx', 'tsx'].includes(e)) return <FileCode {...props} color="#a855f7" />;
+  return <File {...props} color="#64748b" />;
+};
 
 export default function ProjectDetailsModal({ 
   isOpen, 
@@ -71,11 +83,24 @@ export default function ProjectDetailsModal({
   };
 
   // Local state initialized from props
-  const [project, setProject] = useState(() => ({
-    ...propProject,
-    members: Array.isArray(propProject?.members) ? propProject.members.map(normalizeMember) : [],
-    attachments: Array.isArray(propProject?.attachments) ? propProject.attachments.map(formatAttachment) : []
-  }));
+  const [project, setProject] = useState(() => {
+    let rawDue = propProject?.rawDueDate || '';
+    let formattedDue = propProject?.dueDate || '';
+    if (propProject?.dueDate && typeof propProject.dueDate === 'string' && propProject.dueDate.includes('T')) {
+      rawDue = propProject.dueDate.split('T')[0];
+      const d = new Date(propProject.dueDate);
+      if (!isNaN(d.getTime())) {
+        formattedDue = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      }
+    }
+    return {
+      ...propProject,
+      rawDueDate: rawDue,
+      dueDate: formattedDue,
+      members: Array.isArray(propProject?.members) ? propProject.members.map(normalizeMember) : [],
+      attachments: Array.isArray(propProject?.attachments) ? propProject.attachments.map(formatAttachment) : []
+    };
+  });
 
   const [activeTab, setActiveTab] = useState('tasks');
   const [expandedTasks, setExpandedTasks] = useState({});
@@ -113,8 +138,20 @@ export default function ProjectDetailsModal({
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (propProject && isOpen) {
+      let rawDue = propProject.rawDueDate || '';
+      let formattedDue = propProject.dueDate || '';
+      if (propProject.dueDate && typeof propProject.dueDate === 'string' && propProject.dueDate.includes('T')) {
+        rawDue = propProject.dueDate.split('T')[0];
+        const d = new Date(propProject.dueDate);
+        if (!isNaN(d.getTime())) {
+          formattedDue = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+      }
+
       setProject({
         ...propProject,
+        rawDueDate: rawDue,
+        dueDate: formattedDue,
         members: Array.isArray(propProject.members) ? propProject.members.map(normalizeMember) : [],
         attachments: Array.isArray(propProject.attachments) ? propProject.attachments.map(formatAttachment) : []
       });
@@ -125,8 +162,8 @@ export default function ProjectDetailsModal({
           description: propProject.description,
           rawCreatedDate: propProject.rawCreatedDate || '',
           createdDate: propProject.createdDate || '',
-          rawDueDate: propProject.rawDueDate || '',
-          dueDate: propProject.dueDate || '',
+          rawDueDate: rawDue,
+          dueDate: formattedDue,
         });
       }
       setAttachmentError('');
@@ -306,7 +343,7 @@ export default function ProjectDetailsModal({
     setIsEditing(true);
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     let formattedCreated = draft.createdDate;
     if (draft.rawCreatedDate && draft.rawCreatedDate.includes('-')) {
       const parts = draft.rawCreatedDate.split('-');
@@ -332,12 +369,26 @@ export default function ProjectDetailsModal({
       rawCreatedDate: draft.rawCreatedDate,
       createdDate: formattedCreated,
       rawDueDate: draft.rawDueDate,
-      dueDate: formattedDue,
+      dueDate: draft.rawDueDate || null,
     };
 
-    setProject(updated);
-    if (onSaveProject) onSaveProject(updated);
-    setIsEditing(false);
+    try {
+      if (project.id) {
+        await updateProject(project.id, {
+          name: updated.name,
+          description: updated.description,
+          dueDate: updated.dueDate
+        });
+      }
+      // Revert dueDate back to formatted for the UI
+      updated.dueDate = formattedDue;
+      setProject(updated);
+      if (onSaveProject) onSaveProject(updated);
+      setIsEditing(false);
+    } catch (err) {
+      console.error('Failed to update project:', err);
+      alert(err.message || 'Failed to save changes');
+    }
   };
 
   const handleOpenBoard = () => {
@@ -432,11 +483,13 @@ export default function ProjectDetailsModal({
       const downloadUrl = URL.createObjectURL(blob);
 
       // Guarantee file extension on target download filename
+      // Guarantee file extension on target download filename
       const ext = (att.ext || '').toLowerCase();
-      let targetName = filename || att.filename;
+      let targetName = att.originalname || att.name || filename || att.filename;
+      
       if (!targetName) {
-        targetName = att.name ? (ext && ext !== 'file' ? `${att.name}.${ext}` : att.name) : `attachment_${attachmentId}`;
-      } else if (!targetName.includes('.') && ext && ext !== 'file') {
+        targetName = `attachment_${attachmentId}`;
+      } else if (ext && ext !== 'file' && !targetName.toLowerCase().endsWith(`.${ext}`)) {
         targetName = `${targetName}.${ext}`;
       }
 
@@ -492,7 +545,7 @@ export default function ProjectDetailsModal({
   const addMemberToProject = async (userObj) => {
     if (!project?.id || isAddingMember) return;
 
-    const userId = userObj.id || userObj._id || userObj.userId;
+    const userId = userObj._id || userObj.userId || userObj.id;
     const userEmail = userObj.email;
 
     // Check if already a member locally to prevent duplicate calls
@@ -662,7 +715,7 @@ export default function ProjectDetailsModal({
                 <button className="popup-cancel-btn" onClick={() => setIsEditing(false)}>Cancel</button>
               </>
             ) : (
-              !hideActions && (
+              !hideActions && isOwner && (
                 <button 
                   className="popup-icon-btn" 
                   onClick={() => {
@@ -814,7 +867,14 @@ export default function ProjectDetailsModal({
                   type="date"
                   className="popup-mini-input popup-mini-input--wide"
                   value={draft.rawDueDate || ''}
-                  min={draft.rawCreatedDate || ''}
+                  min={
+                    (() => {
+                      const todayStr = new Date().toISOString().split('T')[0];
+                      const createdStr = draft.rawCreatedDate || '';
+                      if (createdStr && createdStr > todayStr) return createdStr;
+                      return todayStr;
+                    })()
+                  }
                   onChange={e => setDraft(d => ({ ...d, rawDueDate: e.target.value }))}
                   style={{ colorScheme: theme === 'light' ? 'light' : 'dark' }}
                 />
@@ -919,11 +979,8 @@ export default function ProjectDetailsModal({
                 title={`Download ${att.name}`}
                 style={{ position: 'relative' }}
               >
-                <div className="popup-att-icon">
-                  <svg viewBox="0 0 24 24" width="20" height="20" stroke="#ef4444" strokeWidth="2" fill="none" strokeLinecap="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                  </svg>
+                <div className="popup-att-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {getFileIcon(att.ext)}
                 </div>
                 <div className="popup-att-info">
                   <span className="popup-att-name">{att.name}</span>
@@ -950,46 +1007,52 @@ export default function ProjectDetailsModal({
                       </svg>
                     )}
                   </button>
-                  <button 
-                    type="button"
-                    onClick={(e) => removeAttachment(att.id, e)}
-                    disabled={deletingAttId === att.id}
-                    style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: deletingAttId === att.id ? 'not-allowed' : 'pointer', padding: '4px', display: 'flex' }}
-                    title="Delete attachment"
-                  >
-                    {deletingAttId === att.id ? (
-                      <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
-                    ) : (
-                      <Trash2 size={13} />
-                    )}
-                  </button>
+                  {isOwner && (
+                    <button 
+                      type="button"
+                      onClick={(e) => removeAttachment(att.id, e)}
+                      disabled={deletingAttId === att.id}
+                      style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: deletingAttId === att.id ? 'not-allowed' : 'pointer', padding: '4px', display: 'flex' }}
+                      title="Delete attachment"
+                    >
+                      {deletingAttId === att.id ? (
+                        <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
+                      ) : (
+                        <Trash2 size={13} />
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
 
             {/* Add file button */}
-            <button
-              className="popup-att-add-btn"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploadingAtt}
-              title={isUploadingAtt ? 'Uploading...' : 'Add attachment'}
-              style={{ opacity: isUploadingAtt ? 0.6 : 1, cursor: isUploadingAtt ? 'not-allowed' : 'pointer' }}
-            >
-              {isUploadingAtt ? (
-                <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-              ) : (
-                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
-                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-              )}
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              hidden
-              onChange={handleFileAdd}
-            />
+            {isOwner && (
+              <>
+                <button
+                  className="popup-att-add-btn"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingAtt}
+                  title={isUploadingAtt ? 'Uploading...' : 'Add attachment'}
+                  style={{ opacity: isUploadingAtt ? 0.6 : 1, cursor: isUploadingAtt ? 'not-allowed' : 'pointer' }}
+                >
+                  {isUploadingAtt ? (
+                    <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                  ) : (
+                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
+                      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                  )}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  hidden
+                  onChange={handleFileAdd}
+                />
+              </>
+            )}
           </div>
         </div>
 
@@ -1169,12 +1232,14 @@ export default function ProjectDetailsModal({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <span style={{ fontSize: '13px', color: 'var(--popup-text-main)', fontWeight: '600' }}>{project.members.length} Members</span>
-                <button 
-                  onClick={() => setShowAddMemberSearch(!showAddMemberSearch)} 
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--popup-btn-bg)', border: 'var(--popup-btn-border)', color: 'var(--popup-text-main)', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '500' }}
-                >
-                  <UserPlus size={14} /> Add Member
-                </button>
+                {isOwner && (
+                  <button 
+                    onClick={() => setShowAddMemberSearch(!showAddMemberSearch)} 
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--popup-btn-bg)', border: 'var(--popup-btn-border)', color: 'var(--popup-text-main)', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '500' }}
+                  >
+                    <UserPlus size={14} /> Add Member
+                  </button>
+                )}
               </div>
 
               {/* Members Loading Error message */}
@@ -1299,10 +1364,10 @@ export default function ProjectDetailsModal({
                   const norm = normalizeMember(m);
                   return (
                     <div key={norm.userId || norm.name || idx} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'var(--popup-card-bg)', border: 'var(--popup-card-border)', borderRadius: '12px' }}>
-                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: norm.bg || COLOR_HEX.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '12px', fontWeight: '700', overflow: 'hidden', flexShrink: 0 }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: norm.bg || COLOR_HEX.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '14px', fontWeight: '700', overflow: 'hidden', flexShrink: 0 }}>
                         {norm.avatar ? <img src={norm.avatar} alt={norm.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (norm.initials || (norm.name && norm.name.substring(0, 2)) || 'U')}
                       </div>
-                      <div style={{ flex: 1 }}>
+                      <div style={{ flex: 1, textAlign: 'left' }}>
                         <div style={{ fontSize: '14px', fontWeight: '500', color: 'var(--popup-text-main)' }}>{norm.name}</div>
                         <div style={{ fontSize: '12px', color: 'var(--popup-text-muted)' }}>{project.owner === norm.name ? 'Owner' : norm.role || 'Member'}</div>
                       </div>

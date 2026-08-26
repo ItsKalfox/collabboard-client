@@ -156,6 +156,15 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
+.task-card.task-card-disabled:hover {
+  transform: none;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+}
+
+.task-card.task-card-assigned {
+  border: 1.5px solid rgba(16, 185, 129, 0.7);
+}
+
 /* Card Header */
 .task-card-header {
   display: flex;

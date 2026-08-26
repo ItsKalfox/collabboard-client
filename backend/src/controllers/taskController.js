@@ -13,12 +13,26 @@ const uploadToCloudinary = (buffer, options) => {
     });
 };
 
+const checkTaskAuth = async (taskId, userId) => {
+    const task = await Task.findById(taskId).populate('projectId');
+    if (!task) return { error: 'Task not found', status: 404 };
+    
+    const isAssignee = task.assigneeId?.toString() === userId;
+    const isOwner = task.projectId?.ownerId?.toString() === userId;
+    
+    if (!isAssignee && !isOwner) {
+        return { error: 'Not authorized to modify this task', status: 403 };
+    }
+    
+    return { task };
+};
+
 export const getTasksByProject = async (req, res) => {
     try {
         const projectId = req.params.projectId || req.query.projectId;
         if (!projectId) return res.status(400).json({ status: 'error', message: 'Project ID is required' });
         
-        const tasks = await Task.find({ projectId }).populate('assigneeId', 'name avatar').exec();
+        const tasks = await Task.find({ projectId }).populate('assigneeId', 'name avatar').populate('attachments').exec();
         res.status(200).json({ status: 'success', data: { tasks } });
     } catch (error) {
         res.status(500).json({ status: 'error', message: 'Server error' });
@@ -64,9 +78,11 @@ export const getTaskById = async (req, res) => {
 
 export const updateTask = async (req, res) => {
     try {
-        const task = await Task.findByIdAndUpdate(req.params.taskId, req.body, { new: true });
-        if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
-        res.status(200).json({ status: 'success', message: 'Task updated', data: { task } });
+        const { task, error, status } = await checkTaskAuth(req.params.taskId, req.user.id);
+        if (error) return res.status(status).json({ status: 'error', message: error });
+        
+        const updatedTask = await Task.findByIdAndUpdate(req.params.taskId, req.body, { new: true });
+        res.status(200).json({ status: 'success', message: 'Task updated', data: { task: updatedTask } });
     } catch (error) {
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -74,8 +90,8 @@ export const updateTask = async (req, res) => {
 
 export const deleteTask = async (req, res) => {
     try {
-        const task = await Task.findById(req.params.taskId);
-        if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
+        const { task, error, status } = await checkTaskAuth(req.params.taskId, req.user.id);
+        if (error) return res.status(status).json({ status: 'error', message: error });
         
         if (task.imagePublicId) {
             try { await cloudinary.uploader.destroy(task.imagePublicId); } catch (e) {}
@@ -94,8 +110,8 @@ export const updateTaskStatus = async (req, res) => {
         const { status } = req.body;
         if (!status) return res.status(400).json({ status: 'error', message: 'Status is required' });
         
-        const task = await Task.findById(req.params.taskId);
-        if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
+        const { task, error, status: authStatus } = await checkTaskAuth(req.params.taskId, req.user.id);
+        if (error) return res.status(authStatus).json({ status: 'error', message: error });
         
         const oldStatus = task.status;
         task.status = status;
@@ -200,8 +216,8 @@ export const createSubtask = async (req, res) => {
         const { title, completed } = req.body;
         if (!title) return res.status(400).json({ status: 'error', message: 'Title is required' });
         
-        const task = await Task.findById(req.params.taskId);
-        if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
+        const { task, error, status } = await checkTaskAuth(req.params.taskId, req.user.id);
+        if (error) return res.status(status).json({ status: 'error', message: error });
         
         task.subtasks.push({ title, completed: completed || false });
         await task.save();
@@ -217,8 +233,8 @@ export const updateSubtasksList = async (req, res) => {
         const { subtasks } = req.body;
         if (!Array.isArray(subtasks)) return res.status(400).json({ status: 'error', message: 'Subtasks array is required' });
         
-        const task = await Task.findById(req.params.taskId);
-        if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
+        const { task, error, status } = await checkTaskAuth(req.params.taskId, req.user.id);
+        if (error) return res.status(status).json({ status: 'error', message: error });
         
         task.subtasks = subtasks;
         await task.save();
@@ -233,8 +249,8 @@ export const uploadTaskImage = async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ status: 'error', message: 'Image file is required' });
         
-        const task = await Task.findById(req.params.taskId);
-        if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
+        const { task, error, status } = await checkTaskAuth(req.params.taskId, req.user.id);
+        if (error) return res.status(status).json({ status: 'error', message: error });
         
         if (task.imagePublicId) {
             try { await cloudinary.uploader.destroy(task.imagePublicId); } catch (e) {}
@@ -257,8 +273,8 @@ export const uploadTaskImage = async (req, res) => {
 
 export const deleteTaskImage = async (req, res) => {
     try {
-        const task = await Task.findById(req.params.taskId);
-        if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
+        const { task, error, status } = await checkTaskAuth(req.params.taskId, req.user.id);
+        if (error) return res.status(status).json({ status: 'error', message: error });
         
         if (task.imagePublicId) {
             try { await cloudinary.uploader.destroy(task.imagePublicId); } catch (e) {}
@@ -285,6 +301,9 @@ export const getTaskAttachments = async (req, res) => {
 
 export const addTaskAttachment = async (req, res) => {
     try {
+        const { task, error, status } = await checkTaskAuth(req.params.taskId, req.user.id);
+        if (error) return res.status(status).json({ status: 'error', message: error });
+        
         let fileUrl = req.body.url || '';
         let publicId = req.body.publicId || '';
         let filename = req.body.filename || req.file?.originalname || 'document';
@@ -309,8 +328,12 @@ export const addTaskAttachment = async (req, res) => {
             publicId,
             mimeType,
             size,
-            uploadedBy: req.user.id
+            uploadedBy: req.user.id,
+            originalname: req.file?.originalname
         });
+        
+        task.attachments.push(attachment._id);
+        await task.save();
         
         res.status(201).json({ status: 'success', data: { attachment } });
     } catch (error) {
@@ -320,6 +343,9 @@ export const addTaskAttachment = async (req, res) => {
 
 export const deleteTaskAttachment = async (req, res) => {
     try {
+        const { task, error, status } = await checkTaskAuth(req.params.taskId, req.user.id);
+        if (error) return res.status(status).json({ status: 'error', message: error });
+        
         const attachment = await Attachment.findOne({ _id: req.params.attachmentId, taskId: req.params.taskId });
         if (!attachment) return res.status(404).json({ status: 'error', message: 'Attachment not found' });
         

@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { X, Calendar, CheckSquare, Clock, AlignLeft, Users, CornerDownRight, Tag as TagIcon, Layout, FileText, Image as ImageIcon, FileCode, FileArchive, FileSpreadsheet, File, Loader2 } from 'lucide-react';
 import { formatDate } from '../../utils/dateUtils';
 import { isProjectOwner } from '../../utils/projectUtils';
 import ConfirmModal from '../Board/ConfirmModal';
@@ -43,8 +44,29 @@ const CheckIcon = ({ size = 13 }) => (
   </svg>
 );
 
+const getFileIcon = (ext) => {
+  const e = (ext || '').toLowerCase();
+  const props = { size: 20, strokeWidth: 2 };
+  if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(e)) return <ImageIcon {...props} color="#10b981" />;
+  if (['pdf'].includes(e)) return <FileText {...props} color="#ef4444" />;
+  if (['doc', 'docx', 'txt', 'rtf'].includes(e)) return <FileText {...props} color="#3b82f6" />;
+  if (['xls', 'xlsx', 'csv'].includes(e)) return <FileSpreadsheet {...props} color="#10b981" />;
+  if (['zip', 'rar', 'tar', 'gz', '7z'].includes(e)) return <FileArchive {...props} color="#f59e0b" />;
+  if (['json', 'js', 'html', 'css', 'ts', 'jsx', 'tsx'].includes(e)) return <FileCode {...props} color="#a855f7" />;
+  return <File {...props} color="#64748b" />;
+};
+
 /* ─── Main component ────────────────────────────────────────── */
-export default function TaskPopup({ task: prop, project, onClose, onUpdate }) {
+export default function TaskPopup({ task: prop, project, currentUser, onClose, onUpdate }) {
+  const currentUserId = typeof currentUser === 'object' ? (currentUser?.id || currentUser?._id) : null;
+  
+  const assigneeId = typeof prop.assigneeId === 'object' ? (prop.assigneeId?.id || prop.assigneeId?._id) : prop.assigneeId;
+  const ownerId = typeof project?.ownerId === 'object' ? (project?.ownerId?.id || project?.ownerId?._id) : project?.ownerId;
+  
+  const isAssignee = String(assigneeId) === String(currentUserId);
+  const isOwner = String(ownerId) === String(currentUserId);
+  const isReadOnly = !isAssignee && !isOwner;
+
   const fileInputRef = useRef();
 
   /* Initialise local task state from prop */
@@ -68,6 +90,18 @@ export default function TaskPopup({ task: prop, project, onClose, onUpdate }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [draft, setDraft] = useState({});
+  const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
+  const dropdownRef = useRef();
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowAssigneeDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const startEdit = () => {
     setDraft({
@@ -77,6 +111,7 @@ export default function TaskPopup({ task: prop, project, onClose, onUpdate }) {
       dueDate: task.dueDate,
       priority: task.priority,
       progress: task.progress,
+      assigneeId: typeof task.assigneeId === 'object' ? task.assigneeId?._id || task.assigneeId?.id : task.assigneeId
     });
     setIsEditing(true);
   };
@@ -99,21 +134,45 @@ export default function TaskPopup({ task: prop, project, onClose, onUpdate }) {
             description: draft.description,
             status: draft.status,
             priority: draft.priority,
-            dueDate: draft.dueDate
+            dueDate: draft.dueDate,
+            assigneeId: draft.assigneeId
           })
         });
       } catch (err) {
         console.error('Failed to update task via fetch:', err);
       }
       
-      setTask(t => ({
-        ...t,
-        ...draft,
-        activities: [
-          { text: 'Task details were updated', timestamp: fmtNow() },
-          ...(t.activities || []),
-        ],
-      }));
+      setTask(t => {
+        let newAssigneeObj = t.assigneeId;
+        const currentAssigneeId = typeof t.assigneeId === 'object' ? (t.assigneeId?._id || t.assigneeId?.id) : t.assigneeId;
+        
+        if (String(draft.assigneeId) !== String(currentAssigneeId)) {
+          const userObj = String(draft.assigneeId) === String(currentUserId) 
+            ? currentUser 
+            : (project?.members?.find(m => String(m.id || m.userId) === String(draft.assigneeId)) || 
+               (String(project?.ownerId?._id || project?.ownerId?.id) === String(draft.assigneeId) ? project?.ownerId : null));
+               
+          if (userObj) {
+            newAssigneeObj = {
+              _id: draft.assigneeId,
+              name: userObj.name,
+              avatar: userObj.avatar
+            };
+          } else {
+            newAssigneeObj = draft.assigneeId;
+          }
+        }
+
+        return {
+          ...t,
+          ...draft,
+          assigneeId: newAssigneeObj,
+          activities: [
+            { text: 'Task details were updated', timestamp: fmtNow() },
+            ...(t.activities || []),
+          ],
+        };
+      });
       console.log("setTask called");
       
       if (onUpdate) onUpdate();
@@ -131,6 +190,7 @@ export default function TaskPopup({ task: prop, project, onClose, onUpdate }) {
   const [confirmState, setConfirmState] = useState({ isOpen: false, type: null, payload: null });
 
   const deleteFullTask = () => {
+    if (isReadOnly) return;
     setConfirmState({ isOpen: true, type: 'task' });
   };
 
@@ -154,6 +214,7 @@ export default function TaskPopup({ task: prop, project, onClose, onUpdate }) {
 
   /* ── Subtasks ── */
   const toggleSubtask = async (i) => {
+    if (isReadOnly) return;
     const targetSub = task.subtasks[i];
     const newCompleted = !targetSub.completed;
 
@@ -360,18 +421,22 @@ export default function TaskPopup({ task: prop, project, onClose, onUpdate }) {
       });
 
       const uploadedAtts = await Promise.all(uploadPromises);
-      const successfulUploads = uploadedAtts.filter(a => a !== null).map(apiAtt => ({
-        id: apiAtt.id,
-        name: apiAtt.filename ? apiAtt.filename.replace(/\.[^.]+$/, '') : 'Attachment',
-        ext: apiAtt.filename ? apiAtt.filename.split('.').pop().toUpperCase() : 'FILE',
-        size: apiAtt.size ? (apiAtt.size / (1024 * 1024)).toFixed(2) + ' MB' : 'Unknown',
-        url: apiAtt.url
-      }));
+      const successfulUploads = uploadedAtts.filter(a => a !== null).map(apiAtt => {
+        const original = apiAtt.originalname || apiAtt.filename;
+        return {
+          id: apiAtt.id,
+          originalname: apiAtt.originalname,
+          name: original ? original.replace(/\.[^.]+$/, '') : 'Attachment',
+          ext: original ? original.split('.').pop().toUpperCase() : 'FILE',
+          size: apiAtt.size ? (apiAtt.size / (1024 * 1024)).toFixed(2) + ' MB' : 'Unknown',
+          url: apiAtt.url
+        };
+      });
       
       if (successfulUploads.length > 0) {
         setTask(t => ({
           ...t,
-          attachments: [...t.attachments, ...successfulUploads],
+          attachments: [...(t.attachments || []), ...successfulUploads],
           activities: [
             { text: `${successfulUploads.length} attachment(s) added`, timestamp: fmtNow() },
             ...(t.activities || []),
@@ -396,7 +461,15 @@ export default function TaskPopup({ task: prop, project, onClose, onUpdate }) {
       const a = document.createElement('a');
       a.style.display = 'none';
       a.href = blobUrl;
-      a.download = `${att.name}.${att.ext.toLowerCase()}`;
+      
+      const ext = (att.ext || 'file').toLowerCase();
+      let targetName = att.originalname || att.name || `attachment_${att.id}`;
+      if (ext !== 'file' && !targetName.toLowerCase().endsWith(`.${ext}`)) {
+        targetName = `${targetName}.${ext}`;
+      }
+      
+      a.download = targetName;
+      a.setAttribute('download', targetName);
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -520,7 +593,7 @@ export default function TaskPopup({ task: prop, project, onClose, onUpdate }) {
                 <button className="popup-save-btn" onClick={saveEdit}>Save</button>
                 <button className="popup-cancel-btn" onClick={() => setIsEditing(false)}>Cancel</button>
               </>
-            ) : (
+            ) : !isReadOnly && (
               <>
                 {/* Edit */}
                 <button className="popup-icon-btn" onClick={startEdit} aria-label="Edit">
@@ -569,6 +642,90 @@ export default function TaskPopup({ task: prop, project, onClose, onUpdate }) {
         {/* ── Meta Grid ── */}
         <div className="popup-meta-grid">
 
+          {/* Assignee */}
+          <div className="popup-meta-row">
+            <div className="popup-meta-label">
+              <Icon d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />
+              Assignee
+            </div>
+            <div className="popup-meta-val" style={{ position: 'relative' }} ref={dropdownRef}>
+              {isEditing ? (
+                <>
+                  <div 
+                    onClick={() => setShowAssigneeDropdown(!showAssigneeDropdown)} 
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '6px 12px', border: '1px solid var(--popup-btn-border)', borderRadius: '6px', background: 'var(--popup-btn-bg)' }}
+                  >
+                    {(() => {
+                      const user = draft.assigneeId === currentUserId ? currentUser : (project?.members?.find(m => m.id === draft.assigneeId || m.userId === draft.assigneeId || m.name === draft.assigneeId) || (project?.ownerId?._id === draft.assigneeId || project?.ownerId?.id === draft.assigneeId ? project?.ownerId : null));
+                      
+                      if (user) {
+                        return (
+                          <>
+                            <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '10px', fontWeight: '700', overflow: 'hidden', flexShrink: 0 }}>
+                              {user.avatar ? <img src={user.avatar} alt="Avatar" style={{width: '100%', height: '100%', objectFit: 'cover'}} /> : initials(user.name || 'Unknown')}
+                            </div>
+                            <span style={{ fontSize: '13px', color: 'var(--popup-text-main)' }}>{user.name}</span>
+                          </>
+                        );
+                      }
+                      return <span style={{ fontSize: '13px', color: 'var(--popup-text-main)' }}>Select Assignee</span>;
+                    })()}
+                    <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" strokeWidth="2" fill="none" style={{ marginLeft: 'auto' }}>
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </div>
+                  {showAssigneeDropdown && (
+                    <div style={{ position: 'absolute', top: '100%', left: 0, width: '220px', background: 'var(--popup-bg)', border: '1px solid var(--popup-border, var(--border-color))', borderRadius: '8px', boxShadow: 'var(--popup-shadow, 0 4px 12px rgba(0,0,0,0.3))', zIndex: 999, marginTop: '4px', maxHeight: '200px', overflowY: 'auto' }}>
+                      <div 
+                        onClick={() => { setDraft(d => ({ ...d, assigneeId: currentUserId })); setShowAssigneeDropdown(false); }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border-color)' }}
+                        className="hover-bg"
+                      >
+                        <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '10px', fontWeight: '700', overflow: 'hidden', flexShrink: 0 }}>
+                          {currentUser?.avatar ? <img src={currentUser.avatar} alt="Avatar" style={{width: '100%', height: '100%', objectFit: 'cover'}} /> : initials(currentUser?.name || 'Unknown')}
+                        </div>
+                        <div style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text-primary)' }}>{currentUser?.name || 'You'} (You)</div>
+                      </div>
+                      {(project?.members || []).filter(m => String(m.id || m.userId) !== String(currentUserId)).map(m => (
+                        <div 
+                          key={m.id || m.userId || m.name}
+                          onClick={() => { setDraft(d => ({ ...d, assigneeId: m.id || m.userId || m.name })); setShowAssigneeDropdown(false); }}
+                          style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border-color)' }}
+                          className="hover-bg"
+                        >
+                          <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '10px', fontWeight: '700', overflow: 'hidden', flexShrink: 0 }}>
+                            {m.avatar ? <img src={m.avatar} alt="Avatar" style={{width: '100%', height: '100%', objectFit: 'cover'}} /> : initials(m.name || 'Unknown')}
+                          </div>
+                          <div style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text-primary)' }}>{m.name}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : task.assigneeId ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{
+                    width: '24px', height: '24px', borderRadius: '50%',
+                    background: '#3b82f6', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', color: '#fff', fontSize: '10px',
+                    fontWeight: '700', overflow: 'hidden', flexShrink: 0
+                  }}>
+                    {typeof task.assigneeId === 'object' && task.assigneeId.avatar ? (
+                      <img src={task.assigneeId.avatar} alt="Avatar" style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+                    ) : (
+                      initials(typeof task.assigneeId === 'object' ? task.assigneeId.name : 'Unknown')
+                    )}
+                  </div>
+                  <span style={{ fontSize: '13px', color: 'var(--popup-text-main)', fontWeight: '500' }}>
+                    {typeof task.assigneeId === 'object' ? task.assigneeId.name : 'Unknown'} {isAssignee ? '(You)' : ''}
+                  </span>
+                </div>
+              ) : (
+                <span style={{ fontSize: '13px', color: 'var(--popup-text-muted)' }}>Unassigned</span>
+              )}
+            </div>
+          </div>
+
           {/* Priority */}
           <div className="popup-meta-row">
             <div className="popup-meta-label">
@@ -598,10 +755,6 @@ export default function TaskPopup({ task: prop, project, onClose, onUpdate }) {
             <div className="popup-meta-val popup-meta-text" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {formatStatus(task.status)}
               {(() => {
-                const userJson = localStorage.getItem('user');
-                const currentUser = userJson ? JSON.parse(userJson) : null;
-                const isOwner = isProjectOwner(project, currentUser);
-                
                 return task.status === 'review' && !task.isApproved ? (
                   <button 
                     onClick={handleApprove}
@@ -689,18 +842,22 @@ export default function TaskPopup({ task: prop, project, onClose, onUpdate }) {
           </div>
 
           <div className="popup-att-list">
-            {task.attachments.map(att => (
+            {(task.attachments || []).map(rawAtt => {
+              const original = rawAtt.originalname || rawAtt.filename || '';
+              const attName = rawAtt.name || (original ? original.replace(/\.[^.]+$/, '') : 'Attachment');
+              const attExt = rawAtt.ext || (original && original.includes('.') ? original.split('.').pop().toUpperCase() : 'FILE');
+              const attSize = typeof rawAtt.size === 'number' ? (rawAtt.size / (1024*1024)).toFixed(2) + ' MB' : (rawAtt.size || 'Unknown');
+              const att = { ...rawAtt, id: rawAtt.id || rawAtt._id, name: attName, ext: attExt, size: attSize };
+              
+              return (
               <div
                 key={att.id}
                 className={`popup-att-card ${att.url ? 'clickable' : ''}`}
                 onClick={() => downloadAtt(att)}
                 title={att.url ? `Download ${att.name}` : 'No file attached'}
               >
-                <div className="popup-att-icon">
-                  <svg viewBox="0 0 24 24" width="20" height="20" stroke="#ef4444" strokeWidth="2" fill="none" strokeLinecap="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                    <polyline points="14 2 14 8 20 8" />
-                  </svg>
+                <div className="popup-att-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {getFileIcon(att.ext)}
                 </div>
                 <div className="popup-att-info">
                   <span className="popup-att-name">{att.name}</span>
@@ -713,35 +870,40 @@ export default function TaskPopup({ task: prop, project, onClose, onUpdate }) {
                     <line x1="12" y1="15" x2="12" y2="3" />
                   </svg>
                 )}
-                <button
-                  className="popup-att-del-btn"
-                  onClick={(e) => { e.stopPropagation(); deleteAttachment(att.id); }}
-                  style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', marginLeft: 'auto', padding: '4px' }}
-                  title="Delete Attachment"
-                >
-                  <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6V20a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                  </svg>
-                </button>
+                {!isReadOnly && (
+                  <button
+                    className="popup-att-del-btn"
+                    onClick={(e) => { e.stopPropagation(); deleteAttachment(att.id); }}
+                    style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', marginLeft: 'auto', padding: '4px' }}
+                    title="Delete Attachment"
+                  >
+                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6V20a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                )}
               </div>
-            ))}
+            )})}
 
             {/* Add button */}
-            <button
-              className="popup-att-add-btn"
-              onClick={() => !isUploading && fileInputRef.current.click()}
-              title="Add attachment"
-              disabled={isUploading}
-            >
-              {isUploading ? (
-                <span style={{ fontSize: '13px', color: '#9ca3af', fontWeight: '500', padding: '0 8px' }}>Uploading...</span>
-              ) : (
-                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
-                  <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-              )}
-            </button>
+            {!isReadOnly && (
+              <button
+                className="popup-att-add-btn"
+                onClick={() => !isUploading && fileInputRef.current.click()}
+                title="Add attachment"
+                disabled={isUploading}
+                style={{ opacity: isUploading ? 0.6 : 1, cursor: isUploading ? 'not-allowed' : 'pointer' }}
+              >
+                {isUploading ? (
+                  <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                ) : (
+                  <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
+                    <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                )}
+              </button>
+            )}
             <input
               ref={fileInputRef}
               type="file"
@@ -777,29 +939,31 @@ export default function TaskPopup({ task: prop, project, onClose, onUpdate }) {
         {activeTab === 'subtasks' && (
           <div className="popup-subtasks">
             {/* Add subtask from here */}
-            <div className="popup-add-subtask-bar" style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '8px', padding: '12px', background: 'var(--bg-sec)', borderRadius: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" style={{ flexShrink: 0 }}>
-                  <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-                <input
-                  className="popup-add-subtask-input"
-                  placeholder="New subtask title…"
-                  value={newSubInput}
-                  onChange={e => setNewSubInput(e.target.value)}
-                  style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', color: 'inherit', textAlign: 'left', fontFamily: 'inherit' }}
+            {!isReadOnly && (
+              <div className="popup-add-subtask-bar" style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '8px', padding: '12px', background: 'var(--bg-sec)', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" style={{ flexShrink: 0 }}>
+                    <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                  <input
+                    className="popup-add-subtask-input"
+                    placeholder="New subtask title…"
+                    value={newSubInput}
+                    onChange={e => setNewSubInput(e.target.value)}
+                    style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', color: 'inherit', textAlign: 'left', fontFamily: 'inherit' }}
+                  />
+                </div>
+                <textarea
+                  placeholder="Subtask description (optional)…"
+                  value={newSubDesc}
+                  onChange={e => setNewSubDesc(e.target.value)}
+                  style={{ width: '100%', minHeight: '60px', background: 'var(--popup-input-bg)', border: 'var(--popup-input-border)', borderRadius: '6px', padding: '10px', color: 'var(--popup-input-text)', resize: 'vertical', fontFamily: 'inherit', textAlign: 'left', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
                 />
+                <button className="popup-add-subtask-btn" onClick={addSubtask} style={{ alignSelf: 'flex-end', marginTop: '4px' }}>
+                  Add Subtask
+                </button>
               </div>
-              <textarea
-                placeholder="Subtask description (optional)…"
-                value={newSubDesc}
-                onChange={e => setNewSubDesc(e.target.value)}
-                style={{ width: '100%', minHeight: '60px', background: 'var(--popup-input-bg)', border: 'var(--popup-input-border)', borderRadius: '6px', padding: '10px', color: 'var(--popup-input-text)', resize: 'vertical', fontFamily: 'inherit', textAlign: 'left', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
-              />
-              <button className="popup-add-subtask-btn" onClick={addSubtask} style={{ alignSelf: 'flex-end', marginTop: '4px' }}>
-                Add Subtask
-              </button>
-            </div>
+            )}
 
             {task.subtasks.length === 0 && (
               <p className="popup-empty-msg">No subtasks yet. Add one above.</p>
@@ -829,9 +993,9 @@ export default function TaskPopup({ task: prop, project, onClose, onUpdate }) {
                   <div className="popup-subtask-row" style={{ alignItems: 'flex-start', padding: '8px 0' }}>
                     <button
                       className={`popup-checkbox ${sub.completed ? 'checked' : ''}`}
-                      onClick={() => toggleSubtask(i)}
+                      onClick={() => !isReadOnly && toggleSubtask(i)}
                       aria-label={sub.completed ? 'Mark undone' : 'Mark done'}
-                      style={{ marginTop: '2px' }}
+                      style={{ marginTop: '2px', cursor: isReadOnly ? 'default' : 'pointer' }}
                     >
                       {sub.completed && <CheckIcon />}
                     </button>
@@ -845,30 +1009,34 @@ export default function TaskPopup({ task: prop, project, onClose, onUpdate }) {
                         </span>
                       )}
                     </div>
-                    <div style={{ display: 'flex', gap: '4px', marginLeft: 'auto', paddingTop: '4px' }}>
-                      <button
-                        className="popup-subtask-edit-btn"
-                        onClick={() => startEditSubtask(i)}
-                        aria-label="Edit subtask"
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: '4px' }}
-                      >
-                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                        </svg>
-                      </button>
-                      <button
-                        className="popup-subtask-del-btn"
-                        onClick={() => deleteSubtask(i)}
-                        aria-label="Delete subtask"
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: '4px' }}
-                      >
-                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
-                          <polyline points="3 6 5 6 21 6"></polyline>
-                          <path d="M19 6V20a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        </svg>
-                      </button>
-                    </div>
+                    {!isReadOnly && (
+                      <div style={{ display: 'flex', gap: '4px', marginLeft: 'auto', paddingTop: '4px' }}>
+                        <button
+                          className="popup-subtask-edit-btn"
+                          onClick={() => startEditSubtask(i)}
+                          aria-label="Edit subtask"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: '4px' }}
+                        >
+                          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                          </svg>
+                        </button>
+                        <button
+                          className="popup-subtask-del-btn"
+                          onClick={() => deleteSubtask(i)}
+                          aria-label="Delete subtask"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: '4px' }}
+                        >
+                          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6V20a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            <line x1="10" y1="11" x2="10" y2="17"></line>
+                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                          </svg>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

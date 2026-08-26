@@ -2,7 +2,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import TaskCard from './TaskCard';
 
-export default function KanbanColumn({ column, onTaskOptionClick }) {
+export default function KanbanColumn({ column, onTaskOptionClick, currentUser, currentProject }) {
   const { id, title, count = 0, tasks = [] } = column;
 
   const { setNodeRef } = useDroppable({
@@ -22,9 +22,22 @@ export default function KanbanColumn({ column, onTaskOptionClick }) {
       {/* Task List */}
       <div ref={setNodeRef} className="kanban-tasks-list" style={{ minHeight: '150px' }}>
         <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-          {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} onOptionClick={() => onTaskOptionClick && onTaskOptionClick(task, title)} />
-          ))}
+          {tasks.map((task) => {
+            const isOwner = currentProject && (String(currentProject.ownerId) === String(currentUser?.id) || (typeof currentProject.ownerId === 'object' && String(currentProject.ownerId?._id) === String(currentUser?.id)));
+            const assigneeStrId = typeof task.assigneeId === 'object' ? (task.assigneeId?._id || task.assigneeId?.id) : task.assigneeId;
+            const isAssignee = String(assigneeStrId) === String(currentUser?.id);
+            const canEdit = isOwner || isAssignee;
+
+            return (
+              <TaskCard 
+                key={task.id} 
+                task={task} 
+                onOptionClick={() => onTaskOptionClick && onTaskOptionClick(task, title)} 
+                disabled={!canEdit}
+                isAssignee={isAssignee}
+              />
+            );
+          })}
         </SortableContext>
       </div>
     </div>

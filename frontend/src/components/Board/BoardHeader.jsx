@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { normalizeMember, getInitials } from '../../mock/mockMembers';
+import { getAttachments } from '../../services/projectService';
 import './BoardHeader.css';
 
 const COLOR_HEX = {
@@ -21,6 +22,7 @@ export default function BoardHeader({
   onSubTabChange
 }) {
   const [projectMembers, setProjectMembers] = useState([]);
+  const [projectAttachments, setProjectAttachments] = useState([]);
 
   const subTabs = ['Board', 'Timeline', 'Activity'];
 
@@ -61,11 +63,30 @@ export default function BoardHeader({
         setProjectMembers([]);
       }
     };
+
+    const fetchAttachmentsData = async () => {
+      try {
+        const atts = await getAttachments(projectId);
+        setProjectAttachments(atts);
+      } catch (err) {
+        console.error('Failed to fetch attachments:', err);
+      }
+    };
+
     fetchMembers();
+    fetchAttachmentsData();
   }, [projectId, project]);
 
   const displayTags = [category, status === 'active' ? 'Active' : 'Archived', ...(tags || [])];
-  const displayDeadline = project.dueDate || (createdAt ? new Date(createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Ongoing');
+  
+  let displayDeadline = 'Ongoing';
+  if (project.dueDate) {
+    const d = new Date(project.dueDate);
+    displayDeadline = !isNaN(d.getTime()) ? d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : project.dueDate;
+  } else if (createdAt) {
+    displayDeadline = new Date(createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+  
   const displayPriority = 'Normal';
 
   return (
@@ -73,18 +94,15 @@ export default function BoardHeader({
       {/* TOP ROW: Title, Deadline, Avatars, Add Task */}
       <div className="board-title-row" style={{ alignItems: 'flex-start', margin: 0 }}>
         
-        {/* LEFT: Title & Info Icon */}
-        <div className="board-title-group" style={{ alignItems: 'center' }}>
+        {/* LEFT: Title */}
+        <div className="board-title-group" style={{ alignItems: 'center', display: 'flex' }}>
           <h1 className="board-main-title">{name}</h1>
-          <button className="info-icon-btn" title={description || 'Project Info'} onClick={onInfoClick} style={{ cursor: 'pointer', background: 'transparent', border: 'none', color: 'var(--text-secondary, #6b7280)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <AlertCircle size={18} strokeWidth={2} />
-          </button>
         </div>
 
         {/* RIGHT: Deadline, Avatars, Add Task */}
-        <div className="board-team-group" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+        <div className="board-team-group" style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'nowrap' }}>
           {/* Deadline */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary, #6b7280)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary, #6b7280)', whiteSpace: 'nowrap', flexShrink: 0 }}>
             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
               <circle cx="12" cy="12" r="10"></circle>
               <polyline points="12 6 12 12 16 14"></polyline>
@@ -138,18 +156,53 @@ export default function BoardHeader({
       </div>
 
       {/* SECOND ROW: Description & Add Task Button */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '-8px', marginBottom: '8px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '-8px', marginBottom: '-8px' }}>
         <div style={{ flex: 1, paddingRight: '16px' }}>
           {description && (
             <div style={{
                fontSize: '13px', color: 'var(--text-dim, #6b7280)', 
                display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', 
                overflow: 'hidden', textOverflow: 'ellipsis',
-               lineHeight: '1.5', textAlign: 'left'
+               lineHeight: '1.5', textAlign: 'left',
+               marginBottom: '12px'
             }}>
               {description}
             </div>
           )}
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <button 
+              className="view-project-btn" 
+              onClick={onInfoClick} 
+              style={{ 
+                cursor: 'pointer', 
+                background: document.documentElement.getAttribute('data-theme') !== 'light' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', 
+                border: '1px solid var(--border-color, rgba(128,128,128,0.2))', 
+                color: 'var(--text-secondary)', 
+                padding: '4px 14px', 
+                borderRadius: '20px', 
+                fontSize: '12px', 
+                fontWeight: '500', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '6px',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = document.documentElement.getAttribute('data-theme') !== 'light' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)'}
+              onMouseLeave={e => e.currentTarget.style.background = document.documentElement.getAttribute('data-theme') !== 'light' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}
+            >
+              View Project
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-tertiary, #9ca3af)', fontSize: '13px', fontWeight: '500' }}>
+              <span>{projectMembers.length} {projectMembers.length === 1 ? 'Member' : 'Members'}</span>
+              <span>•</span>
+              {(() => {
+                const docCount = projectAttachments.length;
+                if (docCount === 0) return <span>No Documents</span>;
+                return <span>{docCount} {docCount === 1 ? 'Document' : 'Documents'}</span>;
+              })()}
+            </div>
+          </div>
         </div>
         
         <button className="add-task-header-btn" onClick={onAddTask} style={{ margin: 0, flexShrink: 0 }}>
