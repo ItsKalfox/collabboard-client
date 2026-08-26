@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, ArrowRight, ChevronDown, ChevronRight, UserPlus, Trash2, Calendar, Search, AlertCircle, Loader2, RefreshCw, Clock, CheckSquare } from 'lucide-react';
 import { MOCK_MEMBERS, normalizeMember } from '../../mock/mockMembers';
-import { uploadCoverImage, getAttachments, uploadAttachment, deleteAttachment, getProjectMembers, searchUsers, addProjectMember, removeProjectMember, getProjectTasks, getProjectTimeline, refreshProjectTimeline, downloadAttachment } from '../../services/projectService';
+import { uploadCoverImage, getAttachments, uploadAttachment, deleteAttachment, getProjectMembers, searchUsers, addProjectMember, removeProjectMember, getProjectTasks, getProjectTimeline, refreshProjectTimeline, downloadAttachment, updateProject } from '../../services/projectService';
 import { calculateProjectProgress, isProjectOwner } from '../../utils/projectUtils';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import '../TaskPopup/TaskPopup.css';
@@ -71,11 +71,24 @@ export default function ProjectDetailsModal({
   };
 
   // Local state initialized from props
-  const [project, setProject] = useState(() => ({
-    ...propProject,
-    members: Array.isArray(propProject?.members) ? propProject.members.map(normalizeMember) : [],
-    attachments: Array.isArray(propProject?.attachments) ? propProject.attachments.map(formatAttachment) : []
-  }));
+  const [project, setProject] = useState(() => {
+    let rawDue = propProject?.rawDueDate || '';
+    let formattedDue = propProject?.dueDate || '';
+    if (propProject?.dueDate && typeof propProject.dueDate === 'string' && propProject.dueDate.includes('T')) {
+      rawDue = propProject.dueDate.split('T')[0];
+      const d = new Date(propProject.dueDate);
+      if (!isNaN(d.getTime())) {
+        formattedDue = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      }
+    }
+    return {
+      ...propProject,
+      rawDueDate: rawDue,
+      dueDate: formattedDue,
+      members: Array.isArray(propProject?.members) ? propProject.members.map(normalizeMember) : [],
+      attachments: Array.isArray(propProject?.attachments) ? propProject.attachments.map(formatAttachment) : []
+    };
+  });
 
   const [activeTab, setActiveTab] = useState('tasks');
   const [expandedTasks, setExpandedTasks] = useState({});
@@ -113,8 +126,20 @@ export default function ProjectDetailsModal({
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (propProject && isOpen) {
+      let rawDue = propProject.rawDueDate || '';
+      let formattedDue = propProject.dueDate || '';
+      if (propProject.dueDate && typeof propProject.dueDate === 'string' && propProject.dueDate.includes('T')) {
+        rawDue = propProject.dueDate.split('T')[0];
+        const d = new Date(propProject.dueDate);
+        if (!isNaN(d.getTime())) {
+          formattedDue = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+      }
+
       setProject({
         ...propProject,
+        rawDueDate: rawDue,
+        dueDate: formattedDue,
         members: Array.isArray(propProject.members) ? propProject.members.map(normalizeMember) : [],
         attachments: Array.isArray(propProject.attachments) ? propProject.attachments.map(formatAttachment) : []
       });
@@ -125,8 +150,8 @@ export default function ProjectDetailsModal({
           description: propProject.description,
           rawCreatedDate: propProject.rawCreatedDate || '',
           createdDate: propProject.createdDate || '',
-          rawDueDate: propProject.rawDueDate || '',
-          dueDate: propProject.dueDate || '',
+          rawDueDate: rawDue,
+          dueDate: formattedDue,
         });
       }
       setAttachmentError('');
@@ -306,7 +331,7 @@ export default function ProjectDetailsModal({
     setIsEditing(true);
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     let formattedCreated = draft.createdDate;
     if (draft.rawCreatedDate && draft.rawCreatedDate.includes('-')) {
       const parts = draft.rawCreatedDate.split('-');
@@ -332,12 +357,26 @@ export default function ProjectDetailsModal({
       rawCreatedDate: draft.rawCreatedDate,
       createdDate: formattedCreated,
       rawDueDate: draft.rawDueDate,
-      dueDate: formattedDue,
+      dueDate: draft.rawDueDate || null,
     };
 
-    setProject(updated);
-    if (onSaveProject) onSaveProject(updated);
-    setIsEditing(false);
+    try {
+      if (project.id) {
+        await updateProject(project.id, {
+          name: updated.name,
+          description: updated.description,
+          dueDate: updated.dueDate
+        });
+      }
+      // Revert dueDate back to formatted for the UI
+      updated.dueDate = formattedDue;
+      setProject(updated);
+      if (onSaveProject) onSaveProject(updated);
+      setIsEditing(false);
+    } catch (err) {
+      console.error('Failed to update project:', err);
+      alert(err.message || 'Failed to save changes');
+    }
   };
 
   const handleOpenBoard = () => {
@@ -814,7 +853,14 @@ export default function ProjectDetailsModal({
                   type="date"
                   className="popup-mini-input popup-mini-input--wide"
                   value={draft.rawDueDate || ''}
-                  min={draft.rawCreatedDate || ''}
+                  min={
+                    (() => {
+                      const todayStr = new Date().toISOString().split('T')[0];
+                      const createdStr = draft.rawCreatedDate || '';
+                      if (createdStr && createdStr > todayStr) return createdStr;
+                      return todayStr;
+                    })()
+                  }
                   onChange={e => setDraft(d => ({ ...d, rawDueDate: e.target.value }))}
                   style={{ colorScheme: theme === 'light' ? 'light' : 'dark' }}
                 />

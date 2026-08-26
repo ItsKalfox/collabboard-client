@@ -157,8 +157,32 @@ export const updateProject = async (req, res) => {
         if (project.ownerId.toString() !== req.user.id) {
             return res.status(403).json({ status: 'error', message: 'You are not authorized to update this project' });
         }
+        if (req.body.dueDate) {
+            const newDue = new Date(req.body.dueDate);
+            const oldDue = project.dueDate ? new Date(project.dueDate) : null;
+            if (!isNaN(newDue.getTime()) && (!oldDue || newDue.getTime() !== oldDue.getTime())) {
+                const todayStart = new Date();
+                todayStart.setHours(0, 0, 0, 0);
+                const createdAt = new Date(project.createdAt);
+                createdAt.setHours(0, 0, 0, 0);
+                
+                if (newDue < todayStart) {
+                    return res.status(400).json({ status: 'error', message: 'Due date cannot be before today' });
+                }
+                if (newDue < createdAt) {
+                    return res.status(400).json({ status: 'error', message: 'Due date cannot precede the creation date' });
+                }
+            }
+        }
 
-        Object.assign(project, req.body);
+        // Safely update fields using Mongoose's .set() method
+        project.set(req.body);
+        
+        // Explicitly ensure dueDate is set correctly, handling empty strings as null
+        if (req.body.dueDate !== undefined) {
+            project.dueDate = req.body.dueDate || null;
+        }
+
         await project.save();
 
         res.status(200).json({ status: 'success', message: 'Project updated successfully', data: { project } });
