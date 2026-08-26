@@ -347,6 +347,10 @@ export const addProjectMember = async (req, res) => {
         const project = await Project.findById(req.params.id);
         if (!project) return res.status(404).json({ status: 'error', message: 'Project not found' });
 
+        if (project.ownerId.toString() !== req.user.id) {
+            return res.status(403).json({ status: 'error', message: 'Only owner can add members' });
+        }
+
         let user = null;
         if (userId) user = await User.findById(userId);
         else if (email) user = await User.findOne({ email });

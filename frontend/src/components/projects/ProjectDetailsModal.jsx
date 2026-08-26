@@ -531,7 +531,7 @@ export default function ProjectDetailsModal({
   const addMemberToProject = async (userObj) => {
     if (!project?.id || isAddingMember) return;
 
-    const userId = userObj.id || userObj._id || userObj.userId;
+    const userId = userObj._id || userObj.userId || userObj.id;
     const userEmail = userObj.email;
 
     // Check if already a member locally to prevent duplicate calls
@@ -1221,12 +1221,14 @@ export default function ProjectDetailsModal({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <span style={{ fontSize: '13px', color: 'var(--popup-text-main)', fontWeight: '600' }}>{project.members.length} Members</span>
-                <button 
-                  onClick={() => setShowAddMemberSearch(!showAddMemberSearch)} 
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--popup-btn-bg)', border: 'var(--popup-btn-border)', color: 'var(--popup-text-main)', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '500' }}
-                >
-                  <UserPlus size={14} /> Add Member
-                </button>
+                {isOwner && (
+                  <button 
+                    onClick={() => setShowAddMemberSearch(!showAddMemberSearch)} 
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--popup-btn-bg)', border: 'var(--popup-btn-border)', color: 'var(--popup-text-main)', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '500' }}
+                  >
+                    <UserPlus size={14} /> Add Member
+                  </button>
+                )}
               </div>
 
               {/* Members Loading Error message */}
@@ -1351,10 +1353,10 @@ export default function ProjectDetailsModal({
                   const norm = normalizeMember(m);
                   return (
                     <div key={norm.userId || norm.name || idx} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'var(--popup-card-bg)', border: 'var(--popup-card-border)', borderRadius: '12px' }}>
-                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: norm.bg || COLOR_HEX.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '12px', fontWeight: '700', overflow: 'hidden', flexShrink: 0 }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: norm.bg || COLOR_HEX.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '14px', fontWeight: '700', overflow: 'hidden', flexShrink: 0 }}>
                         {norm.avatar ? <img src={norm.avatar} alt={norm.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (norm.initials || (norm.name && norm.name.substring(0, 2)) || 'U')}
                       </div>
-                      <div style={{ flex: 1 }}>
+                      <div style={{ flex: 1, textAlign: 'left' }}>
                         <div style={{ fontSize: '14px', fontWeight: '500', color: 'var(--popup-text-main)' }}>{norm.name}</div>
                         <div style={{ fontSize: '12px', color: 'var(--popup-text-muted)' }}>{project.owner === norm.name ? 'Owner' : norm.role || 'Member'}</div>
                       </div>

@@ -65,7 +65,15 @@ export default function BoardHeader({
   }, [projectId, project]);
 
   const displayTags = [category, status === 'active' ? 'Active' : 'Archived', ...(tags || [])];
-  const displayDeadline = project.dueDate || (createdAt ? new Date(createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Ongoing');
+  
+  let displayDeadline = 'Ongoing';
+  if (project.dueDate) {
+    const d = new Date(project.dueDate);
+    displayDeadline = !isNaN(d.getTime()) ? d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : project.dueDate;
+  } else if (createdAt) {
+    displayDeadline = new Date(createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+  
   const displayPriority = 'Normal';
 
   return (
