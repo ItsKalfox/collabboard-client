@@ -54,7 +54,7 @@ function normalizeTaskForPopup(task, columnTitle) {
   };
 }
 
-export default function KanbanBoard({ projectId, refreshKey, currentProject }) {
+export default function KanbanBoard({ projectId, refreshKey, currentProject, currentUser }) {
   const [columns, setColumns] = useState(() => COLUMNS_DEF.map(col => ({ ...col, tasks: [] })));
   const [activeTask, setActiveTask] = useState(null);
   const [draggedTask, setDraggedTask] = useState(null);
@@ -125,8 +125,10 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject }) {
         const newCols = COLUMNS_DEF.map(col => ({ ...col, tasks: [] }));
         tasks.forEach(task => {
           // Find assignee details
-          const assignee = task.assigneeId ? members.find(m => m.userId === task.assigneeId) : null;
-          const assigneeName = assignee ? assignee.name : 'Team Member';
+          const assigneeObjId = typeof task.assigneeId === 'object' ? (task.assigneeId?._id || task.assigneeId?.id) : task.assigneeId;
+          const assignee = assigneeObjId ? members.find(m => String(m.userId) === String(assigneeObjId) || String(m.id) === String(assigneeObjId)) : null;
+          const assigneeName = typeof task.assigneeId === 'object' && task.assigneeId.name ? task.assigneeId.name : (assignee ? assignee.name : 'Team Member');
+          const assigneeAvatar = typeof task.assigneeId === 'object' && task.assigneeId.avatar ? task.assigneeId.avatar : assignee?.avatar;
           const assigneeInitial = assigneeName.charAt(0).toUpperCase();
 
           // Map backend task to frontend TaskCard format
@@ -137,7 +139,7 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject }) {
             date: new Date(task.dueDate || task.createdAt || Date.now()).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' }),
             progressCurrent: task.subtasks ? task.subtasks.filter(st => st.completed).length : 0,
             progressTotal: task.subtasks ? task.subtasks.length : 1,
-            members: task.assigneeId ? [{ name: assigneeName, initials: assigneeInitial }] : [{ name: assigneeName, initials: assigneeInitial }]
+            members: task.assigneeId ? [{ name: assigneeName, initials: assigneeInitial, avatar: assigneeAvatar }] : []
           };
           
           const statusCol = newCols.find(c => c.id === task.status);
@@ -392,6 +394,8 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject }) {
                 key={column.id}
                 column={{...column, count: column.tasks.length}}
                 onTaskOptionClick={handleOpenTaskPopup}
+                currentUser={currentUser}
+                currentProject={currentProject}
               />
             ))}
           </div>
@@ -406,6 +410,7 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject }) {
         <TaskPopup
           task={activeTask}
           project={currentProject}
+          currentUser={currentUser}
           onClose={() => setActiveTask(null)}
           onUpdate={() => setLocalRefresh(r => r + 1)}
         />

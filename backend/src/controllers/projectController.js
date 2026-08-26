@@ -126,7 +126,7 @@ export const createProject = async (req, res) => {
                 description: t.description || '',
                 status: t.status || 'todo',
                 priority: t.priority || 'medium',
-                assigneeId: req.user.id,
+                assigneeId: t.assigneeId || req.user.id,
                 dueDate: dueDate || null,
                 subtasks: (t.subtasks || []).map(s => ({
                     title: s.title || s.label || '',

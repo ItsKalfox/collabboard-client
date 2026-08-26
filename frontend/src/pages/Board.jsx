@@ -64,6 +64,7 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDescription, setNewTaskDescription] = useState('');
   const [newTaskDueDate, setNewTaskDueDate] = useState('');
+  const [newTaskAssignee, setNewTaskAssignee] = useState('');
   const [newSubtasks, setNewSubtasks] = useState([]);
   const [activeTaskTab, setActiveTaskTab] = useState('main');
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
@@ -82,6 +83,18 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
   const [searchError, setSearchError] = useState('');
   const [showMemberDropdown, setShowMemberDropdown] = useState(false);
   const memberSearchWrapRef = useRef(null);
+  const [showTaskAssigneeDropdown, setShowTaskAssigneeDropdown] = useState(false);
+  const taskAssigneeDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (taskAssigneeDropdownRef.current && !taskAssigneeDropdownRef.current.contains(e.target)) {
+        setShowTaskAssigneeDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -227,6 +240,7 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
           status: 'todo',
           description: newTaskDescription,
           dueDate: newTaskDueDate || null,
+          assigneeId: newTaskAssignee || undefined,
           subtasks: newSubtasks
         })
 
@@ -253,6 +267,7 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
         setNewTaskTitle('');
         setNewTaskDescription('');
         setNewTaskDueDate('');
+        setNewTaskAssignee('');
         setNewSubtasks([]);
         setNewTaskAttachments([]);
         setActiveTaskTab('main');
@@ -461,7 +476,7 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
                 <div style={{ padding: '20px', color: 'var(--text-secondary)' }}>Error: {error}</div>
               ) : selectedProjectId ? (
                 <>
-                  {activeSubTab === 'Board' && <KanbanBoard projectId={selectedProjectId} currentProject={currentProject} refreshKey={refreshKey} />}
+                  {activeSubTab === 'Board' && <KanbanBoard projectId={selectedProjectId} currentProject={currentProject} refreshKey={refreshKey} currentUser={currentUser} />}
                   {activeSubTab === 'Timeline' && <ProjectTimeline project={currentProject} />}
                   {activeSubTab === 'Activity' && <ProjectActivity projectId={selectedProjectId} />}
                 </>
@@ -554,6 +569,99 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
                   max={maxDate}
                   onChange={(e) => setNewTaskDueDate(e.target.value)}
                 />
+              </div>
+            </div>
+
+            <div className="auth-input-group" style={{ marginTop: '16px' }}>
+              <label className="auth-label">Assign To</label>
+              <div className="auth-input-wrapper" style={{ position: 'relative' }} ref={taskAssigneeDropdownRef}>
+                <div 
+                  onClick={() => setShowTaskAssigneeDropdown(!showTaskAssigneeDropdown)}
+                  className="auth-input"
+                  style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', minHeight: '42px', color: 'var(--text-primary)' }}
+                >
+                  {(() => {
+                    const getInitials = (name) => {
+                      if (!name) return 'U';
+                      return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                    };
+                    const currentUserName = typeof currentUser === 'string' ? currentUser : currentUser?.name || 'You';
+                    const currentUserId = typeof currentUser === 'object' && currentUser?.id ? currentUser.id : currentUserName;
+                    
+                    if (!newTaskAssignee) return <span>Assignee (Default: You)</span>;
+                    const isOwner = String(newTaskAssignee) === String(currentUserId);
+                    if (isOwner) {
+                      return (
+                        <>
+                          <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '10px', fontWeight: '700', overflow: 'hidden', flexShrink: 0 }}>
+                            {currentUser?.avatar ? <img src={currentUser.avatar} alt="Avatar" style={{width: '100%', height: '100%', objectFit: 'cover'}} /> : getInitials(currentUserName)}
+                          </div>
+                          <span>{currentUserName} (You)</span>
+                        </>
+                      );
+                    }
+                    const assignee = (activeProjectData?.members || []).find(m => String(m.id || m.userId || m.name) === String(newTaskAssignee));
+                    if (assignee) {
+                      return (
+                        <>
+                          <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: assignee.bg || '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '10px', fontWeight: '700', overflow: 'hidden', flexShrink: 0 }}>
+                            {assignee.avatar ? <img src={assignee.avatar} alt="Avatar" style={{width: '100%', height: '100%', objectFit: 'cover'}} /> : assignee.initials || getInitials(assignee.name)}
+                          </div>
+                          <span>{assignee.name}</span>
+                        </>
+                      );
+                    }
+                    return <span>Assignee (Default: You)</span>;
+                  })()}
+                </div>
+                {showTaskAssigneeDropdown && (
+                  <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, background: document.documentElement.getAttribute('data-theme') !== 'light' ? '#101016' : '#ffffff', border: '1px solid var(--border-color)', borderRadius: '8px', boxShadow: '0 -4px 12px rgba(0,0,0,0.5)', zIndex: 999, marginBottom: '4px', maxHeight: '200px', overflowY: 'auto' }}>
+                    <div 
+                      onClick={() => { 
+                        const currentUserName = typeof currentUser === 'string' ? currentUser : currentUser?.name || 'You';
+                        const currentUserId = typeof currentUser === 'object' && currentUser?.id ? currentUser.id : currentUserName;
+                        setNewTaskAssignee(currentUserId); 
+                        setShowTaskAssigneeDropdown(false); 
+                      }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border-color)', transition: 'background 0.15s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--menu-hover)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '11px', fontWeight: '700', overflow: 'hidden', flexShrink: 0 }}>
+                        {currentUser?.avatar ? <img src={currentUser.avatar} alt="Avatar" style={{width: '100%', height: '100%', objectFit: 'cover'}} /> : (() => {
+                          const name = typeof currentUser === 'string' ? currentUser : currentUser?.name || 'You';
+                          return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                        })()}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                        <span style={{ fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)' }}>{typeof currentUser === 'string' ? currentUser : currentUser?.name || 'You'} (You)</span>
+                      </div>
+                    </div>
+                    {(activeProjectData?.members || []).filter(m => {
+                      const currentUserName = typeof currentUser === 'string' ? currentUser : currentUser?.name || 'You';
+                      const currentUserId = typeof currentUser === 'object' && currentUser?.id ? currentUser.id : currentUserName;
+                      return String(m.id || m.userId || m.name) !== String(currentUserId);
+                    }).map(m => (
+                      <div 
+                        key={m.id || m.userId || m.name}
+                        onClick={() => { setNewTaskAssignee(m.id || m.userId || m.name); setShowTaskAssigneeDropdown(false); }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border-color)', transition: 'background 0.15s' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'var(--menu-hover)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: m.bg || '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '11px', fontWeight: '700', overflow: 'hidden', flexShrink: 0 }}>
+                          {m.avatar ? <img src={m.avatar} alt="Avatar" style={{width: '100%', height: '100%', objectFit: 'cover'}} /> : m.initials || (() => {
+                            const name = m.name || 'U';
+                            return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                          })()}
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                          <span style={{ fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)' }}>{m.name}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </>

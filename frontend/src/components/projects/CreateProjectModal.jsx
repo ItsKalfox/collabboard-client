@@ -50,6 +50,9 @@ export default function CreateProjectModal({
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDescription, setNewTaskDescription] = useState('');
   const [newTaskPriority, setNewTaskPriority] = useState('low');
+  const [newTaskAssignee, setNewTaskAssignee] = useState(''); // Stores assignee ID or name
+  const [showTaskAssigneeDropdown, setShowTaskAssigneeDropdown] = useState(false);
+  const taskAssigneeDropdownRef = useRef(null);
   const [tasks, setTasks] = useState([]);
 
   const resetForm = useCallback(() => {
@@ -67,6 +70,7 @@ export default function CreateProjectModal({
     setNewTaskTitle('');
     setNewTaskDescription('');
     setNewTaskPriority('low');
+    setNewTaskAssignee('');
     setTasks([]);
     setError('');
     setValidationErrors({});
@@ -90,6 +94,16 @@ export default function CreateProjectModal({
     const handleClickOutside = (e) => {
       if (memberSearchWrapRef.current && !memberSearchWrapRef.current.contains(e.target)) {
         setShowMemberDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (taskAssigneeDropdownRef.current && !taskAssigneeDropdownRef.current.contains(e.target)) {
+        setShowTaskAssigneeDropdown(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -240,7 +254,7 @@ export default function CreateProjectModal({
       // Auto-commit any pending task in fields
       let finalTasks = [...tasks];
       if (newTaskTitle.trim() && newTaskDescription.trim()) {
-        finalTasks.push({ id: `t-${Date.now()}`, title: newTaskTitle.trim(), description: newTaskDescription.trim(), priority: newTaskPriority, subtasks: [] });
+        finalTasks.push({ id: `t-${Date.now()}`, title: newTaskTitle.trim(), description: newTaskDescription.trim(), priority: newTaskPriority, assigneeId: newTaskAssignee, subtasks: [] });
       }
 
       // Format display date if date picker date is provided (e.g. YYYY-MM-DD -> DD MMM YYYY)
@@ -270,6 +284,7 @@ export default function CreateProjectModal({
           description: t.description || '',
           priority: t.priority || 'medium',
           status: 'todo',
+          assigneeId: t.assigneeId || undefined,
           subtasks: t.subtasks || []
         }))
       };
@@ -341,10 +356,15 @@ export default function CreateProjectModal({
       setValidationErrors(prev => ({ ...prev, tasks: 'Both task title and description are required' }));
       return;
     }
-    setTasks([...tasks, { id: `t-${Date.now()}`, title, description, priority: newTaskPriority, subtasks: [] }]);
+    
+    // Default assignee to currentUser if none selected
+    const finalAssigneeId = newTaskAssignee || currentUser?.id;
+    
+    setTasks([...tasks, { id: `t-${Date.now()}`, title, description, priority: newTaskPriority, assigneeId: finalAssigneeId, subtasks: [] }]);
     setNewTaskTitle('');
     setNewTaskDescription('');
     setNewTaskPriority('low');
+    setNewTaskAssignee('');
     if (validationErrors.tasks) setValidationErrors(prev => ({ ...prev, tasks: null }));
   };
 
@@ -690,15 +710,92 @@ export default function CreateProjectModal({
                 }}
                 style={{ width: '100%', minHeight: '60px', background: 'var(--popup-input-bg)', border: 'var(--popup-input-border)', borderRadius: '6px', padding: '10px', color: 'var(--popup-input-text)', resize: 'vertical', fontFamily: 'inherit', textAlign: 'left', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
               />
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button type="button" onClick={() => setNewTaskPriority('low')} style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', borderRadius: '12px', border: newTaskPriority === 'low' ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid var(--popup-btn-border)', background: newTaskPriority === 'low' ? 'rgba(16, 185, 129, 0.15)' : 'transparent', color: newTaskPriority === 'low' ? '#10b981' : 'var(--popup-text-muted)', cursor: 'pointer', transition: 'all 0.2s' }}>Low Priority</button>
                   <button type="button" onClick={() => setNewTaskPriority('medium')} style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', borderRadius: '12px', border: newTaskPriority === 'medium' ? '1px solid rgba(245, 158, 11, 0.5)' : '1px solid var(--popup-btn-border)', background: newTaskPriority === 'medium' ? 'rgba(245, 158, 11, 0.15)' : 'transparent', color: newTaskPriority === 'medium' ? '#f59e0b' : 'var(--popup-text-muted)', cursor: 'pointer', transition: 'all 0.2s' }}>Medium Priority</button>
                   <button type="button" onClick={() => setNewTaskPriority('high')} style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', borderRadius: '12px', border: newTaskPriority === 'high' ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid var(--popup-btn-border)', background: newTaskPriority === 'high' ? 'rgba(239, 68, 68, 0.15)' : 'transparent', color: newTaskPriority === 'high' ? '#ef4444' : 'var(--popup-text-muted)', cursor: 'pointer', transition: 'all 0.2s' }}>High Priority</button>
                 </div>
-                <button type="button" className="popup-add-subtask-btn" onClick={handleAddTask} style={{ background: 'var(--popup-btn-bg)', border: 'var(--popup-btn-border)', color: 'var(--popup-text-main)', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>
-                  Add Task
-                </button>
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ position: 'relative' }} ref={taskAssigneeDropdownRef}>
+                    <div 
+                      onClick={() => setShowTaskAssigneeDropdown(!showTaskAssigneeDropdown)}
+                      style={{ background: 'var(--popup-btn-bg)', border: 'var(--popup-btn-border)', color: 'var(--popup-text-main)', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', minWidth: '160px' }}
+                    >
+                      {(() => {
+                        const currentUserName = typeof currentUser === 'string' ? currentUser : currentUser?.name || 'You';
+                        const currentUserId = typeof currentUser === 'object' && currentUser?.id ? currentUser.id : currentUserName;
+                        
+                        if (!newTaskAssignee) return <span>Assignee (Default: You)</span>;
+                        const isOwner = String(newTaskAssignee) === String(currentUserId);
+                        if (isOwner) {
+                          return (
+                            <>
+                              <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '8px', fontWeight: '700', overflow: 'hidden', flexShrink: 0 }}>
+                                {currentUser?.avatar ? <img src={currentUser.avatar} alt="Avatar" style={{width: '100%', height: '100%', objectFit: 'cover'}} /> : getInitials(currentUserName)}
+                              </div>
+                              <span>{currentUserName} (You)</span>
+                            </>
+                          );
+                        }
+                        const assignee = members.find(m => String(m.id || m.userId || m.name) === String(newTaskAssignee));
+                        if (assignee) {
+                          return (
+                            <>
+                              <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: assignee.bg || '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '8px', fontWeight: '700', overflow: 'hidden', flexShrink: 0 }}>
+                                {assignee.avatar ? <img src={assignee.avatar} alt="Avatar" style={{width: '100%', height: '100%', objectFit: 'cover'}} /> : assignee.initials || getInitials(assignee.name)}
+                              </div>
+                              <span>{assignee.name}</span>
+                            </>
+                          );
+                        }
+                        return <span>Assignee (Default: You)</span>;
+                      })()}
+                    </div>
+                    {showTaskAssigneeDropdown && (
+                      <div style={{ position: 'absolute', bottom: '100%', left: 0, width: '220px', background: document.documentElement.getAttribute('data-theme') !== 'light' ? '#101016' : '#ffffff', border: '1px solid var(--popup-border, #cbd5e1)', borderRadius: '8px', boxShadow: 'var(--popup-shadow, 0 -4px 12px rgba(0,0,0,0.3))', zIndex: 999, marginBottom: '4px', maxHeight: '200px', overflowY: 'auto' }}>
+                        <div 
+                          onClick={() => { 
+                            const currentUserName = typeof currentUser === 'string' ? currentUser : currentUser?.name || 'You';
+                            const currentUserId = typeof currentUser === 'object' && currentUser?.id ? currentUser.id : currentUserName;
+                            setNewTaskAssignee(currentUserId); 
+                            setShowTaskAssigneeDropdown(false); 
+                          }}
+                          style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid var(--popup-divider, #cbd5e1)', transition: 'background 0.15s' }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'var(--popup-btn-hover)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >
+                          <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '10px', fontWeight: '700', overflow: 'hidden', flexShrink: 0 }}>
+                            {currentUser?.avatar ? <img src={currentUser.avatar} alt="Avatar" style={{width: '100%', height: '100%', objectFit: 'cover'}} /> : getInitials(typeof currentUser === 'string' ? currentUser : currentUser?.name || 'You')}
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                            <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--popup-text-main, #1e293b)' }}>{typeof currentUser === 'string' ? currentUser : currentUser?.name || 'You'} (You)</span>
+                          </div>
+                        </div>
+                        {members.map(m => (
+                          <div 
+                            key={m.id || m.userId || m.name}
+                            onClick={() => { setNewTaskAssignee(m.id || m.userId || m.name); setShowTaskAssigneeDropdown(false); }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid var(--popup-divider, #cbd5e1)', transition: 'background 0.15s' }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'var(--popup-btn-hover)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                          >
+                            <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: m.bg || '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '10px', fontWeight: '700', overflow: 'hidden', flexShrink: 0 }}>
+                              {m.avatar ? <img src={m.avatar} alt="Avatar" style={{width: '100%', height: '100%', objectFit: 'cover'}} /> : m.initials || getInitials(m.name)}
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                              <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--popup-text-main, #1e293b)' }}>{m.name}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button type="button" className="popup-add-subtask-btn" onClick={handleAddTask} style={{ background: 'var(--popup-btn-bg)', border: 'var(--popup-btn-border)', color: 'var(--popup-text-main)', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>
+                    Add Task
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -721,6 +818,11 @@ export default function CreateProjectModal({
                         )}
                       </div>
                       <span style={{ fontSize: '13px', color: 'var(--popup-text-muted)', whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>{t.description}</span>
+                      {t.assigneeId && (
+                        <div style={{ fontSize: '11px', color: 'var(--popup-text-muted)', marginTop: '4px' }}>
+                          Assigned to: {t.assigneeId === (typeof currentUser === 'object' ? currentUser?.id : (typeof currentUser === 'string' ? currentUser : 'You')) ? 'You' : members.find(m => m.id === t.assigneeId || m.userId === t.assigneeId || m.name === t.assigneeId)?.name || 'Unknown'}
+                        </div>
+                      )}
                     </div>
                     <button 
                       type="button"
