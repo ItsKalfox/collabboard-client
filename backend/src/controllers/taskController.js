@@ -32,7 +32,7 @@ export const getTasksByProject = async (req, res) => {
         const projectId = req.params.projectId || req.query.projectId;
         if (!projectId) return res.status(400).json({ status: 'error', message: 'Project ID is required' });
         
-        const tasks = await Task.find({ projectId }).populate('assigneeId', 'name avatar').exec();
+        const tasks = await Task.find({ projectId }).populate('assigneeId', 'name avatar').populate('attachments').exec();
         res.status(200).json({ status: 'success', data: { tasks } });
     } catch (error) {
         res.status(500).json({ status: 'error', message: 'Server error' });
@@ -328,8 +328,12 @@ export const addTaskAttachment = async (req, res) => {
             publicId,
             mimeType,
             size,
-            uploadedBy: req.user.id
+            uploadedBy: req.user.id,
+            originalname: req.file?.originalname
         });
+        
+        task.attachments.push(attachment._id);
+        await task.save();
         
         res.status(201).json({ status: 'success', data: { attachment } });
     } catch (error) {

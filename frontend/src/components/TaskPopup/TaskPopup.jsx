@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { X, Calendar, CheckSquare, Clock, AlignLeft, Users, CornerDownRight, Tag as TagIcon, Layout, FileText, Image as ImageIcon, FileCode, FileArchive, FileSpreadsheet, File, Loader2 } from 'lucide-react';
 import { formatDate } from '../../utils/dateUtils';
 import { isProjectOwner } from '../../utils/projectUtils';
 import ConfirmModal from '../Board/ConfirmModal';
@@ -42,6 +43,18 @@ const CheckIcon = ({ size = 13 }) => (
     <polyline points="20 6 9 17 4 12" />
   </svg>
 );
+
+const getFileIcon = (ext) => {
+  const e = (ext || '').toLowerCase();
+  const props = { size: 20, strokeWidth: 2 };
+  if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(e)) return <ImageIcon {...props} color="#10b981" />;
+  if (['pdf'].includes(e)) return <FileText {...props} color="#ef4444" />;
+  if (['doc', 'docx', 'txt', 'rtf'].includes(e)) return <FileText {...props} color="#3b82f6" />;
+  if (['xls', 'xlsx', 'csv'].includes(e)) return <FileSpreadsheet {...props} color="#10b981" />;
+  if (['zip', 'rar', 'tar', 'gz', '7z'].includes(e)) return <FileArchive {...props} color="#f59e0b" />;
+  if (['json', 'js', 'html', 'css', 'ts', 'jsx', 'tsx'].includes(e)) return <FileCode {...props} color="#a855f7" />;
+  return <File {...props} color="#64748b" />;
+};
 
 /* ─── Main component ────────────────────────────────────────── */
 export default function TaskPopup({ task: prop, project, currentUser, onClose, onUpdate }) {
@@ -408,18 +421,22 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
       });
 
       const uploadedAtts = await Promise.all(uploadPromises);
-      const successfulUploads = uploadedAtts.filter(a => a !== null).map(apiAtt => ({
-        id: apiAtt.id,
-        name: apiAtt.filename ? apiAtt.filename.replace(/\.[^.]+$/, '') : 'Attachment',
-        ext: apiAtt.filename ? apiAtt.filename.split('.').pop().toUpperCase() : 'FILE',
-        size: apiAtt.size ? (apiAtt.size / (1024 * 1024)).toFixed(2) + ' MB' : 'Unknown',
-        url: apiAtt.url
-      }));
+      const successfulUploads = uploadedAtts.filter(a => a !== null).map(apiAtt => {
+        const original = apiAtt.originalname || apiAtt.filename;
+        return {
+          id: apiAtt.id,
+          originalname: apiAtt.originalname,
+          name: original ? original.replace(/\.[^.]+$/, '') : 'Attachment',
+          ext: original ? original.split('.').pop().toUpperCase() : 'FILE',
+          size: apiAtt.size ? (apiAtt.size / (1024 * 1024)).toFixed(2) + ' MB' : 'Unknown',
+          url: apiAtt.url
+        };
+      });
       
       if (successfulUploads.length > 0) {
         setTask(t => ({
           ...t,
-          attachments: [...t.attachments, ...successfulUploads],
+          attachments: [...(t.attachments || []), ...successfulUploads],
           activities: [
             { text: `${successfulUploads.length} attachment(s) added`, timestamp: fmtNow() },
             ...(t.activities || []),
@@ -444,7 +461,15 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
       const a = document.createElement('a');
       a.style.display = 'none';
       a.href = blobUrl;
-      a.download = `${att.name}.${att.ext.toLowerCase()}`;
+      
+      const ext = (att.ext || 'file').toLowerCase();
+      let targetName = att.originalname || att.name || `attachment_${att.id}`;
+      if (ext !== 'file' && !targetName.toLowerCase().endsWith(`.${ext}`)) {
+        targetName = `${targetName}.${ext}`;
+      }
+      
+      a.download = targetName;
+      a.setAttribute('download', targetName);
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -817,18 +842,22 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
           </div>
 
           <div className="popup-att-list">
-            {task.attachments.map(att => (
+            {(task.attachments || []).map(rawAtt => {
+              const original = rawAtt.originalname || rawAtt.filename || '';
+              const attName = rawAtt.name || (original ? original.replace(/\.[^.]+$/, '') : 'Attachment');
+              const attExt = rawAtt.ext || (original && original.includes('.') ? original.split('.').pop().toUpperCase() : 'FILE');
+              const attSize = typeof rawAtt.size === 'number' ? (rawAtt.size / (1024*1024)).toFixed(2) + ' MB' : (rawAtt.size || 'Unknown');
+              const att = { ...rawAtt, id: rawAtt.id || rawAtt._id, name: attName, ext: attExt, size: attSize };
+              
+              return (
               <div
                 key={att.id}
                 className={`popup-att-card ${att.url ? 'clickable' : ''}`}
                 onClick={() => downloadAtt(att)}
                 title={att.url ? `Download ${att.name}` : 'No file attached'}
               >
-                <div className="popup-att-icon">
-                  <svg viewBox="0 0 24 24" width="20" height="20" stroke="#ef4444" strokeWidth="2" fill="none" strokeLinecap="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                    <polyline points="14 2 14 8 20 8" />
-                  </svg>
+                <div className="popup-att-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {getFileIcon(att.ext)}
                 </div>
                 <div className="popup-att-info">
                   <span className="popup-att-name">{att.name}</span>
@@ -855,7 +884,7 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
                   </button>
                 )}
               </div>
-            ))}
+            )})}
 
             {/* Add button */}
             {!isReadOnly && (
@@ -864,9 +893,10 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
                 onClick={() => !isUploading && fileInputRef.current.click()}
                 title="Add attachment"
                 disabled={isUploading}
+                style={{ opacity: isUploading ? 0.6 : 1, cursor: isUploading ? 'not-allowed' : 'pointer' }}
               >
                 {isUploading ? (
-                  <span style={{ fontSize: '13px', color: '#9ca3af', fontWeight: '500', padding: '0 8px' }}>Uploading...</span>
+                  <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
                 ) : (
                   <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
                     <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />

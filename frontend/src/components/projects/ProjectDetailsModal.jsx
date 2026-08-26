@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, ArrowRight, ChevronDown, ChevronRight, UserPlus, Trash2, Calendar, Search, AlertCircle, Loader2, RefreshCw, Clock, CheckSquare } from 'lucide-react';
+import { X, ArrowRight, ChevronDown, ChevronRight, UserPlus, Trash2, Calendar, Search, AlertCircle, Loader2, RefreshCw, Clock, CheckSquare, FileText, Image as ImageIcon, FileCode, FileArchive, FileSpreadsheet, File } from 'lucide-react';
 import { MOCK_MEMBERS, normalizeMember } from '../../mock/mockMembers';
 import { uploadCoverImage, getAttachments, uploadAttachment, deleteAttachment, getProjectMembers, searchUsers, addProjectMember, removeProjectMember, getProjectTasks, getProjectTimeline, refreshProjectTimeline, downloadAttachment, updateProject } from '../../services/projectService';
 import { calculateProjectProgress, isProjectOwner } from '../../utils/projectUtils';
@@ -21,6 +21,18 @@ const Icon = ({ d, size = 16 }) => (
   <path d={d} />
   </svg>
 );
+
+const getFileIcon = (ext) => {
+  const e = (ext || '').toLowerCase();
+  const props = { size: 20, strokeWidth: 2 };
+  if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(e)) return <ImageIcon {...props} color="#10b981" />;
+  if (['pdf'].includes(e)) return <FileText {...props} color="#ef4444" />;
+  if (['doc', 'docx', 'txt', 'rtf'].includes(e)) return <FileText {...props} color="#3b82f6" />;
+  if (['xls', 'xlsx', 'csv'].includes(e)) return <FileSpreadsheet {...props} color="#10b981" />;
+  if (['zip', 'rar', 'tar', 'gz', '7z'].includes(e)) return <FileArchive {...props} color="#f59e0b" />;
+  if (['json', 'js', 'html', 'css', 'ts', 'jsx', 'tsx'].includes(e)) return <FileCode {...props} color="#a855f7" />;
+  return <File {...props} color="#64748b" />;
+};
 
 export default function ProjectDetailsModal({ 
   isOpen, 
@@ -471,11 +483,13 @@ export default function ProjectDetailsModal({
       const downloadUrl = URL.createObjectURL(blob);
 
       // Guarantee file extension on target download filename
+      // Guarantee file extension on target download filename
       const ext = (att.ext || '').toLowerCase();
-      let targetName = filename || att.filename;
+      let targetName = att.originalname || att.name || filename || att.filename;
+      
       if (!targetName) {
-        targetName = att.name ? (ext && ext !== 'file' ? `${att.name}.${ext}` : att.name) : `attachment_${attachmentId}`;
-      } else if (!targetName.includes('.') && ext && ext !== 'file') {
+        targetName = `attachment_${attachmentId}`;
+      } else if (ext && ext !== 'file' && !targetName.toLowerCase().endsWith(`.${ext}`)) {
         targetName = `${targetName}.${ext}`;
       }
 
@@ -965,11 +979,8 @@ export default function ProjectDetailsModal({
                 title={`Download ${att.name}`}
                 style={{ position: 'relative' }}
               >
-                <div className="popup-att-icon">
-                  <svg viewBox="0 0 24 24" width="20" height="20" stroke="#ef4444" strokeWidth="2" fill="none" strokeLinecap="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                  </svg>
+                <div className="popup-att-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {getFileIcon(att.ext)}
                 </div>
                 <div className="popup-att-info">
                   <span className="popup-att-name">{att.name}</span>

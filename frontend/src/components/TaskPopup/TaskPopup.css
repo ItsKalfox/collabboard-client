@@ -429,11 +429,8 @@
   line-height: 1.7;
   color: var(--popup-text-val);
   margin: 0 0 16px;
-  background: var(--popup-card-bg);
-  border: var(--popup-card-border);
-  border-radius: 12px;
-  padding: 12px 14px;
-  transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  text-align: left;
+  transition: color 0.3s ease;
 }
 
 .popup-desc-textarea {

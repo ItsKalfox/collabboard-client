@@ -94,42 +94,9 @@ export default function BoardHeader({
       {/* TOP ROW: Title, Deadline, Avatars, Add Task */}
       <div className="board-title-row" style={{ alignItems: 'flex-start', margin: 0 }}>
         
-        {/* LEFT: Title & Project Info */}
-        <div className="board-title-group" style={{ alignItems: 'center', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+        {/* LEFT: Title */}
+        <div className="board-title-group" style={{ alignItems: 'center', display: 'flex' }}>
           <h1 className="board-main-title">{name}</h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <button 
-              className="view-project-btn" 
-              onClick={onInfoClick} 
-              style={{ 
-                cursor: 'pointer', 
-                background: document.documentElement.getAttribute('data-theme') !== 'light' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', 
-                border: '1px solid var(--border-color, rgba(128,128,128,0.2))', 
-                color: 'var(--text-secondary)', 
-                padding: '4px 14px', 
-                borderRadius: '20px', 
-                fontSize: '12px', 
-                fontWeight: '500', 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '6px',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = document.documentElement.getAttribute('data-theme') !== 'light' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)'}
-              onMouseLeave={e => e.currentTarget.style.background = document.documentElement.getAttribute('data-theme') !== 'light' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}
-            >
-              View Project
-            </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-tertiary, #9ca3af)', fontSize: '13px', fontWeight: '500' }}>
-              <span>{projectMembers.length} {projectMembers.length === 1 ? 'Member' : 'Members'}</span>
-              <span>•</span>
-              {(() => {
-                const docCount = projectAttachments.length;
-                if (docCount === 0) return <span>No Documents</span>;
-                return <span>{docCount} {docCount === 1 ? 'Document' : 'Documents'}</span>;
-              })()}
-            </div>
-          </div>
         </div>
 
         {/* RIGHT: Deadline, Avatars, Add Task */}
@@ -189,18 +156,53 @@ export default function BoardHeader({
       </div>
 
       {/* SECOND ROW: Description & Add Task Button */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '-8px', marginBottom: '8px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '-8px', marginBottom: '-8px' }}>
         <div style={{ flex: 1, paddingRight: '16px' }}>
           {description && (
             <div style={{
                fontSize: '13px', color: 'var(--text-dim, #6b7280)', 
                display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', 
                overflow: 'hidden', textOverflow: 'ellipsis',
-               lineHeight: '1.5', textAlign: 'left'
+               lineHeight: '1.5', textAlign: 'left',
+               marginBottom: '12px'
             }}>
               {description}
             </div>
           )}
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <button 
+              className="view-project-btn" 
+              onClick={onInfoClick} 
+              style={{ 
+                cursor: 'pointer', 
+                background: document.documentElement.getAttribute('data-theme') !== 'light' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', 
+                border: '1px solid var(--border-color, rgba(128,128,128,0.2))', 
+                color: 'var(--text-secondary)', 
+                padding: '4px 14px', 
+                borderRadius: '20px', 
+                fontSize: '12px', 
+                fontWeight: '500', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '6px',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = document.documentElement.getAttribute('data-theme') !== 'light' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)'}
+              onMouseLeave={e => e.currentTarget.style.background = document.documentElement.getAttribute('data-theme') !== 'light' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}
+            >
+              View Project
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-tertiary, #9ca3af)', fontSize: '13px', fontWeight: '500' }}>
+              <span>{projectMembers.length} {projectMembers.length === 1 ? 'Member' : 'Members'}</span>
+              <span>•</span>
+              {(() => {
+                const docCount = projectAttachments.length;
+                if (docCount === 0) return <span>No Documents</span>;
+                return <span>{docCount} {docCount === 1 ? 'Document' : 'Documents'}</span>;
+              })()}
+            </div>
+          </div>
         </div>
         
         <button className="add-task-header-btn" onClick={onAddTask} style={{ margin: 0, flexShrink: 0 }}>

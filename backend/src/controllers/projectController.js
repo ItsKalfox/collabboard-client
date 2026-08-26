@@ -399,7 +399,7 @@ export const removeProjectMember = async (req, res) => {
 // GET /api/projects/:id/tasks
 export const getProjectTasks = async (req, res) => {
     try {
-        const tasks = await Task.find({ projectId: req.params.id });
+        const tasks = await Task.find({ projectId: req.params.id }).populate('attachments');
         res.status(200).json({ status: 'success', data: { tasks } });
     } catch (error) {
         res.status(500).json({ status: 'error', message: 'Server error' });
