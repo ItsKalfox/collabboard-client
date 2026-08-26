@@ -306,7 +306,7 @@ export default function ProjectTimeline({ project }) {
                 <Line
                   key={line.id}
                   data={line.data}
-                  type="stepAfter"
+                  type="linear"
                   dataKey="status"
                   name={line.title}
                   stroke={line.color}
