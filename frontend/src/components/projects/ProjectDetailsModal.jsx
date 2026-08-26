@@ -662,7 +662,7 @@ export default function ProjectDetailsModal({
                 <button className="popup-cancel-btn" onClick={() => setIsEditing(false)}>Cancel</button>
               </>
             ) : (
-              !hideActions && (
+              !hideActions && isOwner && (
                 <button 
                   className="popup-icon-btn" 
                   onClick={() => {
@@ -950,46 +950,52 @@ export default function ProjectDetailsModal({
                       </svg>
                     )}
                   </button>
-                  <button 
-                    type="button"
-                    onClick={(e) => removeAttachment(att.id, e)}
-                    disabled={deletingAttId === att.id}
-                    style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: deletingAttId === att.id ? 'not-allowed' : 'pointer', padding: '4px', display: 'flex' }}
-                    title="Delete attachment"
-                  >
-                    {deletingAttId === att.id ? (
-                      <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
-                    ) : (
-                      <Trash2 size={13} />
-                    )}
-                  </button>
+                  {isOwner && (
+                    <button 
+                      type="button"
+                      onClick={(e) => removeAttachment(att.id, e)}
+                      disabled={deletingAttId === att.id}
+                      style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: deletingAttId === att.id ? 'not-allowed' : 'pointer', padding: '4px', display: 'flex' }}
+                      title="Delete attachment"
+                    >
+                      {deletingAttId === att.id ? (
+                        <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
+                      ) : (
+                        <Trash2 size={13} />
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
 
             {/* Add file button */}
-            <button
-              className="popup-att-add-btn"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploadingAtt}
-              title={isUploadingAtt ? 'Uploading...' : 'Add attachment'}
-              style={{ opacity: isUploadingAtt ? 0.6 : 1, cursor: isUploadingAtt ? 'not-allowed' : 'pointer' }}
-            >
-              {isUploadingAtt ? (
-                <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-              ) : (
-                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
-                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-              )}
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              hidden
-              onChange={handleFileAdd}
-            />
+            {isOwner && (
+              <>
+                <button
+                  className="popup-att-add-btn"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingAtt}
+                  title={isUploadingAtt ? 'Uploading...' : 'Add attachment'}
+                  style={{ opacity: isUploadingAtt ? 0.6 : 1, cursor: isUploadingAtt ? 'not-allowed' : 'pointer' }}
+                >
+                  {isUploadingAtt ? (
+                    <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                  ) : (
+                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round">
+                      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                  )}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  hidden
+                  onChange={handleFileAdd}
+                />
+              </>
+            )}
           </div>
         </div>
 
