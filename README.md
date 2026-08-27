@@ -21,8 +21,10 @@ CollabBoard provides a centralized workspace where project members can create an
   * [Configure Environment Variables](#4-configure-environment-variables)
 * [Running the Application](#running-the-application)
 
-  * [Run the Backend](#run-the-backend)
-  * [Run the Frontend](#run-the-frontend)
+  * [Running with Docker (Recommended)](#running-with-docker-recommended)
+  * [Running Manually](#running-manually)
+    * [Terminal 1 — Backend](#terminal-1--backend)
+    * [Terminal 2 — Frontend](#terminal-2--frontend)
 * [API Documentation](#api-documentation)
 * [Bruno API Collection](#bruno-api-collection)
 * [Development Workflow](#development-workflow)
@@ -445,11 +447,47 @@ http://localhost:5173
 
 Open the displayed URL in a web browser.
 
+## Running with Docker (Recommended)
+
+CollabBoard is fully dockerized, making it incredibly easy to run both the frontend and backend simultaneously without needing multiple terminals or manual dependency installation.
+
+### Prerequisites for Docker
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running on your machine.
+- Ensure Docker is set to use Linux containers.
+
+### How to Run
+
+1. Open a single terminal at the project root (`collabboard-client`).
+2. Run the following command:
+
+```bash
+docker compose up --build
+```
+
+Docker will automatically build the images, install dependencies, and start both the backend (on port `5000`) and the frontend (on port `5173`). 
+The `--build` flag ensures that any new dependencies in `package.json` are installed. **You only need to include the `--build` flag the first time you run it, or if you modify dependencies/Dockerfiles.** For subsequent runs, you can simply use:
+
+```bash
+docker compose up
+```
+
+### Hot Reloading
+The Docker setup uses volume mapping. This means that any changes you make to the code locally in your IDE will immediately hot-reload inside the running Docker containers, exactly as if you were running it natively!
+
+### Stopping the Application
+To stop the running containers, simply press `Ctrl + C` in the terminal where Docker Compose is running. 
+
+If you started the containers in detached mode (using `docker compose up -d`), you can stop them by running:
+
+```bash
+docker compose down
+```
+
 ---
 
-## Running Both Applications
+## Running Manually
 
-You should have two terminals running.
+You can also run the applications manually if you prefer not to use Docker. You will need two terminals running.
 
 ### Terminal 1 — Backend
 
