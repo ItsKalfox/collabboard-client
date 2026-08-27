@@ -111,14 +111,33 @@ export default function Settings({ currentUser, setCurrentUser }) {
 
   /* ── Password state ─────────────────────────────────── */
   const [showPasswordForm, setShowPasswordForm] = useState(false);
-  const [currentPw,  setCurrentPw]  = useState('');
+  const [otpStep, setOtpStep] = useState(1);
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const otpRefs = useRef([]);
+  const [timeLeft, setTimeLeft] = useState(0);
   const [newPw,      setNewPw]      = useState('');
   const [confirmPw,  setConfirmPw]  = useState('');
-  const [showCurr,   setShowCurr]   = useState(false);
   const [showNew,    setShowNew]    = useState(false);
   const [showConf,   setShowConf]   = useState(false);
   const [pwSaving,   setPwSaving]   = useState(false);
   const [pwAlert,    setPwAlert]    = useState({ type: '', msg: '' });
+
+  // Timer effect for OTP
+  useEffect(() => {
+    let timer;
+    if (otpStep === 2 && timeLeft > 0) {
+      timer = setInterval(() => {
+        setTimeLeft(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [otpStep, timeLeft]);
+
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
 
   /* keep fields in sync if parent refetches user */
   useEffect(() => {
@@ -271,9 +290,53 @@ export default function Settings({ currentUser, setCurrentUser }) {
   /* ─────────────────────────────────────────────────────
      Password handler
   ───────────────────────────────────────────────────── */
+  const handleOtpChange = (index, value) => {
+    if (value.length > 1) value = value.slice(-1);
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+
+    if (value && index < 5) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleSendOtp = async () => {
+    setPwSaving(true);
+    setPwAlert({ type: '', msg: '' });
+    try {
+      const res = await fetch(`${API_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ email: currentUser?.email }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to send OTP');
+      
+      setOtpStep(2);
+      setTimeLeft(15 * 60);
+      setPwAlert({ type: 'success', msg: 'OTP sent to your email.' });
+    } catch (err) {
+      setPwAlert({ type: 'error', msg: err.message });
+    } finally {
+      setPwSaving(false);
+    }
+  };
+
   const handleChangePassword = async () => {
-    if (!currentPw || !newPw || !confirmPw) {
-      setPwAlert({ type: 'error', msg: 'All three password fields are required.' });
+    const otpString = otp.join('');
+    if (otpString.length !== 6) {
+      setPwAlert({ type: 'error', msg: 'Please enter the 6-digit OTP.' });
+      return;
+    }
+    if (!newPw || !confirmPw) {
+      setPwAlert({ type: 'error', msg: 'Please fill in both password fields.' });
       return;
     }
     if (newPw !== confirmPw) {
@@ -288,17 +351,20 @@ export default function Settings({ currentUser, setCurrentUser }) {
     setPwAlert({ type: '', msg: '' });
 
     try {
-      const res  = await fetch(`${API_URL}/auth/password`, {
-        method: 'PATCH',
+      const res  = await fetch(`${API_URL}/auth/reset-password`, {
+        method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ currentPassword: currentPw, newPassword: newPw, confirmNewPassword: confirmPw }),
+        body: JSON.stringify({ email: currentUser?.email, otp: otpString, newPassword: newPw }),
       });
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.message || 'Password change failed');
 
       setPwAlert({ type: 'success', msg: 'Password changed successfully!' });
-      setCurrentPw(''); setNewPw(''); setConfirmPw('');
+      setOtpStep(1);
+      setOtp(['', '', '', '', '', '']);
+      setNewPw(''); 
+      setConfirmPw('');
       setShowPasswordForm(false);
       autoClose(setPwAlert);
     } catch (err) {
@@ -310,7 +376,10 @@ export default function Settings({ currentUser, setCurrentUser }) {
   };
 
   const handleCancelPassword = () => {
-    setCurrentPw(''); setNewPw(''); setConfirmPw('');
+    setOtpStep(1);
+    setOtp(['', '', '', '', '', '']);
+    setNewPw(''); 
+    setConfirmPw('');
     setShowPasswordForm(false);
     setPwAlert({ type: '', msg: '' });
   };
@@ -533,62 +602,94 @@ export default function Settings({ currentUser, setCurrentUser }) {
 
         {showPasswordForm && (
           <div className="settings-password-expand">
-            <div className="settings-password-row">
-              {/* Current Password */}
-              <div className="settings-field">
-                <label className="settings-label" htmlFor="current-password-input">Current Password</label>
-                <div className="settings-pw-input-wrap">
-                  <input
-                    id="current-password-input"
-                    className="settings-input"
-                    type={showCurr ? 'text' : 'password'}
-                    value={currentPw}
-                    onChange={(e) => setCurrentPw(e.target.value)}
-                    placeholder="••••••••"
-                  />
-                  <button className="settings-pw-toggle" onClick={() => setShowCurr(v => !v)} type="button" tabIndex={-1}>
-                    <EyeIcon open={showCurr} />
+            {otpStep === 1 ? (
+              <div className="settings-password-row">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: 0 }}>
+                    Click below to send a 6-digit OTP to <strong>{currentUser?.email}</strong>
+                  </p>
+                  <button
+                    className="settings-btn-primary"
+                    onClick={handleSendOtp}
+                    disabled={pwSaving}
+                    style={{ alignSelf: 'flex-start' }}
+                  >
+                    {pwSaving ? <Spinner /> : null}
+                    {pwSaving ? 'Sending...' : 'Send OTP'}
                   </button>
                 </div>
               </div>
+            ) : (
+              <div className="settings-password-row">
+                {/* OTP Inputs */}
+                <div className="settings-field">
+                  <label className="settings-label">Enter 6-digit OTP</label>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                    {otp.map((digit, index) => (
+                      <input
+                        key={index}
+                        ref={(el) => (otpRefs.current[index] = el)}
+                        type="text"
+                        maxLength="1"
+                        value={digit}
+                        onChange={(e) => handleOtpChange(index, e.target.value)}
+                        onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                        style={{
+                          width: '40px',
+                          height: '48px',
+                          textAlign: 'center',
+                          fontSize: '20px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border)',
+                          background: 'var(--surface)',
+                          color: 'var(--text-primary)'
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                    OTP expires in: <strong style={{ color: timeLeft <= 60 ? '#ef4444' : 'inherit' }}>{formatTime(timeLeft)}</strong>
+                  </div>
+                </div>
 
-              {/* New Password */}
-              <div className="settings-field">
-                <label className="settings-label" htmlFor="new-password-input">New Password</label>
-                <div className="settings-pw-input-wrap">
-                  <input
-                    id="new-password-input"
-                    className="settings-input"
-                    type={showNew ? 'text' : 'password'}
-                    value={newPw}
-                    onChange={(e) => setNewPw(e.target.value)}
-                    placeholder="••••••••"
-                  />
-                  <button className="settings-pw-toggle" onClick={() => setShowNew(v => !v)} type="button" tabIndex={-1}>
-                    <EyeIcon open={showNew} />
-                  </button>
+                {/* New Password */}
+                <div className="settings-field">
+                  <label className="settings-label" htmlFor="new-password-input">New Password</label>
+                  <div className="settings-pw-input-wrap">
+                    <input
+                      id="new-password-input"
+                      className="settings-input"
+                      type={showNew ? 'text' : 'password'}
+                      value={newPw}
+                      onChange={(e) => setNewPw(e.target.value)}
+                      placeholder="••••••••"
+                    />
+                    <button className="settings-pw-toggle" onClick={() => setShowNew(v => !v)} type="button" tabIndex={-1}>
+                      <EyeIcon open={showNew} />
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {/* Confirm Password */}
-              <div className="settings-field">
-                <label className="settings-label" htmlFor="confirm-password-input">Confirm New Password</label>
-                <div className="settings-pw-input-wrap">
-                  <input
-                    id="confirm-password-input"
-                    className="settings-input"
-                    type={showConf ? 'text' : 'password'}
-                    value={confirmPw}
-                    onChange={(e) => setConfirmPw(e.target.value)}
-                    placeholder="••••••••"
-                    onKeyDown={(e) => e.key === 'Enter' && handleChangePassword()}
-                  />
-                  <button className="settings-pw-toggle" onClick={() => setShowConf(v => !v)} type="button" tabIndex={-1}>
-                    <EyeIcon open={showConf} />
-                  </button>
+                {/* Confirm Password */}
+                <div className="settings-field">
+                  <label className="settings-label" htmlFor="confirm-password-input">Confirm New Password</label>
+                  <div className="settings-pw-input-wrap">
+                    <input
+                      id="confirm-password-input"
+                      className="settings-input"
+                      type={showConf ? 'text' : 'password'}
+                      value={confirmPw}
+                      onChange={(e) => setConfirmPw(e.target.value)}
+                      placeholder="••••••••"
+                      onKeyDown={(e) => e.key === 'Enter' && handleChangePassword()}
+                    />
+                    <button className="settings-pw-toggle" onClick={() => setShowConf(v => !v)} type="button" tabIndex={-1}>
+                      <EyeIcon open={showConf} />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             <Alert type={pwAlert.type} message={pwAlert.msg} />
 
@@ -600,15 +701,17 @@ export default function Settings({ currentUser, setCurrentUser }) {
               >
                 Cancel
               </button>
-              <button
-                className="settings-btn-secondary settings-btn-save"
-                onClick={handleChangePassword}
-                disabled={pwSaving}
-                id="save-password-btn"
-              >
-                {pwSaving && <Spinner dark />}
-                {pwSaving ? 'Updating…' : 'Update Password'}
-              </button>
+              {otpStep === 2 && (
+                <button
+                  className="settings-btn-secondary settings-btn-save"
+                  onClick={handleChangePassword}
+                  disabled={pwSaving}
+                  id="save-password-btn"
+                >
+                  {pwSaving && <Spinner dark />}
+                  {pwSaving ? 'Updating…' : 'Update Password'}
+                </button>
+              )}
             </div>
           </div>
         )}
