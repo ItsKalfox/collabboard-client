@@ -2,7 +2,8 @@
    Theme variables — set once, inherited everywhere
    ============================================ */
 
-.projects-page {
+.projects-page,
+.project-modal-theme {
   --text: #ffffff;
   --text-dim: #9ca3af;
   --text-mute: #6b7280;
@@ -17,7 +18,9 @@
   --danger: #f87171;
   --danger-hi: rgba(239, 68, 68, 0.1);
   --shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.5);
+}
 
+.projects-page {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -32,7 +35,8 @@
   color: var(--text);
 }
 
-.projects-page.light {
+.projects-page.light,
+.project-modal-theme.light {
   --text: #111827;
   --text-dim: #4b5563;
   --text-mute: #6b7280;
@@ -49,7 +53,8 @@
   --shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.15);
 }
 
-.projects-page * { box-sizing: border-box; }
+.projects-page *,
+.project-modal-theme * { box-sizing: border-box; }
 
 /* ============================================
    Glass surfaces
@@ -608,4 +613,134 @@
 .custom-avatar-tooltip .tooltip-info .email {
   font-size: 11px;
   color: var(--text-secondary, #aaa);
+}
+
+/* ============================================
+   Member Cards and Review Access Toggle
+   ============================================ */
+
+.member-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--surface-hi);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 8px;
+  transition: background 0.15s ease;
+}
+
+.member-card-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.member-card-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+.member-card-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.member-card-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+.member-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.member-card-role {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.member-card-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.review-access-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+}
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: var(--input-border);
+  transition: .3s;
+  border-radius: 20px;
+}
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #fff;
+  transition: .3s;
+  border-radius: 50%;
+}
+.toggle-switch input:checked + .toggle-slider {
+  background-color: #3b82f6;
+}
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(16px);
+}
+.toggle-switch input:disabled + .toggle-slider {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.member-card-remove {
+  background: transparent;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+.member-card-remove:hover {
+  background: var(--danger-hi);
 }

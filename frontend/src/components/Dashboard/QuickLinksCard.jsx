@@ -1,16 +1,22 @@
-import { useState } from 'react';
 import { useRecentProjects } from '../../hooks/useDashboardData';
 import { Loader2, AlertCircle } from 'lucide-react';
-import { getInitials } from '../../mock/mockMembers';
 import './QuickLinksCard.css';
 
+const getInitials = (name) => {
+  if (!name) return '';
+  const parts = name.split(' ');
+  return parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0][0].toUpperCase();
+};
+
 export default function QuickLinksCard() {
-  const [activeCategory, setActiveCategory] = useState('All projects');
-  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
-  const [isGridView, setIsGridView] = useState(false);
-  
   const { data: response, loading, error, refetch } = useRecentProjects();
   const projectFiles = response?.data || [];
+
+  const handleProjectClick = (projectId) => {
+    localStorage.setItem('openProjectModalId', projectId);
+    window.history.pushState({}, '', '/projects');
+    window.dispatchEvent(new Event('popstate'));
+  };
 
   const getProjectIcon = (type, color) => {
     switch (type) {
@@ -74,61 +80,19 @@ export default function QuickLinksCard() {
             </svg>
           </div>
           <div style={{ position: 'relative' }}>
-            <button className="category-select-btn" onClick={() => setIsCategoryOpen(!isCategoryOpen)}>
-              <span>{activeCategory}</span>
-              <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none" className="chevron" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </button>
-            {isCategoryOpen && (
-              <div style={{
-                position: 'absolute', top: '100%', left: 0, marginTop: '8px', padding: '8px 0', 
-                background: 'rgba(24, 24, 27, 0.95)', border: '1px solid #2d2f36', 
-                borderRadius: '8px', zIndex: 10, boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)',
-                minWidth: '150px', backdropFilter: 'blur(10px)'
-              }}>
-                {['All projects', 'Active', 'Completed', 'Archived'].map(cat => (
-                  <div key={cat} style={{ padding: '8px 16px', fontSize: '13px', color: '#d1d5db', cursor: 'pointer', transition: 'background 0.2s' }} 
-                       onClick={() => { setActiveCategory(cat); setIsCategoryOpen(false); }}
-                       onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
-                       onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                  >
-                    {cat}
-                  </div>
-                ))}
-              </div>
-            )}
+            <span style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)' }}>
+              All projects
+            </span>
           </div>
         </div>
-
-        <button className="grid-toggle-btn" aria-label="Toggle layout" onClick={() => setIsGridView(!isGridView)}>
-          {isGridView ? (
-            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="8" y1="6" x2="21" y2="6"></line>
-              <line x1="8" y1="12" x2="21" y2="12"></line>
-              <line x1="8" y1="18" x2="21" y2="18"></line>
-              <line x1="3" y1="6" x2="3.01" y2="6"></line>
-              <line x1="3" y1="12" x2="3.01" y2="12"></line>
-              <line x1="3" y1="18" x2="3.01" y2="18"></line>
-            </svg>
-          ) : (
-            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="7" height="7" rx="1"></rect>
-              <rect x="14" y="3" width="7" height="7" rx="1"></rect>
-              <rect x="3" y="14" width="7" height="7" rx="1"></rect>
-              <rect x="14" y="14" width="7" height="7" rx="1"></rect>
-            </svg>
-          )}
-        </button>
       </div>
 
       {loading ? (
-        <div className="quick-links-list" style={{ minHeight: '150px', display: isGridView ? 'grid' : 'flex', gridTemplateColumns: isGridView ? '1fr 1fr' : 'none' }}>
+        <div className="quick-links-list" style={{ minHeight: '150px', display: 'flex', flexDirection: 'column' }}>
           {[1, 2, 3].map(i => (
             <div key={i} className="project-card">
               <div className="project-card-header">
                 <div className="project-card-title-group">
-                  <div className="skeleton-box file-icon-badge" style={{ border: 'none' }} />
                   <div className="skeleton-box" style={{ width: '100px', height: '16px', borderRadius: '4px' }} />
                 </div>
               </div>
@@ -143,22 +107,17 @@ export default function QuickLinksCard() {
           ))}
         </div>
       ) : (
-        <div className="quick-links-list" style={{ minHeight: '150px', display: isGridView ? 'grid' : 'flex', gridTemplateColumns: isGridView ? '1fr 1fr' : 'none' }}>
+        <div className="quick-links-list" style={{ minHeight: '150px', display: 'flex', flexDirection: 'column' }}>
           {projectFiles.slice(0, 3).map((project) => (
-            <div key={project.id} className="project-card" onClick={() => console.log('Selected project:', project.id)}>
+            <div key={project.id} className="project-card" onClick={() => handleProjectClick(project._id || project.id)}>
               <div className="project-card-header">
                 <div className="project-card-title-group">
-                  <div className="file-icon-badge">
-                    {getProjectIcon(project.type, project.color)}
-                  </div>
-                  <span className="project-card-title">{project.name}</span>
+                  <span className="project-card-title" style={{ marginLeft: 0 }}>{project.name}</span>
                 </div>
               </div>
               
               <div className="project-card-footer">
-                 <span className={`project-card-status ${project.status === 'active' ? 'active' : 'completed'}`}>
-                    {project.status === 'active' ? 'In Progress' : 'Completed'}
-                  </span>
+                  <span style={{ fontSize: '12px', color: '#9ca3af', fontWeight: '500' }}>Team members</span>
                   <div className="project-avatars">
                     {project.members && project.members.map((member, i) => (
                       member.avatar ? (

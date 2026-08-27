@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Search, AlertCircle } from 'lucide-react';
-import { normalizeMember, getInitials } from '../../mock/mockMembers';
+import { normalizeMember, getInitials } from '../../utils/memberUtils';
 import { updateProject, searchUsers } from '../../services/projectService';
 import '../TaskPopup/TaskPopup.css';
 import './projects.css';
@@ -188,7 +188,7 @@ export default function EditProjectModal({
         userId: m.id || m.userId || undefined,
         name: m.name,
         email: m.email || undefined,
-        role: m.role || 'member'
+        role: m.name === project.owner ? 'owner' : 'member'
       }))
     };
 

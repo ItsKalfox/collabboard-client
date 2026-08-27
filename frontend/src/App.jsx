@@ -452,6 +452,7 @@ function App() {
               selectedProject={typeof selectedProject === 'object' ? selectedProject : null}
               onSelectProject={(id) => setSelectedProject(id)} 
               currentUser={currentUser}
+              theme={theme}
             />
           ) : activeTab === 'Projects' ? (
             <ProjectsPage theme={theme} toggleTheme={toggleTheme} currentUser={currentUser} onOpenBoard={handleOpenBoard} />

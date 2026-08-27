@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, ArrowRight, ChevronDown, ChevronRight, UserPlus, Trash2, Calendar, Search, AlertCircle, Loader2, RefreshCw, Clock, CheckSquare, FileText, Image as ImageIcon, FileCode, FileArchive, FileSpreadsheet, File } from 'lucide-react';
-import { MOCK_MEMBERS, normalizeMember } from '../../mock/mockMembers';
+import { normalizeMember } from '../../utils/memberUtils';
 import { uploadCoverImage, getAttachments, uploadAttachment, deleteAttachment, getProjectMembers, searchUsers, addProjectMember, removeProjectMember, getProjectTasks, getProjectTimeline, refreshProjectTimeline, downloadAttachment, updateProject } from '../../services/projectService';
 import { calculateProjectProgress, isProjectOwner } from '../../utils/projectUtils';
 import DeleteConfirmModal from './DeleteConfirmModal';
@@ -315,10 +315,9 @@ export default function ProjectDetailsModal({
   if (!isOpen || !project) return null;
 
   // Filter search results
-  const ownerName = project.owner || (currentUser?.name || 'Alex Johnson');
   const filteredSearchResults = searchResults.filter(user => {
     // Exclude owner
-    if (user.name && user.name.toLowerCase() === ownerName.toLowerCase()) return false;
+    if (isProjectOwner(project, user)) return false;
     if (user.email && currentUser?.email && user.email.toLowerCase() === currentUser.email.toLowerCase()) return false;
     
     // Exclude already added members
@@ -536,11 +535,7 @@ export default function ProjectDetailsModal({
   };
 
   // Members functions
-  const availableMembers = MOCK_MEMBERS.filter(m => 
-    !project.members.some(existing => existing.name === m.name) &&
-    (m.name.toLowerCase().includes(memberSearch.toLowerCase()) ||
-     m.role.toLowerCase().includes(memberSearch.toLowerCase()))
-  );
+
 
   const addMemberToProject = async (userObj) => {
     if (!project?.id || isAddingMember) return;
@@ -567,14 +562,14 @@ export default function ProjectDetailsModal({
       const newMemberData = await addProjectMember(project.id, {
         userId: userId,
         email: userEmail,
-        role: userObj.role || 'member'
+        role: 'member'
       });
 
       const normalized = normalizeMember(newMemberData || {
         userId: userId,
         name: userObj.name,
         email: userEmail,
-        role: userObj.role || 'member'
+        role: 'member'
       });
 
       const updated = {
@@ -633,6 +628,34 @@ export default function ProjectDetailsModal({
       setMemberToRemove(null);
     } finally {
       setIsRemovingMember(false);
+    }
+  };
+
+  const handleToggleReviewAccess = async (memberObj) => {
+    if (!project?.id) return;
+    const targetUserId = memberObj.userId || memberObj.id || memberObj._id;
+    
+    try {
+      const updatedMembers = (project.members || []).map(m => {
+        const mId = m.userId || m.id || m._id;
+        if ((mId && targetUserId && mId === targetUserId) || (m.name === memberObj.name)) {
+          return { ...m, reviewAccess: !m.reviewAccess };
+        }
+        return m;
+      });
+
+      const updated = {
+        ...project,
+        members: updatedMembers
+      };
+      
+      await updateProject(project.id, { members: updatedMembers });
+
+      setProject(updated);
+      if (onSaveProject) onSaveProject(updated);
+    } catch (err) {
+      console.error('Failed to update review access:', err);
+      setMembersError('Failed to update review access');
     }
   };
 
@@ -701,7 +724,7 @@ export default function ProjectDetailsModal({
 
   return (
     <div className="popup-backdrop" onClick={() => !isEditing && onClose()}>
-      <div className={`popup-panel${lightCls}`} onClick={(e) => e.stopPropagation()}>
+      <div className={`popup-panel project-modal-theme${lightCls}`} onClick={(e) => e.stopPropagation()}>
         
         {/* Header */}
         <div className="popup-header">
@@ -1007,7 +1030,7 @@ export default function ProjectDetailsModal({
                       </svg>
                     )}
                   </button>
-                  {isOwner && (
+                  {isOwner && !hideActions && (
                     <button 
                       type="button"
                       onClick={(e) => removeAttachment(att.id, e)}
@@ -1360,29 +1383,51 @@ export default function ProjectDetailsModal({
                   No members found in this project.
                 </div>
               ) : (
-                project.members.map((m, idx) => {
-                  const norm = normalizeMember(m);
-                  return (
-                    <div key={norm.userId || norm.name || idx} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'var(--popup-card-bg)', border: 'var(--popup-card-border)', borderRadius: '12px' }}>
-                      <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: norm.bg || COLOR_HEX.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '14px', fontWeight: '700', overflow: 'hidden', flexShrink: 0 }}>
-                        {norm.avatar ? <img src={norm.avatar} alt={norm.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (norm.initials || (norm.name && norm.name.substring(0, 2)) || 'U')}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0px', marginTop: '8px' }}>
+                  {project.members.map((m, idx) => {
+                    const norm = normalizeMember(m);
+                    const isThisMemberOwner = isProjectOwner(project, norm);
+                    return (
+                      <div key={norm.userId || norm.name || idx} className="member-card">
+                        <div className="member-card-left">
+                          <div className="member-card-avatar" style={{ background: norm.bg || COLOR_HEX.blue }}>
+                            {norm.avatar ? <img src={norm.avatar} alt={norm.name} /> : (norm.initials || (norm.name && norm.name.substring(0, 2)) || 'U')}
+                          </div>
+                          <div className="member-card-info">
+                            <span className="member-card-name">{norm.name}</span>
+                            <span className="member-card-role">{isThisMemberOwner ? 'Owner' : (norm.role ? norm.role.charAt(0).toUpperCase() + norm.role.slice(1) : 'Member')}</span>
+                          </div>
+                        </div>
+                        <div className="member-card-right">
+                          {!isThisMemberOwner && !hideActions && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span className="review-access-label">Review Access</span>
+                              <label className="toggle-switch">
+                                <input 
+                                  type="checkbox" 
+                                  checked={!!m.reviewAccess}
+                                  disabled={!isOwner}
+                                  onChange={() => handleToggleReviewAccess(m)}
+                                />
+                                <span className="toggle-slider"></span>
+                              </label>
+                            </div>
+                          )}
+                          {isOwner && !isThisMemberOwner && !hideActions && (
+                            <button 
+                              type="button"
+                              onClick={() => setMemberToRemove(norm)}
+                              className="member-card-remove"
+                              title="Remove member"
+                            >
+                              <X size={14} />
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <div style={{ flex: 1, textAlign: 'left' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '500', color: 'var(--popup-text-main)' }}>{norm.name}</div>
-                        <div style={{ fontSize: '12px', color: 'var(--popup-text-muted)' }}>{project.owner === norm.name ? 'Owner' : norm.role || 'Member'}</div>
-                      </div>
-                      {isOwner && project.owner !== norm.name && (
-                        <button 
-                          onClick={() => setMemberToRemove(norm)}
-                          style={{ background: 'var(--popup-btn-bg)', border: 'var(--popup-btn-border)', color: '#ef4444', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex' }}
-                          title="Remove member"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  );
-                })
+                    );
+                  })}
+                </div>
               )}
             </div>
           )}

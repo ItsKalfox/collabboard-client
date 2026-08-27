@@ -4,7 +4,7 @@ import CreateProjectModal from './CreateProjectModal';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import ProjectDetailsModal from './ProjectDetailsModal';
 import { Plus, Search } from 'lucide-react';
-import { normalizeMember } from '../../mock/mockMembers';
+import { normalizeMember } from '../../utils/memberUtils';
 import { calculateProjectProgress, isProjectOwner, isProjectMember } from '../../utils/projectUtils';
 import { getProjects } from '../../services/projectService';
 import './projects.css';
@@ -40,6 +40,15 @@ export default function ProjectsPage({ theme = 'dark', currentUser, onOpenBoard 
           }));
           
           setProjects(formatted);
+
+          const openId = localStorage.getItem('openProjectModalId');
+          if (openId) {
+            const projToOpen = formatted.find(p => p._id === openId || p.id === openId);
+            if (projToOpen) {
+              setSelectedDetailsProject(projToOpen);
+              localStorage.removeItem('openProjectModalId');
+            }
+          }
         }
       } catch (err) {
         console.warn('Could not fetch projects from API:', err.message);

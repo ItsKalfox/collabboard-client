@@ -47,9 +47,10 @@ export const fetchOngoingProjects = () => {
 
 /**
  * Fetches team progress data
+ * @param {string} [projectId] - Optional project ID to filter team progress
  */
-export const fetchTeamProgress = () => {
-  return fetchAPI('/dashboard/teams');
+export const fetchTeamProgress = (projectId = '') => {
+  return fetchAPI(`/dashboard/teams${projectId ? `?projectId=${projectId}` : ''}`);
 };
 
 /**

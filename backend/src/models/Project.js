@@ -11,7 +11,8 @@ const projectSchema = new mongoose.Schema({
     members: [{
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         role: { type: String, default: 'member' },
-        joinedAt: { type: Date, default: Date.now }
+        joinedAt: { type: Date, default: Date.now },
+        reviewAccess: { type: Boolean, default: false }
     }]
 }, {
     timestamps: true

@@ -288,37 +288,6 @@ export default function TimelineTable() {
                             )}
                             <span className="timeline-pill-title">{item.duration || item.title}</span>
 
-                            <div className="timeline-avatar-group">
-                              {item.assignee && (
-                                <div style={{ position: 'relative' }}>
-                                  <img
-                                    src={item.assignee.avatar}
-                                    alt={item.assignee.name}
-                                    className="timeline-avatar"
-                                    title={`${item.assignee.name} - ${item.title}`}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setActiveAssignee(activeAssignee?.assignee?.id === item.assignee.id ? null : { assignee: item.assignee, taskTitle: item.title });
-                                    }}
-                                  />
-                                  {activeAssignee?.assignee?.id === item.assignee.id && (
-                                    <div style={{
-                                      position: 'absolute', bottom: '100%', right: '0%', transform: 'translate(10px, -8px)',
-                                      background: 'var(--bg-color)', border: 'var(--window-border)', padding: '12px',
-                                      borderRadius: '8px', zIndex: 100, width: '160px', backdropFilter: 'blur(10px)',
-                                      boxShadow: 'var(--window-shadow)', color: 'var(--text-primary)', textAlign: 'center', cursor: 'default'
-                                    }} onClick={e => e.stopPropagation()}>
-                                      <img src={item.assignee.avatar} alt={item.assignee.name} style={{ width: '40px', height: '40px', borderRadius: '50%', marginBottom: '8px', border: '2px solid #3b82f6' }} />
-                                      <div style={{ fontSize: '13px', fontWeight: 'bold' }}>{item.assignee.name}</div>
-                                      <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '4px' }}>Lead Member</div>
-                                      <div style={{ fontSize: '10px', background: 'rgba(59,130,246,0.2)', color: '#60a5fa', padding: '2px 4px', borderRadius: '4px', display: 'inline-block', lineHeight: '1.2' }}>
-                                        {activeAssignee.taskTitle}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
                           </div>
                         </div>
                       );

@@ -66,3 +66,11 @@ export function isProjectMember(project, user) {
   });
 }
 
+export function formatActivityText(text) {
+  if (!text) return text;
+  return String(text)
+    .replace(/\bin_progress\b/g, 'In Progress')
+    .replace(/\btodo\b/g, 'To Do')
+    .replace(/\breview\b/g, 'Review')
+    .replace(/\bcompleted\b/g, 'Completed');
+}

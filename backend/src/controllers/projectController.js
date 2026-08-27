@@ -50,6 +50,7 @@ export const getProjects = async (req, res) => {
                 return {
                     userId: user ? user._id : m.userId,
                     role: m.role,
+                    reviewAccess: m.reviewAccess,
                     joinedAt: m.joinedAt,
                     name: user ? user.name : 'Unknown User',
                     email: user ? user.email : '',
@@ -78,6 +79,7 @@ export const getProjectById = async (req, res) => {
             return {
                 userId: user ? user._id : m.userId,
                 role: m.role,
+                reviewAccess: m.reviewAccess,
                 joinedAt: m.joinedAt,
                 name: user ? user.name : 'Unknown User',
                 email: user ? user.email : '',
@@ -330,6 +332,7 @@ export const getProjectMembers = async (req, res) => {
                 email: user ? user.email : '',
                 avatar: user ? user.avatar : '',
                 role: m.role,
+                reviewAccess: m.reviewAccess,
                 joinedAt: m.joinedAt
             };
         });

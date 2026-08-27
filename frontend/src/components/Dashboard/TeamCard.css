@@ -1,5 +1,6 @@
 .team-card {
   width: 100%;
+  height: 100%;
   background: var(--menu-bg, rgba(255, 255, 255, 0.2));
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
@@ -8,7 +9,6 @@
   padding: 18px 20px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   gap: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
   overflow: hidden;
@@ -46,304 +46,193 @@
   border-radius: 10px;
 }
 
-/* Header Stats */
-.team-stats-group {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.team-stat-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.stat-icon-circle {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: #0d0d0d;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.stat-icon-circle svg {
-  width: 14px;
-  height: 14px;
-}
-
-.stat-number {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-primary, #111);
-}
-
-.stat-change {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  font-size: 10px;
-  font-weight: 600;
-}
-
-.stat-change.positive {
-  color: #10b981;
-}
-
-.stat-sparkline {
-  color: var(--text-primary, #111);
-  display: flex;
-  align-items: center;
-}
-
-/* Inner Dark Panel */
-.team-dark-panel {
+/* Body / List */
+.team-card-body {
   width: 100%;
   flex: 1;
-  min-width: 0;
   min-height: 0;
-  background: #090a0f;
-  color: #ffffff;
-  border-radius: 18px;
-  padding: 16px 20px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1), 0 10px 25px rgba(0, 0, 0, 0.3);
   overflow-y: auto;
+  padding-right: 4px;
 }
 
-.team-columns-grid {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  gap: 18px;
-  height: 100%;
-  align-items: stretch;
-  width: 100%;
+/* Custom scrollbar for list */
+.team-card-body::-webkit-scrollbar {
+  width: 4px;
+}
+.team-card-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.team-card-body::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 4px;
 }
 
-.team-dept-col {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 10px;
-  flex: 1;
-  min-width: 0;
-}
-
-.dept-info {
+.member-list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 12px;
 }
 
-.dept-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: #ffffff;
-  margin: 0;
-}
-
-.dept-sub {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.dept-avatars {
+.member-row {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: rgba(24, 24, 27, 0.4);
+  border-radius: 12px;
+  border: 1px solid #2d2f36;
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
 
-.dept-avatar {
-  width: 25px;
-  height: 25px;
+.member-row:hover {
+  background: rgba(24, 24, 27, 0.8);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.member-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.member-avatar {
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1.5px solid #090a0f;
-  margin-left: -7px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.dept-avatar:first-child {
-  margin-left: 0;
+.member-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary, #fff);
 }
 
-/* Progress Block */
-.dept-progress-block {
+.member-stats-group {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  align-items: flex-end;
+  gap: 6px;
+  min-width: 80px;
 }
 
-.progress-labels {
-  display: flex;
-  justify-content: space-between;
-  font-size: 9px;
+.member-task-count {
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.5px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-secondary, #9ca3af);
 }
 
-.progress-bar-track {
+.member-progress-track {
   width: 100%;
-  height: 3.5px;
-  background: rgba(255, 255, 255, 0.15);
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 2px;
   overflow: hidden;
 }
 
-.progress-bar-fill {
+.member-progress-fill {
   height: 100%;
-  background: #ffffff;
   border-radius: 2px;
   transition: width 0.4s ease;
 }
 
-.dept-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.dept-action-btn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.7);
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.dept-action-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
-}
-
-/* Development Chart */
-.chart-col {
-  border-left: 1px solid rgba(255, 255, 255, 0.08);
-  padding-left: 16px;
-}
-
-.dev-chart-container {
-  height: 100%;
-  min-height: 60px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 7px;
-  padding-top: 6px;
-}
-
-.dev-chart-bar-wrapper {
-  flex: 1;
-  height: 100%;
-  display: flex;
-  align-items: flex-end;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.dev-chart-bar {
-  width: 100%;
-  background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.4) 100%);
-  border-radius: 3px 3px 0 0;
-  transition: height 0.4s ease;
-}
-
-/* Responsive Rules */
-@media (max-width: 900px) {
-  .team-columns-grid {
-    flex-direction: column;
-  }
-
-  .chart-col {
-    border-left: none;
-    padding-left: 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    padding-top: 14px;
-  }
-}
-
 /* --- LIGHT THEME OVERRIDES --- */
-[data-theme="light"] .team-dark-panel {
-  background: #ffffff;
+[data-theme="light"] .member-row {
+  background: rgba(255, 255, 255, 0.6);
+  border-color: #e5e7eb;
+}
+
+[data-theme="light"] .member-row:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: #d1d5db;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .member-name {
   color: #111827;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
 }
 
-[data-theme="light"] .dept-name {
-  color: #111827;
+[data-theme="light"] .member-task-count {
+  color: #4b5563;
 }
 
-[data-theme="light"] .team-card .dept-sub {
-  color: #6b7280;
-}
-
-[data-theme="light"] .team-card .dept-avatar {
-  border-color: #ffffff;
-}
-
-[data-theme="light"] .team-card .progress-labels {
-  color: #6b7280;
-}
-
-[data-theme="light"] .team-card .progress-bar-track {
+[data-theme="light"] .member-progress-track {
   background: #e5e7eb;
 }
 
-[data-theme="light"] .team-card .progress-bar-fill {
-  background: #10b981;
+/* Project Selection Dropdown Styles */
+.team-project-dropdown-btn {
+  background: transparent;
+  border: 1px solid var(--menu-border);
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
 }
 
-[data-theme="light"] .team-card .dept-action-btn {
-  background: #f3f4f6;
+.team-project-dropdown-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.team-project-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  padding: 8px 0;
+  background: rgba(24, 24, 27, 0.95);
+  border: 1px solid var(--menu-border, #2d2f36);
+  border-radius: 8px;
+  z-index: 10;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  min-width: 180px;
+  max-height: 200px;
+  overflow-y: auto;
+  backdrop-filter: blur(10px);
+}
+
+.team-project-dropdown-item {
+  padding: 8px 16px;
+  font-size: 13px;
+  color: var(--text-primary, #d1d5db);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: background 0.2s ease;
+}
+
+.team-project-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Light theme overrides for dropdown */
+[data-theme="light"] .team-project-dropdown-menu {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: #e5e7eb;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .team-project-dropdown-item:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .team-project-dropdown-btn {
   border-color: #e5e7eb;
   color: #4b5563;
 }
 
-[data-theme="light"] .team-card .dept-action-btn:hover {
-  background: #e5e7eb;
+[data-theme="light"] .team-project-dropdown-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
   color: #111827;
-}
-
-[data-theme="light"] .chart-col {
-  border-left: 1px solid #e5e7eb;
-}
-
-[data-theme="light"] .dev-chart-bar-wrapper {
-  background: #f3f4f6;
-}
-
-[data-theme="light"] .dev-chart-bar {
-  background: linear-gradient(180deg, #3b82f6 0%, #93c5fd 100%);
-}
-
-[data-theme="light"] .team-badge {
-  background: #f3f4f6;
-  color: #111827;
-  border: 1px solid #e5e7eb;
-}
-
-[data-theme="light"] .stat-icon-circle {
-  background: #f3f4f6;
-  color: #111827;
-  border: 1px solid #e5e7eb;
-}
-
-@media (max-width: 900px) {
-  [data-theme="light"] .chart-col {
-    border-top: 1px solid #e5e7eb;
-  }
 }

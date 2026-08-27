@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AlertCircle } from 'lucide-react';
-import { normalizeMember, getInitials } from '../../mock/mockMembers';
+import { normalizeMember, getInitials } from '../../utils/memberUtils';
 import { getAttachments } from '../../services/projectService';
 import './BoardHeader.css';
 

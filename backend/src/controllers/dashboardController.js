@@ -11,7 +11,7 @@ export const getTimeline = async (req, res) => {
         });
 
         const projectIds = projects.map(p => p._id);
-        const tasks = await Task.find({ projectId: { $in: projectIds } }).populate('assigneeId', 'name avatar');
+        const tasks = await Task.find({ projectId: { $in: projectIds }, assigneeId: userId }).populate('assigneeId', 'name avatar');
 
         const formatDuration = (start, end) => {
             if (!start || !end) return 'N/A';
@@ -66,6 +66,12 @@ export const getOngoingProjectsStats = async (req, res) => {
         let totalSubtasksAll = 0;
         let completedSubtasksAll = 0;
         const categoryStats = {};
+        const statusStats = {
+            todo: 0,
+            in_progress: 0,
+            review: 0,
+            completed: 0
+        };
 
         activeProjects.forEach(project => {
             const projectTasks = tasks.filter(t => t.projectId.toString() === project._id.toString());
@@ -73,9 +79,18 @@ export const getOngoingProjectsStats = async (req, res) => {
             let completedSubtasks = 0;
 
             projectTasks.forEach(task => {
+                // Track status
+                let s = task.status ? task.status.toLowerCase() : 'todo';
+                if (s === 'done') s = 'completed';
+                if (statusStats[s] !== undefined) {
+                    statusStats[s] += 1;
+                } else {
+                    statusStats.todo += 1;
+                }
+
                 if (task.subtasks && task.subtasks.length > 0) {
                     totalSubtasks += task.subtasks.length;
-                    completedSubtasks += task.subtasks.filter(s => s.completed).length;
+                    completedSubtasks += task.subtasks.filter(sub => sub.completed).length;
                 } else {
                     totalSubtasks += 1;
                     if (task.status === 'completed' || task.status === 'done') {
@@ -103,7 +118,7 @@ export const getOngoingProjectsStats = async (req, res) => {
             progress: cat.totalTasks === 0 ? 0 : Number(((cat.completedTasks / cat.totalTasks) * 100).toFixed(1))
         }));
 
-        res.status(200).json({ status: 'success', data: { overallProgress, categories: categoriesArray } });
+        res.status(200).json({ status: 'success', data: { overallProgress, categories: categoriesArray, statusStats } });
     } catch (error) {
         console.error('Error in getOngoingProjectsStats:', error);
         res.status(500).json({ status: 'error', message: 'Internal server error' });
@@ -113,9 +128,15 @@ export const getOngoingProjectsStats = async (req, res) => {
 export const getTeamProgress = async (req, res) => {
     try {
         const userId = req.user.id;
-        const projects = await Project.find({
+        const { projectId } = req.query;
+        let query = {
             $or: [{ ownerId: userId }, { 'members.userId': userId }]
-        });
+        };
+        if (projectId) {
+            query._id = projectId;
+        }
+
+        const projects = await Project.find(query);
         
         const relevantUserIds = new Set();
         projects.forEach(p => {
@@ -124,36 +145,37 @@ export const getTeamProgress = async (req, res) => {
         });
 
         const users = await User.find({ _id: { $in: Array.from(relevantUserIds) } });
-        const tasks = await Task.find({ assigneeId: { $in: users.map(u => u._id) } });
 
-        const teamStats = {};
+        let taskQuery = { assigneeId: { $in: users.map(u => u._id) } };
+        if (projectId) {
+            taskQuery.projectId = projectId;
+        }
+        const tasks = await Task.find(taskQuery);
+
+        const memberStats = {};
 
         users.forEach(user => {
-            const teamName = user.team || 'Other';
-            if (!teamStats[teamName]) {
-                teamStats[teamName] = { teamName, members: [], totalTasks: 0, completedTasks: 0, progress: 0 };
-            }
-            teamStats[teamName].members.push({
+            memberStats[user._id.toString()] = {
                 id: user._id,
                 name: user.name,
-                avatar: user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}`
-            });
+                avatar: user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}`,
+                totalTasks: 0,
+                completedTasks: 0,
+                progress: 0
+            };
         });
 
         tasks.forEach(task => {
             if (!task.assigneeId) return;
-            const assignee = users.find(u => u._id.toString() === task.assigneeId.toString());
-            if (assignee) {
-                const teamName = assignee.team || 'Other';
-                if (teamStats[teamName]) {
-                    if (task.subtasks && task.subtasks.length > 0) {
-                        teamStats[teamName].totalTasks += task.subtasks.length;
-                        teamStats[teamName].completedTasks += task.subtasks.filter(s => s.completed).length;
-                    } else {
-                        teamStats[teamName].totalTasks += 1;
-                        if (task.status === 'completed') {
-                            teamStats[teamName].completedTasks += 1;
-                        }
+            const assigneeId = task.assigneeId.toString();
+            if (memberStats[assigneeId]) {
+                if (task.subtasks && task.subtasks.length > 0) {
+                    memberStats[assigneeId].totalTasks += task.subtasks.length;
+                    memberStats[assigneeId].completedTasks += task.subtasks.filter(s => s.completed).length;
+                } else {
+                    memberStats[assigneeId].totalTasks += 1;
+                    if (task.status === 'completed') {
+                        memberStats[assigneeId].completedTasks += 1;
                     }
                 }
             }
@@ -161,34 +183,26 @@ export const getTeamProgress = async (req, res) => {
 
         let overallTotalTasks = 0;
         let overallCompletedTasks = 0;
-        let overallActivity = [];
 
-        const teamsArray = Object.values(teamStats).map(team => {
-            overallTotalTasks += team.totalTasks;
-            overallCompletedTasks += team.completedTasks;
+        const membersArray = Object.values(memberStats).map(member => {
+            overallTotalTasks += member.totalTasks;
+            overallCompletedTasks += member.completedTasks;
             
-            const baseHeight = 20 + (team.completedTasks * 10) + (team.totalTasks * 5);
-            const devBarHeights = Array.from({ length: 8 }, (_, i) => {
-                 const pseudoRandom = ((team.teamName.charCodeAt(0) || 0) + i) * 17 % 50;
-                 return Math.min(100, Math.max(10, baseHeight + pseudoRandom - 25));
-            });
-            overallActivity = devBarHeights.map((h, i) => Math.min(100, Math.max(overallActivity[i] || 0, h)));
-
             return {
-                ...team,
-                progress: team.totalTasks === 0 ? 0 : Number(((team.completedTasks / team.totalTasks) * 100).toFixed(1)),
-                devBarHeights: devBarHeights.map(h => Math.min(100, h))
+                ...member,
+                progress: member.totalTasks === 0 ? 0 : Number(((member.completedTasks / member.totalTasks) * 100).toFixed(1))
             };
         });
+        
+        membersArray.sort((a, b) => b.totalTasks - a.totalTasks);
 
         res.status(200).json({
             status: 'success',
-            data: teamsArray,
+            data: membersArray,
             overallStats: {
                 totalPoints: overallTotalTasks * 10,
                 tasksCompleted: overallCompletedTasks,
-                activeMembers: relevantUserIds.size,
-                activity: overallActivity.map(h => Math.min(100, h))
+                activeMembers: relevantUserIds.size
             }
         });
     } catch (error) {
