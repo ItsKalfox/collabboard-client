@@ -193,7 +193,7 @@ export default function CreateProjectModal({
   const addMember = (memberObj) => {
     const normalized = normalizeMember(memberObj);
     if (!members.some(m => (m.id && m.id === normalized.id) || m.name === normalized.name)) {
-      setMembers(prev => [...prev, normalized]);
+      setMembers(prev => [...prev, { ...normalized, reviewAccess: false }]);
     }
     setMemberSearch('');
     setShowMemberDropdown(false);
@@ -201,6 +201,10 @@ export default function CreateProjectModal({
 
   const removeMember = (memberName) => {
     setMembers(members.filter(m => m.name !== memberName));
+  };
+
+  const toggleReviewAccess = (memberName) => {
+    setMembers(members.map(m => m.name === memberName ? { ...m, reviewAccess: !m.reviewAccess } : m));
   };
 
   const getTodayYYYYMMDD = () => {
@@ -645,31 +649,41 @@ export default function CreateProjectModal({
               )}
             </div>
 
-            {/* Selected Members Chips / List */}
+            {/* Selected Members Cards / List */}
             {members.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0px', marginTop: '8px' }}>
                 {members.map(m => (
-                  <div key={m.name} style={{
-                    display: 'flex', alignItems: 'center', gap: '8px',
-                    background: 'var(--popup-card-bg)', padding: '4px 10px 4px 6px',
-                    borderRadius: '20px', border: 'var(--popup-card-border)'
-                  }}>
-                    <div style={{
-                      width: '22px', height: '22px', borderRadius: '50%',
-                      background: m.bg || '#3b82f6', display: 'flex',
-                      alignItems: 'center', justifyContent: 'center',
-                      color: '#fff', fontSize: '10px', fontWeight: '700', overflow: 'hidden'
-                    }}>
-                      {m.avatar ? <img src={m.avatar} alt={m.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : m.initials}
+                  <div key={m.name} className="member-card">
+                    <div className="member-card-left">
+                      <div className="member-card-avatar" style={{ background: m.bg || '#3b82f6' }}>
+                        {m.avatar ? <img src={m.avatar} alt={m.name} /> : m.initials}
+                      </div>
+                      <div className="member-card-info">
+                        <span className="member-card-name">{m.name}</span>
+                        <span className="member-card-role">{m.role || 'Member'}</span>
+                      </div>
                     </div>
-                    <span style={{ fontSize: '12px', color: 'var(--popup-text-main)', fontWeight: '500' }}>{m.name}</span>
-                    <button 
-                      type="button"
-                      onClick={() => removeMember(m.name)}
-                      style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px', display: 'flex' }}
-                    >
-                      <X size={12} />
-                    </button>
+                    <div className="member-card-right">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span className="review-access-label">Review Access</span>
+                        <label className="toggle-switch">
+                          <input 
+                            type="checkbox" 
+                            checked={!!m.reviewAccess}
+                            onChange={() => toggleReviewAccess(m.name)}
+                          />
+                          <span className="toggle-slider"></span>
+                        </label>
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={() => removeMember(m.name)}
+                        className="member-card-remove"
+                        title="Remove Member"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

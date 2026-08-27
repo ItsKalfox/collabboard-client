@@ -65,6 +65,11 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
   
   const isAssignee = String(assigneeId) === String(currentUserId);
   const isOwner = String(ownerId) === String(currentUserId);
+  
+  const currentUserMember = (project?.members || []).find(m => String(m.userId || m.id || m._id) === String(currentUserId));
+  const hasReviewAccess = currentUserMember ? currentUserMember.reviewAccess : false;
+  const canApprove = isOwner || hasReviewAccess;
+
   const isReadOnly = !isAssignee && !isOwner;
 
   const fileInputRef = useRef();
@@ -758,9 +763,9 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
                 return task.status === 'review' && !task.isApproved ? (
                   <button 
                     onClick={handleApprove}
-                    disabled={!isOwner}
-                    title={!isOwner ? "Only the project owner can approve this task" : "Approve this task"}
-                    style={{ marginLeft: 'auto', padding: '6px 14px', fontSize: '13px', fontWeight: 600, backgroundColor: !isOwner ? '#9ca3af' : '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: !isOwner ? 'not-allowed' : 'pointer', transition: 'all 0.2s' }}
+                    disabled={!canApprove}
+                    title={!canApprove ? "Only the project owner or designated reviewers can approve this task" : "Approve this task"}
+                    style={{ marginLeft: 'auto', padding: '6px 14px', fontSize: '13px', fontWeight: 600, backgroundColor: !canApprove ? '#9ca3af' : '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: !canApprove ? 'not-allowed' : 'pointer', transition: 'all 0.2s' }}
                   >
                     Approve Task
                   </button>

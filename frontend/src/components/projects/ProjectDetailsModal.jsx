@@ -636,6 +636,34 @@ export default function ProjectDetailsModal({
     }
   };
 
+  const handleToggleReviewAccess = async (memberObj) => {
+    if (!project?.id) return;
+    const targetUserId = memberObj.userId || memberObj.id || memberObj._id;
+    
+    try {
+      const updatedMembers = (project.members || []).map(m => {
+        const mId = m.userId || m.id || m._id;
+        if ((mId && targetUserId && mId === targetUserId) || (m.name === memberObj.name)) {
+          return { ...m, reviewAccess: !m.reviewAccess };
+        }
+        return m;
+      });
+
+      const updated = {
+        ...project,
+        members: updatedMembers
+      };
+      
+      await updateProject(project.id, { members: updatedMembers });
+
+      setProject(updated);
+      if (onSaveProject) onSaveProject(updated);
+    } catch (err) {
+      console.error('Failed to update review access:', err);
+      setMembersError('Failed to update review access');
+    }
+  };
+
   const handleRefreshTimeline = async () => {
     if (!project?.id || isRefreshingTimeline) return;
 
@@ -1360,29 +1388,50 @@ export default function ProjectDetailsModal({
                   No members found in this project.
                 </div>
               ) : (
-                project.members.map((m, idx) => {
-                  const norm = normalizeMember(m);
-                  return (
-                    <div key={norm.userId || norm.name || idx} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'var(--popup-card-bg)', border: 'var(--popup-card-border)', borderRadius: '12px' }}>
-                      <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: norm.bg || COLOR_HEX.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '14px', fontWeight: '700', overflow: 'hidden', flexShrink: 0 }}>
-                        {norm.avatar ? <img src={norm.avatar} alt={norm.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (norm.initials || (norm.name && norm.name.substring(0, 2)) || 'U')}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0px', marginTop: '8px' }}>
+                  {project.members.map((m, idx) => {
+                    const norm = normalizeMember(m);
+                    return (
+                      <div key={norm.userId || norm.name || idx} className="member-card">
+                        <div className="member-card-left">
+                          <div className="member-card-avatar" style={{ background: norm.bg || COLOR_HEX.blue }}>
+                            {norm.avatar ? <img src={norm.avatar} alt={norm.name} /> : (norm.initials || (norm.name && norm.name.substring(0, 2)) || 'U')}
+                          </div>
+                          <div className="member-card-info">
+                            <span className="member-card-name">{norm.name}</span>
+                            <span className="member-card-role">{ownerName === norm.name ? 'Owner' : norm.role || 'Member'}</span>
+                          </div>
+                        </div>
+                        <div className="member-card-right">
+                          {ownerName !== norm.name && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span className="review-access-label">Review Access</span>
+                              <label className="toggle-switch">
+                                <input 
+                                  type="checkbox" 
+                                  checked={!!m.reviewAccess}
+                                  disabled={!isOwner}
+                                  onChange={() => handleToggleReviewAccess(m)}
+                                />
+                                <span className="toggle-slider"></span>
+                              </label>
+                            </div>
+                          )}
+                          {isOwner && ownerName !== norm.name && (
+                            <button 
+                              type="button"
+                              onClick={() => setMemberToRemove(norm)}
+                              className="member-card-remove"
+                              title="Remove member"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <div style={{ flex: 1, textAlign: 'left' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '500', color: 'var(--popup-text-main)' }}>{norm.name}</div>
-                        <div style={{ fontSize: '12px', color: 'var(--popup-text-muted)' }}>{project.owner === norm.name ? 'Owner' : norm.role || 'Member'}</div>
-                      </div>
-                      {isOwner && project.owner !== norm.name && (
-                        <button 
-                          onClick={() => setMemberToRemove(norm)}
-                          style={{ background: 'var(--popup-btn-bg)', border: 'var(--popup-btn-border)', color: '#ef4444', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex' }}
-                          title="Remove member"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  );
-                })
+                    );
+                  })}
+                </div>
               )}
             </div>
           )}
