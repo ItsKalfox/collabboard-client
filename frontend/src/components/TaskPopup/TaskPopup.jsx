@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { X, Calendar, CheckSquare, Clock, AlignLeft, Users, CornerDownRight, Tag as TagIcon, Layout, FileText, Image as ImageIcon, FileCode, FileArchive, FileSpreadsheet, File, Loader2 } from 'lucide-react';
 import { formatDate } from '../../utils/dateUtils';
-import { isProjectOwner } from '../../utils/projectUtils';
+import { isProjectOwner, formatActivityText } from '../../utils/projectUtils';
 import ConfirmModal from '../Board/ConfirmModal';
 import './TaskPopup.css';
 
@@ -1102,11 +1102,11 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
           <div className="popup-activities-tab">
             {/* Activity log */}
             <div className="popup-activity-list">
-              {(task.activities || []).map((a, i) => (
+              {[...(task.activities || [])].reverse().map((a, i) => (
                 <div key={i} className="popup-activity-item">
-                  <div className="popup-activity-dot" />
+                  <div className="popup-activity-dot" style={{ backgroundColor: a.text?.toLowerCase().includes('rejected') ? '#ef4444' : a.text?.toLowerCase().includes('approved') ? '#10b981' : undefined }} />
                   <div className="popup-activity-content">
-                    <p className="popup-activity-text">{a.text}</p>
+                    <p className="popup-activity-text">{formatActivityText(a.text)}</p>
                     <span className="popup-activity-time">{a.timestamp}</span>
                   </div>
                 </div>

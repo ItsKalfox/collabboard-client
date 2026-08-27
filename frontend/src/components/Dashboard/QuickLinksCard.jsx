@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useRecentProjects } from '../../hooks/useDashboardData';
 import { Loader2, AlertCircle } from 'lucide-react';
-import { getInitials } from '../../mock/mockMembers';
+import { getInitials } from '../../utils/memberUtils';
 import './QuickLinksCard.css';
 
 export default function QuickLinksCard() {

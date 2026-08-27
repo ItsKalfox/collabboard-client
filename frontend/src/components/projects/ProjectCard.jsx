@@ -1,4 +1,4 @@
-import { normalizeMember, getInitials } from '../../mock/mockMembers';
+import { normalizeMember, getInitials } from '../../utils/memberUtils';
 
 const COLOR_HEX = {
   blue: '#3b82f6',

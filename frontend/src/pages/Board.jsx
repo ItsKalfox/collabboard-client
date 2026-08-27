@@ -9,7 +9,7 @@ import ProjectDetailsModal from '../components/projects/ProjectDetailsModal';
 
 import { Search, X } from 'lucide-react';
 import { searchUsers } from '../services/projectService';
-import { normalizeMember } from '../mock/mockMembers';
+import { normalizeMember } from '../utils/memberUtils';
 import './Board.css';
 
 export default function Board({ initialProjectId, selectedProject, onSelectProject, currentUser, theme = 'dark' }) {

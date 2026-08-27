@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Plus, Trash2, Calendar, Search, AlertCircle } from 'lucide-react';
-import { normalizeMember, getInitials } from '../../mock/mockMembers';
+import { normalizeMember, getInitials } from '../../utils/memberUtils';
 import { createProject, uploadCoverImage, uploadAttachment, searchUsers } from '../../services/projectService';
 import '../TaskPopup/TaskPopup.css';
 import './projects.css';

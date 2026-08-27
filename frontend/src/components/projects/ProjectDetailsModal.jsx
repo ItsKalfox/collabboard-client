@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, ArrowRight, ChevronDown, ChevronRight, UserPlus, Trash2, Calendar, Search, AlertCircle, Loader2, RefreshCw, Clock, CheckSquare, FileText, Image as ImageIcon, FileCode, FileArchive, FileSpreadsheet, File } from 'lucide-react';
-import { MOCK_MEMBERS, normalizeMember } from '../../mock/mockMembers';
+import { normalizeMember } from '../../utils/memberUtils';
 import { uploadCoverImage, getAttachments, uploadAttachment, deleteAttachment, getProjectMembers, searchUsers, addProjectMember, removeProjectMember, getProjectTasks, getProjectTimeline, refreshProjectTimeline, downloadAttachment, updateProject } from '../../services/projectService';
 import { calculateProjectProgress, isProjectOwner } from '../../utils/projectUtils';
 import DeleteConfirmModal from './DeleteConfirmModal';
@@ -536,11 +536,7 @@ export default function ProjectDetailsModal({
   };
 
   // Members functions
-  const availableMembers = MOCK_MEMBERS.filter(m => 
-    !project.members.some(existing => existing.name === m.name) &&
-    (m.name.toLowerCase().includes(memberSearch.toLowerCase()) ||
-     m.role.toLowerCase().includes(memberSearch.toLowerCase()))
-  );
+
 
   const addMemberToProject = async (userObj) => {
     if (!project?.id || isAddingMember) return;

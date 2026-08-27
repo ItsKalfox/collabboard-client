@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Search, AlertCircle } from 'lucide-react';
-import { normalizeMember, getInitials } from '../../mock/mockMembers';
+import { normalizeMember, getInitials } from '../../utils/memberUtils';
 import { updateProject, searchUsers } from '../../services/projectService';
 import '../TaskPopup/TaskPopup.css';
 import './projects.css';

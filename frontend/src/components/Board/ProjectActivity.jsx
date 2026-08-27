@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { formatActivityText } from '../../utils/projectUtils';
 import './ProjectActivity.css';
 
 const ACTIVITY_TYPE_LABELS = {
@@ -140,7 +141,7 @@ export default function ProjectActivity({ projectId }) {
                 </span>
                 <span className="activity-task-title">{act.taskTitle}</span>
               </div>
-              <p className="activity-text">{act.text}</p>
+              <p className="activity-text">{formatActivityText(act.text)}</p>
               <span className="activity-timestamp">{formatDate(act.timestamp)}</span>
             </div>
           </div>

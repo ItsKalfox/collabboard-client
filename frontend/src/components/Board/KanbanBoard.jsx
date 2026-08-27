@@ -17,7 +17,6 @@ import TaskPopup from '../TaskPopup/TaskPopup';
 import { formatDate } from '../../utils/dateUtils';
 import './KanbanBoard.css';
 
-import { INITIAL_PROJECTS } from '../../mock/mockProjects';
 
 
 const COLUMNS_DEF = [
@@ -101,26 +100,6 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
           // If network fetch fails, fallback to local mock data
         }
 
-        // If no tasks returned from API, check INITIAL_PROJECTS only if projectId is a mock ID starting with proj-
-        if (tasks.length === 0 && String(projectId).startsWith('proj-')) {
-          const foundProj = INITIAL_PROJECTS.find(p => p.id === projectId);
-          if (foundProj && foundProj.tasks && foundProj.tasks.length > 0) {
-            tasks = foundProj.tasks.map(t => ({
-              id: t.id || `task-${Math.random()}`,
-              title: t.title,
-              status: t.status || (t.completed ? 'completed' : 'todo'),
-              priority: t.priority || (t.completed ? 'low' : 'high'),
-              category: foundProj.name,
-              dueDate: foundProj.dueDate,
-              createdAt: foundProj.createdDate,
-              subtasks: t.subtasks ? t.subtasks.map(s => ({
-                id: s.id,
-                title: s.label || s.title,
-                completed: s.done || s.completed || false
-              })) : []
-            }));
-          }
-        }
 
         const newCols = COLUMNS_DEF.map(col => ({ ...col, tasks: [] }));
         tasks.forEach(task => {
