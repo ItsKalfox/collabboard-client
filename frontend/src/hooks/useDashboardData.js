@@ -34,8 +34,7 @@ export const useDashboardData = (fetchFunction, initialData = null) => {
 
   useEffect(() => {
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchData]);
 
   return { data, loading, error, refetch: fetchData };
 };
@@ -49,8 +48,9 @@ export const useOngoingProjects = () => {
   return useDashboardData(fetchOngoingProjects, []);
 };
 
-export const useTeamProgress = () => {
-  return useDashboardData(fetchTeamProgress, []);
+export const useTeamProgress = (projectId = '') => {
+  const fetchFn = useCallback(() => fetchTeamProgress(projectId), [projectId]);
+  return useDashboardData(fetchFn, []);
 };
 
 export const useRecentFiles = () => {

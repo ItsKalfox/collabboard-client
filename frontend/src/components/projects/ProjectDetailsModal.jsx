@@ -315,10 +315,9 @@ export default function ProjectDetailsModal({
   if (!isOpen || !project) return null;
 
   // Filter search results
-  const ownerName = project.owner || (currentUser?.name || 'Alex Johnson');
   const filteredSearchResults = searchResults.filter(user => {
     // Exclude owner
-    if (user.name && user.name.toLowerCase() === ownerName.toLowerCase()) return false;
+    if (isProjectOwner(project, user)) return false;
     if (user.email && currentUser?.email && user.email.toLowerCase() === currentUser.email.toLowerCase()) return false;
     
     // Exclude already added members
@@ -1387,6 +1386,7 @@ export default function ProjectDetailsModal({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0px', marginTop: '8px' }}>
                   {project.members.map((m, idx) => {
                     const norm = normalizeMember(m);
+                    const isThisMemberOwner = isProjectOwner(project, norm);
                     return (
                       <div key={norm.userId || norm.name || idx} className="member-card">
                         <div className="member-card-left">
@@ -1395,11 +1395,11 @@ export default function ProjectDetailsModal({
                           </div>
                           <div className="member-card-info">
                             <span className="member-card-name">{norm.name}</span>
-                            <span className="member-card-role">{ownerName === norm.name ? 'Owner' : norm.role || 'Member'}</span>
+                            <span className="member-card-role">{isThisMemberOwner ? 'Owner' : (norm.role ? norm.role.charAt(0).toUpperCase() + norm.role.slice(1) : 'Member')}</span>
                           </div>
                         </div>
                         <div className="member-card-right">
-                          {ownerName !== norm.name && !hideActions && (
+                          {!isThisMemberOwner && !hideActions && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                               <span className="review-access-label">Review Access</span>
                               <label className="toggle-switch">
@@ -1413,7 +1413,7 @@ export default function ProjectDetailsModal({
                               </label>
                             </div>
                           )}
-                          {isOwner && ownerName !== norm.name && !hideActions && (
+                          {isOwner && !isThisMemberOwner && !hideActions && (
                             <button 
                               type="button"
                               onClick={() => setMemberToRemove(norm)}

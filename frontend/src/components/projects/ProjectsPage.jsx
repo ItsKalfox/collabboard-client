@@ -40,6 +40,15 @@ export default function ProjectsPage({ theme = 'dark', currentUser, onOpenBoard 
           }));
           
           setProjects(formatted);
+
+          const openId = localStorage.getItem('openProjectModalId');
+          if (openId) {
+            const projToOpen = formatted.find(p => p._id === openId || p.id === openId);
+            if (projToOpen) {
+              setSelectedDetailsProject(projToOpen);
+              localStorage.removeItem('openProjectModalId');
+            }
+          }
         }
       } catch (err) {
         console.warn('Could not fetch projects from API:', err.message);
