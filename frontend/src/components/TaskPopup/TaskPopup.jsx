@@ -291,26 +291,53 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
     if (onUpdate) onUpdate();
   };
 
+  const [reviewComment, setReviewComment] = useState('');
+
   const handleApprove = async () => {
+    if (!reviewComment.trim()) return;
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       const token = localStorage.getItem('token');
       
-      await fetch(`${apiUrl}/tasks/${task.id}/status`, {
-        method: 'PATCH',
+      await fetch(`${apiUrl}/tasks/${task.id}/review`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ status: 'completed', isApproved: true })
+        body: JSON.stringify({ comment: reviewComment })
       });
       
       setTask(t => ({ 
         ...t, 
         status: 'completed', 
         isApproved: true,
-        activities: [{ text: `Task was approved and moved to Done`, timestamp: fmtNow() }, ...(t.activities || [])]
+        activities: [{ text: `Task is approved by ${currentUser?.name || 'You'} with this comment: ${reviewComment}`, timestamp: fmtNow() }, ...(t.activities || [])]
       }));
       if (onUpdate) onUpdate();
     } catch (e) {
       console.error('Failed to approve task', e);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!reviewComment.trim()) return;
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const token = localStorage.getItem('token');
+      
+      await fetch(`${apiUrl}/tasks/${task.id}/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ comment: reviewComment })
+      });
+      
+      setTask(t => ({ 
+        ...t, 
+        status: 'in_progress', 
+        isApproved: false,
+        activities: [{ text: `Task is rejected by ${currentUser?.name || 'You'} with this comment: ${reviewComment}`, timestamp: fmtNow() }, ...(t.activities || [])]
+      }));
+      if (onUpdate) onUpdate();
+    } catch (e) {
+      console.error('Failed to reject task', e);
     }
   };
 
@@ -759,22 +786,42 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
             </div>
             <div className="popup-meta-val popup-meta-text" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {formatStatus(task.status)}
-              {(() => {
-                return task.status === 'review' && !task.isApproved ? (
-                  <button 
-                    onClick={handleApprove}
-                    disabled={!canApprove}
-                    title={!canApprove ? "Only the project owner or designated reviewers can approve this task" : "Approve this task"}
-                    style={{ marginLeft: 'auto', padding: '6px 14px', fontSize: '13px', fontWeight: 600, backgroundColor: !canApprove ? '#9ca3af' : '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: !canApprove ? 'not-allowed' : 'pointer', transition: 'all 0.2s' }}
-                  >
-                    Approve Task
-                  </button>
-                ) : task.isApproved ? (
-                  <span style={{ marginLeft: 'auto', fontSize: '13px', color: '#10b981', fontWeight: 600 }}>✓ Approved</span>
-                ) : null;
-              })()}
+              {task.isApproved && (
+                <span style={{ marginLeft: 'auto', fontSize: '13px', color: '#10b981', fontWeight: 600 }}>✓ Approved</span>
+              )}
             </div>
           </div>
+
+          {/* Review Actions (Approve/Reject) */}
+          {task.status === 'review' && !task.isApproved && canApprove && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px', padding: '16px', background: 'var(--popup-card-bg, rgba(99, 102, 241, 0.05))', borderRadius: '12px', border: '1px solid var(--popup-border, #e5e7eb)' }}>
+              <textarea 
+                placeholder="Comment (Required)" 
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                rows={3}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--popup-border)', background: 'var(--popup-bg)', color: 'var(--popup-text-main)', fontSize: '13px', resize: 'vertical', fontFamily: 'inherit' }}
+              />
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button 
+                  onClick={handleApprove}
+                  disabled={!canApprove || !reviewComment.trim()}
+                  title={!canApprove ? "Only the project owner or designated reviewers can approve this task" : !reviewComment.trim() ? "A comment is required" : "Approve this task"}
+                  style={{ flex: 1, padding: '8px 16px', fontSize: '14px', fontWeight: 600, backgroundColor: (!canApprove || !reviewComment.trim()) ? '#9ca3af' : '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: (!canApprove || !reviewComment.trim()) ? 'not-allowed' : 'pointer', transition: 'all 0.2s' }}
+                >
+                  Approve Task
+                </button>
+                <button 
+                  onClick={handleReject}
+                  disabled={!canApprove || !reviewComment.trim()}
+                  title={!canApprove ? "Only the project owner or designated reviewers can reject this task" : !reviewComment.trim() ? "A comment is required" : "Reject this task"}
+                  style={{ flex: 1, padding: '8px 16px', fontSize: '14px', fontWeight: 600, backgroundColor: (!canApprove || !reviewComment.trim()) ? '#9ca3af' : '#ef4444', color: 'white', border: 'none', borderRadius: '8px', cursor: (!canApprove || !reviewComment.trim()) ? 'not-allowed' : 'pointer', transition: 'all 0.2s' }}
+                >
+                  Reject Task
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Created date (read-only always) */}
           <div className="popup-meta-row">

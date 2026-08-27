@@ -567,14 +567,14 @@ export default function ProjectDetailsModal({
       const newMemberData = await addProjectMember(project.id, {
         userId: userId,
         email: userEmail,
-        role: userObj.role || 'member'
+        role: 'member'
       });
 
       const normalized = normalizeMember(newMemberData || {
         userId: userId,
         name: userObj.name,
         email: userEmail,
-        role: userObj.role || 'member'
+        role: 'member'
       });
 
       const updated = {
@@ -729,7 +729,7 @@ export default function ProjectDetailsModal({
 
   return (
     <div className="popup-backdrop" onClick={() => !isEditing && onClose()}>
-      <div className={`popup-panel${lightCls}`} onClick={(e) => e.stopPropagation()}>
+      <div className={`popup-panel project-modal-theme${lightCls}`} onClick={(e) => e.stopPropagation()}>
         
         {/* Header */}
         <div className="popup-header">
@@ -1035,7 +1035,7 @@ export default function ProjectDetailsModal({
                       </svg>
                     )}
                   </button>
-                  {isOwner && (
+                  {isOwner && !hideActions && (
                     <button 
                       type="button"
                       onClick={(e) => removeAttachment(att.id, e)}
@@ -1403,7 +1403,7 @@ export default function ProjectDetailsModal({
                           </div>
                         </div>
                         <div className="member-card-right">
-                          {ownerName !== norm.name && (
+                          {ownerName !== norm.name && !hideActions && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                               <span className="review-access-label">Review Access</span>
                               <label className="toggle-switch">
@@ -1417,14 +1417,14 @@ export default function ProjectDetailsModal({
                               </label>
                             </div>
                           )}
-                          {isOwner && ownerName !== norm.name && (
+                          {isOwner && ownerName !== norm.name && !hideActions && (
                             <button 
                               type="button"
                               onClick={() => setMemberToRemove(norm)}
                               className="member-card-remove"
                               title="Remove member"
                             >
-                              <Trash2 size={14} />
+                              <X size={14} />
                             </button>
                           )}
                         </div>

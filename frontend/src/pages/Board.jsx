@@ -12,7 +12,7 @@ import { searchUsers } from '../services/projectService';
 import { normalizeMember } from '../mock/mockMembers';
 import './Board.css';
 
-export default function Board({ initialProjectId, selectedProject, onSelectProject, currentUser }) {
+export default function Board({ initialProjectId, selectedProject, onSelectProject, currentUser, theme = 'dark' }) {
   const [projects, setProjects] = useState(() => {
     const list = [];
     if (selectedProject && typeof selectedProject === 'object') {
@@ -914,6 +914,7 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
         onClose={() => setIsProjectDetailsOpen(false)}
         project={currentProject}
         currentUser={currentUser}
+        theme={theme}
         hideActions={true}
         onSaveProject={(updated) => {
           setProjects(prev => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p));

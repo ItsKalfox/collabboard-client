@@ -147,7 +147,7 @@ export const reviewTask = async (req, res) => {
         
         task.activities.push({
             type: 'approved',
-            text: 'Task was approved',
+            text: `Task is approved by ${req.user.name} with this comment: ${comment}`,
             fromStatus: oldStatus,
             toStatus: 'completed',
             userId: req.user.id
@@ -176,7 +176,7 @@ export const rejectTask = async (req, res) => {
         
         task.activities.push({
             type: 'rejected',
-            text: 'Task was rejected',
+            text: `Task is rejected by ${req.user.name} with this comment: ${comment}`,
             fromStatus: oldStatus,
             toStatus: 'in_progress',
             userId: req.user.id

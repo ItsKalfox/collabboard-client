@@ -188,7 +188,7 @@ export default function EditProjectModal({
         userId: m.id || m.userId || undefined,
         name: m.name,
         email: m.email || undefined,
-        role: m.role || 'member'
+        role: m.name === project.owner ? 'owner' : 'member'
       }))
     };
 

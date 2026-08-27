@@ -281,7 +281,7 @@ export default function CreateProjectModal({
           userId: m.id || m.userId || (m.name === ownerName ? (currentUser?.id || undefined) : undefined),
           name: m.name,
           email: m.email || undefined,
-          role: m.role || 'member'
+          role: m.name === ownerName ? 'owner' : 'member'
         })),
         tasks: finalTasks.map(t => ({
           title: t.title,

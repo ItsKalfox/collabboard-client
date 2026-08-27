@@ -2,7 +2,8 @@
    Theme variables — set once, inherited everywhere
    ============================================ */
 
-.projects-page {
+.projects-page,
+.project-modal-theme {
   --text: #ffffff;
   --text-dim: #9ca3af;
   --text-mute: #6b7280;
@@ -17,7 +18,9 @@
   --danger: #f87171;
   --danger-hi: rgba(239, 68, 68, 0.1);
   --shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.5);
+}
 
+.projects-page {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -32,7 +35,8 @@
   color: var(--text);
 }
 
-.projects-page.light {
+.projects-page.light,
+.project-modal-theme.light {
   --text: #111827;
   --text-dim: #4b5563;
   --text-mute: #6b7280;
@@ -49,7 +53,8 @@
   --shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.15);
 }
 
-.projects-page * { box-sizing: border-box; }
+.projects-page *,
+.project-modal-theme * { box-sizing: border-box; }
 
 /* ============================================
    Glass surfaces
@@ -654,6 +659,8 @@
 .member-card-info {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
 }
 .member-card-name {
   font-size: 14px;
