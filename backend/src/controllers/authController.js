@@ -1,30 +1,26 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
-import User from '../models/User.js';
+import userService from '../services/userService.js';
 import Otp from '../models/Otp.js';
 
 export const registerUser = async (req, res) => {
     try {
         const { name, email, password } = req.body;
 
-        // Manual validation
         if (!name || !email || !password) {
             return res.status(400).json({ status: 'error', message: 'Name, email, and password are required' });
         }
 
-        // Check if user already exists
-        const userExists = await User.findOne({ email });
+        const userExists = await userService.getUserByEmail(email);
         if (userExists) {
             return res.status(409).json({ status: 'error', message: 'Email is already registered' });
         }
 
-        // Hash password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Create new user
-        const newUser = await User.create({
+        const newUser = await userService.createUser({
             name,
             email,
             password: hashedPassword
@@ -50,24 +46,20 @@ export const loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Manual validation
         if (!email || !password) {
             return res.status(400).json({ status: 'error', message: 'Email and password are required' });
         }
 
-        // Check if user exists
-        const user = await User.findOne({ email });
+        const user = await userService.getUserByEmail(email);
         if (!user) {
             return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
         }
 
-        // Compare password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
         }
 
-        // Generate JWT token
         const payload = {
             id: user._id,
             email: user.email
@@ -103,10 +95,9 @@ export const loginUser = async (req, res) => {
 
 export const getCurrentUser = async (req, res) => {
     try {
-        // req.user might just be payload from token, so fetch full user
-        const user = await User.findById(req.user.id).select('-password');
+        const user = await userService.getUserByIdWithoutPassword(req.user.id);
         if (!user) {
-             return res.status(404).json({ status: 'error', message: 'User not found' });
+            return res.status(404).json({ status: 'error', message: 'User not found' });
         }
 
         res.status(200).json({
@@ -123,7 +114,7 @@ export const getCurrentUser = async (req, res) => {
                 }
             }
         });
-    } catch(error) {
+    } catch (error) {
         console.error('Get current user error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -136,18 +127,14 @@ export const forgotPassword = async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'Email is required' });
         }
 
-        const user = await User.findOne({ email });
+        const user = await userService.getUserByEmail(email);
         if (!user) {
             return res.status(404).json({ status: 'error', message: 'User not found' });
         }
 
-        // Generate 6-digit OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        
-        // Expiration time: 15 minutes from now
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
-        // Delete any existing OTP for this user and create a new one
         await Otp.deleteMany({ userId: user._id });
         await Otp.create({
             userId: user._id,
@@ -155,7 +142,6 @@ export const forgotPassword = async (req, res) => {
             expiresAt
         });
 
-        // Send Email
         const transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST,
             port: process.env.SMTP_PORT,
@@ -186,14 +172,13 @@ export const resetPassword = async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'Email, OTP, and new password are required' });
         }
 
-        const user = await User.findOne({ email });
+        const user = await userService.getUserByEmail(email);
         if (!user) {
             return res.status(404).json({ status: 'error', message: 'User not found' });
         }
 
         const userOtpRecord = await Otp.findOne({ userId: user._id });
 
-        // Validate OTP
         if (!userOtpRecord || userOtpRecord.otp !== otp) {
             return res.status(400).json({ status: 'error', message: 'Invalid OTP' });
         }
@@ -202,13 +187,11 @@ export const resetPassword = async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'OTP has expired' });
         }
 
-        // Hash new password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-        // Update password and clear OTP
         user.password = hashedPassword;
-        await user.save();
+        await userService.saveUser(user);
 
         await Otp.deleteOne({ _id: userOtpRecord._id });
 
@@ -219,7 +202,6 @@ export const resetPassword = async (req, res) => {
     }
 };
 
-// PATCH /api/auth/profile — Update first name and last name (authenticated)
 export const updateProfile = async (req, res) => {
     try {
         const { firstName, lastName } = req.body;
@@ -228,23 +210,22 @@ export const updateProfile = async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'First name and last name are required' });
         }
 
-        const user = await User.findById(req.user.id);
+        const user = await userService.getUserById(req.user.id);
 
         if (!user) {
             return res.status(404).json({ status: 'error', message: 'User not found' });
         }
 
-        // Update name fields — store both combined and split for compatibility
         user.firstName = firstName.trim();
         user.lastName = lastName.trim();
         user.name = `${firstName.trim()} ${lastName.trim()}`;
 
-        await user.save();
+        await userService.saveUser(user);
 
         res.status(200).json({
             status: 'success',
             message: 'Profile updated successfully',
-            data: { 
+            data: {
                 user: {
                     id: user._id,
                     name: user.name,
@@ -253,7 +234,7 @@ export const updateProfile = async (req, res) => {
                     firstName: user.firstName,
                     lastName: user.lastName,
                     team: user.team
-                } 
+                }
             }
         });
     } catch (error) {
@@ -262,7 +243,6 @@ export const updateProfile = async (req, res) => {
     }
 };
 
-// PATCH /api/auth/email — Change email address (requires current password, authenticated)
 export const updateEmail = async (req, res) => {
     try {
         const { email, currentPassword } = req.body;
@@ -271,32 +251,29 @@ export const updateEmail = async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'New email and current password are required' });
         }
 
-        const user = await User.findById(req.user.id);
+        const user = await userService.getUserById(req.user.id);
 
         if (!user) {
             return res.status(404).json({ status: 'error', message: 'User not found' });
         }
 
-        // Verify current password
         const isMatch = await bcrypt.compare(currentPassword, user.password);
         if (!isMatch) {
             return res.status(401).json({ status: 'error', message: 'Current password is incorrect' });
         }
 
-        // Check if the new email is already taken by another user
-        const emailTaken = await User.findOne({ email: email.trim().toLowerCase(), _id: { $ne: user._id } });
+        const emailTaken = await userService.findOne({ email: email.trim().toLowerCase(), _id: { $ne: user._id } });
         if (emailTaken) {
             return res.status(409).json({ status: 'error', message: 'Email is already registered to another account' });
         }
 
-        // Update email
         user.email = email.trim().toLowerCase();
-        await user.save();
+        await userService.saveUser(user);
 
         res.status(200).json({
             status: 'success',
             message: 'Email updated successfully',
-            data: { 
+            data: {
                 user: {
                     id: user._id,
                     name: user.name,
@@ -305,7 +282,7 @@ export const updateEmail = async (req, res) => {
                     firstName: user.firstName,
                     lastName: user.lastName,
                     team: user.team
-                } 
+                }
             }
         });
     } catch (error) {
@@ -314,7 +291,6 @@ export const updateEmail = async (req, res) => {
     }
 };
 
-// PATCH /api/auth/password — Change password while authenticated
 export const changePassword = async (req, res) => {
     try {
         const { currentPassword, newPassword, confirmNewPassword } = req.body;
@@ -331,24 +307,22 @@ export const changePassword = async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'New password must be at least 6 characters' });
         }
 
-        const user = await User.findById(req.user.id);
+        const user = await userService.getUserById(req.user.id);
 
         if (!user) {
             return res.status(404).json({ status: 'error', message: 'User not found' });
         }
 
-        // Verify current password
         const isMatch = await bcrypt.compare(currentPassword, user.password);
         if (!isMatch) {
             return res.status(401).json({ status: 'error', message: 'Current password is incorrect' });
         }
 
-        // Hash and save new password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(newPassword, salt);
 
         user.password = hashedPassword;
-        await user.save();
+        await userService.saveUser(user);
 
         res.status(200).json({
             status: 'success',

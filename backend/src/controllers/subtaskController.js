@@ -4,18 +4,18 @@ export const updateSubtask = async (req, res) => {
     try {
         const { subtaskId } = req.params;
         const { title, description, completed, comments } = req.body;
-        
+
         const task = await Task.findOne({ "subtasks._id": subtaskId });
         if (!task) return res.status(404).json({ status: 'error', message: 'Subtask not found' });
-        
+
         const subtask = task.subtasks.id(subtaskId);
         if (title !== undefined) subtask.title = title;
         if (description !== undefined) subtask.description = description;
         if (completed !== undefined) subtask.completed = completed;
         if (comments !== undefined) subtask.comments = comments; // Assuming comments might be added to subtasks schema later if needed
-        
+
         await task.save();
-        
+
         res.status(200).json({ status: 'success', data: { subtask } });
     } catch (error) {
         console.error('Error updating subtask:', error);
@@ -26,13 +26,13 @@ export const updateSubtask = async (req, res) => {
 export const deleteSubtask = async (req, res) => {
     try {
         const { subtaskId } = req.params;
-        
+
         const task = await Task.findOne({ "subtasks._id": subtaskId });
         if (!task) return res.status(404).json({ status: 'error', message: 'Subtask not found' });
-        
+
         task.subtasks.pull(subtaskId);
         await task.save();
-        
+
         res.status(200).json({ status: 'success', message: 'Subtask deleted successfully' });
     } catch (error) {
         console.error('Error deleting subtask:', error);

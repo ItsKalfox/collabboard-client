@@ -1,11 +1,11 @@
 import cloudinary from '../config/cloudinary.js';
-import User from '../models/User.js';
+import userService from '../services/userService.js';
 
 export const searchUsers = async (req, res) => {
     try {
         const { q } = req.query;
         let query = {};
-        
+
         if (q && q.trim() !== '') {
             const searchTerm = q.trim();
             query = {
@@ -16,7 +16,7 @@ export const searchUsers = async (req, res) => {
             };
         }
 
-        const users = await User.find(query).select('-password').exec();
+        const users = await userService.searchUsers(query);
 
         res.status(200).json({
             status: 'success',
@@ -32,11 +32,11 @@ export const uploadAvatar = async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ status: 'error', message: 'No image file provided' });
 
-        const user = await User.findById(req.user.id);
+        const user = await userService.getUserById(req.user.id);
         if (!user) return res.status(404).json({ status: 'error', message: 'User not found' });
 
         if (user.avatarPublicId) {
-            try { await cloudinary.uploader.destroy(user.avatarPublicId); } catch (e) {}
+            try { await cloudinary.uploader.destroy(user.avatarPublicId); } catch (e) { }
         }
 
         const uploadResult = await new Promise((resolve, reject) => {
@@ -60,8 +60,8 @@ export const uploadAvatar = async (req, res) => {
 
         user.avatar = uploadResult.secure_url;
         user.avatarPublicId = uploadResult.public_id;
-        await user.save();
-        
+        await userService.saveUser(user);
+
         const userObj = user.toObject();
         delete userObj.password;
 
@@ -78,17 +78,17 @@ export const uploadAvatar = async (req, res) => {
 
 export const removeAvatar = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id);
+        const user = await userService.getUserById(req.user.id);
         if (!user) return res.status(404).json({ status: 'error', message: 'User not found' });
 
         if (user.avatarPublicId) {
-            try { await cloudinary.uploader.destroy(user.avatarPublicId); } catch (e) {}
+            try { await cloudinary.uploader.destroy(user.avatarPublicId); } catch (e) { }
         }
 
         user.avatar = null;
         user.avatarPublicId = null;
-        await user.save();
-        
+        await userService.saveUser(user);
+
         const userObj = user.toObject();
         delete userObj.password;
 

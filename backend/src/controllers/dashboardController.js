@@ -59,7 +59,7 @@ export const getOngoingProjectsStats = async (req, res) => {
             status: 'active',
             $or: [{ ownerId: userId }, { 'members.userId': userId }]
         });
-        
+
         const projectIds = activeProjects.map(p => p._id);
         const tasks = await Task.find({ projectId: { $in: projectIds } });
 
@@ -137,7 +137,7 @@ export const getTeamProgress = async (req, res) => {
         }
 
         const projects = await Project.find(query);
-        
+
         const relevantUserIds = new Set();
         projects.forEach(p => {
             relevantUserIds.add(p.ownerId.toString());
@@ -187,13 +187,13 @@ export const getTeamProgress = async (req, res) => {
         const membersArray = Object.values(memberStats).map(member => {
             overallTotalTasks += member.totalTasks;
             overallCompletedTasks += member.completedTasks;
-            
+
             return {
                 ...member,
                 progress: member.totalTasks === 0 ? 0 : Number(((member.completedTasks / member.totalTasks) * 100).toFixed(1))
             };
         });
-        
+
         membersArray.sort((a, b) => b.totalTasks - a.totalTasks);
 
         res.status(200).json({
@@ -217,7 +217,7 @@ export const getRecentFiles = async (req, res) => {
         const projects = await Project.find({
             $or: [{ ownerId: userId }, { 'members.userId': userId }]
         });
-        
+
         const projectIds = projects.map(p => p._id);
         const attachments = await Attachment.find({
             $or: [{ projectId: { $in: projectIds } }, { uploadedBy: userId }]

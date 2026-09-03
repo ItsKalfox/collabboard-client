@@ -33,7 +33,7 @@ export const getProjects = async (req, res) => {
 
         const projectIds = projects.map(p => p._id);
         const allTasks = await Task.find({ projectId: { $in: projectIds } }).exec();
-        
+
         const tasksByProject = {};
         allTasks.forEach(t => {
             const pid = t.projectId.toString();
@@ -72,7 +72,7 @@ export const getProjectById = async (req, res) => {
     try {
         const project = await Project.findById(req.params.id).populate('members.userId', 'name email avatar').exec();
         if (!project) return res.status(404).json({ status: 'error', message: 'Project not found' });
-        
+
         const projObj = project.toObject();
         projObj.members = projObj.members.map(m => {
             const user = m.userId;
@@ -155,7 +155,7 @@ export const updateProject = async (req, res) => {
     try {
         const project = await Project.findById(req.params.id);
         if (!project) return res.status(404).json({ status: 'error', message: 'Project not found' });
-        
+
         if (project.ownerId.toString() !== req.user.id) {
             return res.status(403).json({ status: 'error', message: 'You are not authorized to update this project' });
         }
@@ -167,7 +167,7 @@ export const updateProject = async (req, res) => {
                 todayStart.setHours(0, 0, 0, 0);
                 const createdAt = new Date(project.createdAt);
                 createdAt.setHours(0, 0, 0, 0);
-                
+
                 if (newDue < todayStart) {
                     return res.status(400).json({ status: 'error', message: 'Due date cannot be before today' });
                 }
@@ -179,7 +179,7 @@ export const updateProject = async (req, res) => {
 
         // Safely update fields using Mongoose's .set() method
         project.set(req.body);
-        
+
         // Explicitly ensure dueDate is set correctly, handling empty strings as null
         if (req.body.dueDate !== undefined) {
             project.dueDate = req.body.dueDate || null;
@@ -199,7 +199,7 @@ export const deleteProject = async (req, res) => {
     try {
         const project = await Project.findById(req.params.id);
         if (!project) return res.status(404).json({ status: 'error', message: 'Project not found' });
-        
+
         if (project.ownerId.toString() !== req.user.id) {
             return res.status(403).json({ status: 'error', message: 'You are not authorized to delete this project' });
         }
@@ -220,7 +220,7 @@ export const uploadCoverImage = async (req, res) => {
     try {
         const project = await Project.findById(req.params.id);
         if (!project) return res.status(404).json({ status: 'error', message: 'Project not found' });
-        
+
         if (project.ownerId.toString() !== req.user.id) {
             return res.status(403).json({ status: 'error', message: 'You are not authorized to update this project' });
         }
@@ -302,14 +302,14 @@ export const deleteAttachment = async (req, res) => {
     try {
         const attachment = await Attachment.findOne({ _id: req.params.attachmentId, projectId: req.params.id });
         if (!attachment) return res.status(404).json({ status: 'error', message: 'Attachment not found' });
-        
+
         const project = await Project.findById(req.params.id);
         if (attachment.uploadedBy.toString() !== req.user.id && project.ownerId.toString() !== req.user.id) {
             return res.status(403).json({ status: 'error', message: 'Not authorized' });
         }
 
         if (attachment.publicId) {
-            try { await cloudinary.uploader.destroy(attachment.publicId); } catch (e) {}
+            try { await cloudinary.uploader.destroy(attachment.publicId); } catch (e) { }
         }
         await Attachment.findByIdAndDelete(req.params.attachmentId);
         res.status(200).json({ status: 'success', message: 'Attachment deleted successfully' });
@@ -414,7 +414,7 @@ export const getProjectTasks = async (req, res) => {
 export const getProjectTimeline = async (req, res) => {
     try {
         const tasks = await Task.find({ projectId: req.params.id }).sort({ createdAt: -1 }).limit(parseInt(req.query.limit) || 20).populate('assigneeId', 'name');
-        
+
         const timeline = tasks.map(t => ({
             id: t._id,
             projectId: t.projectId,
@@ -437,7 +437,7 @@ export const downloadAttachment = async (req, res) => {
     try {
         const attachment = await Attachment.findOne({ _id: req.params.attachmentId, projectId: req.params.id });
         if (!attachment) return res.status(404).json({ status: 'error', message: 'Attachment not found' });
-        
+
         res.redirect(attachment.url); // Simplified download logic using Cloudinary URL
     } catch (error) {
         res.status(500).json({ status: 'error', message: 'Server error' });

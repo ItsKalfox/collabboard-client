@@ -6,7 +6,7 @@ export const getAttachmentById = async (req, res) => {
     try {
         const attachment = await Attachment.findById(req.params.attachmentId);
         if (!attachment) return res.status(404).json({ status: 'error', message: 'Attachment not found' });
-        
+
         res.status(200).json({ status: 'success', data: { attachment } });
     } catch (error) {
         res.status(500).json({ status: 'error', message: 'Server error' });
@@ -17,13 +17,13 @@ export const deleteAttachmentById = async (req, res) => {
     try {
         const attachment = await Attachment.findById(req.params.attachmentId);
         if (!attachment) return res.status(404).json({ status: 'error', message: 'Attachment not found' });
-        
+
         if (attachment.publicId) {
-            try { await cloudinary.uploader.destroy(attachment.publicId); } catch (e) {}
+            try { await cloudinary.uploader.destroy(attachment.publicId); } catch (e) { }
         }
-        
+
         await Attachment.findByIdAndDelete(req.params.attachmentId);
-        
+
         if (attachment.taskId) {
             const task = await Task.findById(attachment.taskId);
             if (task && task.attachments) {
@@ -31,7 +31,7 @@ export const deleteAttachmentById = async (req, res) => {
                 await task.save();
             }
         }
-        
+
         res.status(200).json({ status: 'success', message: 'Attachment deleted successfully' });
     } catch (error) {
         res.status(500).json({ status: 'error', message: 'Server error' });
