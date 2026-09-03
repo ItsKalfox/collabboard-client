@@ -34,6 +34,11 @@ const taskSchema = new mongoose.Schema({
     timestamps: true
 });
 
+// Indexes to support task filtering by project/assignee, timeline sorting, and subtask lookups
+taskSchema.index({ projectId: 1, createdAt: -1 });
+taskSchema.index({ assigneeId: 1, projectId: 1 });
+taskSchema.index({ 'subtasks._id': 1 });
+
 taskSchema.virtual('id').get(function() {
     return this._id.toHexString();
 });

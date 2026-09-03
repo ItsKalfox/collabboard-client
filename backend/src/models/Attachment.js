@@ -14,6 +14,11 @@ const attachmentSchema = new mongoose.Schema({
     timestamps: true
 });
 
+// Indexes to support attachment queries by project, task, and uploader
+attachmentSchema.index({ projectId: 1 });
+attachmentSchema.index({ taskId: 1 });
+attachmentSchema.index({ uploadedBy: 1 });
+
 attachmentSchema.virtual('id').get(function() {
     return this._id.toHexString();
 });

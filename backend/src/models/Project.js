@@ -18,6 +18,10 @@ const projectSchema = new mongoose.Schema({
     timestamps: true
 });
 
+// Indexes to support project ownership and membership queries
+projectSchema.index({ ownerId: 1 });
+projectSchema.index({ 'members.userId': 1 });
+
 // Ensure virtual 'id' is generated
 projectSchema.virtual('id').get(function() {
     return this._id.toHexString();
