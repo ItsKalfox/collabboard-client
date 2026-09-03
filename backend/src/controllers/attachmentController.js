@@ -1,10 +1,10 @@
 import cloudinary from '../config/cloudinary.js';
-import Attachment from '../models/Attachment.js';
+import attachmentRepository from '../repositories/attachmentRepository.js';
 import taskRepository from '../repositories/taskRepository.js';
 
 export const getAttachmentById = async (req, res) => {
     try {
-        const attachment = await Attachment.findById(req.params.attachmentId);
+        const attachment = await attachmentRepository.findById(req.params.attachmentId);
         if (!attachment) return res.status(404).json({ status: 'error', message: 'Attachment not found' });
 
         res.status(200).json({ status: 'success', data: { attachment } });
@@ -15,14 +15,14 @@ export const getAttachmentById = async (req, res) => {
 
 export const deleteAttachmentById = async (req, res) => {
     try {
-        const attachment = await Attachment.findById(req.params.attachmentId);
+        const attachment = await attachmentRepository.findById(req.params.attachmentId);
         if (!attachment) return res.status(404).json({ status: 'error', message: 'Attachment not found' });
 
         if (attachment.publicId) {
             try { await cloudinary.uploader.destroy(attachment.publicId); } catch (e) { }
         }
 
-        await Attachment.findByIdAndDelete(req.params.attachmentId);
+        await attachmentRepository.findByIdAndDelete(req.params.attachmentId);
 
         if (attachment.taskId) {
             const task = await taskRepository.findById(attachment.taskId);

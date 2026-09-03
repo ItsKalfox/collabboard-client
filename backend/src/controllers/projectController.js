@@ -1,7 +1,7 @@
 import cloudinary from '../config/cloudinary.js';
 import projectRepository from '../repositories/projectRepository.js';
 import taskRepository from '../repositories/taskRepository.js';
-import Attachment from '../models/Attachment.js';
+import attachmentRepository from '../repositories/attachmentRepository.js';
 import userService from '../services/userService.js';
 
 // Helper to upload a buffer to Cloudinary
@@ -206,7 +206,7 @@ export const deleteProject = async (req, res) => {
 
         await projectRepository.findByIdAndDelete(req.params.id);
         await taskRepository.deleteMany({ projectId: req.params.id });
-        await Attachment.deleteMany({ projectId: req.params.id });
+        await attachmentRepository.deleteMany({ projectId: req.params.id });
 
         res.status(200).json({ status: 'success', message: 'Project deleted successfully' });
     } catch (error) {
@@ -251,7 +251,7 @@ export const uploadCoverImage = async (req, res) => {
 // GET /api/projects/:id/attachments
 export const getAttachments = async (req, res) => {
     try {
-        const attachments = await Attachment.find({ projectId: req.params.id });
+        const attachments = await attachmentRepository.find({ projectId: req.params.id });
         res.status(200).json({ status: 'success', data: { attachments } });
     } catch (error) {
         res.status(500).json({ status: 'error', message: 'Server error' });
@@ -281,7 +281,7 @@ export const addAttachment = async (req, res) => {
 
         if (!fileUrl) return res.status(400).json({ status: 'error', message: 'Attachment file is required' });
 
-        const attachment = await Attachment.create({
+        const attachment = await attachmentRepository.create({
             projectId: req.params.id,
             filename,
             url: fileUrl,
@@ -300,7 +300,7 @@ export const addAttachment = async (req, res) => {
 // DELETE /api/projects/:id/attachments/:attachmentId
 export const deleteAttachment = async (req, res) => {
     try {
-        const attachment = await Attachment.findOne({ _id: req.params.attachmentId, projectId: req.params.id });
+        const attachment = await attachmentRepository.findOne({ _id: req.params.attachmentId, projectId: req.params.id });
         if (!attachment) return res.status(404).json({ status: 'error', message: 'Attachment not found' });
 
         const project = await projectRepository.findById(req.params.id);
@@ -311,7 +311,7 @@ export const deleteAttachment = async (req, res) => {
         if (attachment.publicId) {
             try { await cloudinary.uploader.destroy(attachment.publicId); } catch (e) { }
         }
-        await Attachment.findByIdAndDelete(req.params.attachmentId);
+        await attachmentRepository.findByIdAndDelete(req.params.attachmentId);
         res.status(200).json({ status: 'success', message: 'Attachment deleted successfully' });
     } catch (error) {
         res.status(500).json({ status: 'error', message: 'Server error' });
@@ -435,7 +435,7 @@ export const refreshProjectTimeline = getProjectTimeline;
 
 export const downloadAttachment = async (req, res) => {
     try {
-        const attachment = await Attachment.findOne({ _id: req.params.attachmentId, projectId: req.params.id });
+        const attachment = await attachmentRepository.findOne({ _id: req.params.attachmentId, projectId: req.params.id });
         if (!attachment) return res.status(404).json({ status: 'error', message: 'Attachment not found' });
 
         res.redirect(attachment.url); // Simplified download logic using Cloudinary URL

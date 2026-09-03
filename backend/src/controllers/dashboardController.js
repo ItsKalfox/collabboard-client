@@ -1,6 +1,6 @@
 import projectRepository from '../repositories/projectRepository.js';
 import taskRepository from '../repositories/taskRepository.js';
-import Attachment from '../models/Attachment.js';
+import attachmentRepository from '../repositories/attachmentRepository.js';
 import User from '../models/User.js';
 
 export const getTimeline = async (req, res) => {
@@ -219,9 +219,9 @@ export const getRecentFiles = async (req, res) => {
         });
 
         const projectIds = projects.map(p => p._id);
-        const attachments = await Attachment.find({
+        const attachments = await attachmentRepository.findRecentAttachments({
             $or: [{ projectId: { $in: projectIds } }, { uploadedBy: userId }]
-        }).sort({ uploadedAt: -1 }).populate('uploadedBy', 'name avatar');
+        }, { uploadedAt: -1 }, 'uploadedBy', 'name avatar');
 
         const recentFiles = attachments.map(att => ({
             id: att._id,

@@ -1,6 +1,6 @@
 import cloudinary from '../config/cloudinary.js';
 import taskRepository from '../repositories/taskRepository.js';
-import Attachment from '../models/Attachment.js';
+import attachmentRepository from '../repositories/attachmentRepository.js';
 
 const uploadToCloudinary = (buffer, options) => {
     return new Promise((resolve, reject) => {
@@ -96,7 +96,7 @@ export const deleteTask = async (req, res) => {
             try { await cloudinary.uploader.destroy(task.imagePublicId); } catch (e) { }
         }
         await taskRepository.findByIdAndDelete(req.params.taskId);
-        await Attachment.deleteMany({ taskId: req.params.taskId });
+        await attachmentRepository.deleteMany({ taskId: req.params.taskId });
 
         res.status(200).json({ status: 'success', message: 'Task deleted successfully' });
     } catch (error) {
@@ -291,7 +291,7 @@ export const deleteTaskImage = async (req, res) => {
 
 export const getTaskAttachments = async (req, res) => {
     try {
-        const attachments = await Attachment.find({ taskId: req.params.taskId });
+        const attachments = await attachmentRepository.find({ taskId: req.params.taskId });
         res.status(200).json({ status: 'success', data: { attachments } });
     } catch (error) {
         res.status(500).json({ status: 'error', message: 'Server error' });
@@ -320,7 +320,7 @@ export const addTaskAttachment = async (req, res) => {
 
         if (!fileUrl) return res.status(400).json({ status: 'error', message: 'File is required' });
 
-        const attachment = await Attachment.create({
+        const attachment = await attachmentRepository.create({
             taskId: req.params.taskId,
             filename,
             url: fileUrl,
@@ -345,13 +345,13 @@ export const deleteTaskAttachment = async (req, res) => {
         const { task, error, status } = await checkTaskAuth(req.params.taskId, req.user.id);
         if (error) return res.status(status).json({ status: 'error', message: error });
 
-        const attachment = await Attachment.findOne({ _id: req.params.attachmentId, taskId: req.params.taskId });
+        const attachment = await attachmentRepository.findOne({ _id: req.params.attachmentId, taskId: req.params.taskId });
         if (!attachment) return res.status(404).json({ status: 'error', message: 'Attachment not found' });
 
         if (attachment.publicId) {
             try { await cloudinary.uploader.destroy(attachment.publicId); } catch (e) { }
         }
-        await Attachment.findByIdAndDelete(req.params.attachmentId);
+        await attachmentRepository.findByIdAndDelete(req.params.attachmentId);
 
         res.status(200).json({ status: 'success', message: 'Attachment deleted' });
     } catch (error) {

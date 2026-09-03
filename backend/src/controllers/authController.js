@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 import userService from '../services/userService.js';
-import Otp from '../models/Otp.js';
+import otpRepository from '../repositories/otpRepository.js';
 
 export const registerUser = async (req, res) => {
     try {
@@ -135,8 +135,8 @@ export const forgotPassword = async (req, res) => {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
-        await Otp.deleteMany({ userId: user._id });
-        await Otp.create({
+        await otpRepository.deleteMany({ userId: user._id });
+        await otpRepository.create({
             userId: user._id,
             otp,
             expiresAt
@@ -177,7 +177,7 @@ export const resetPassword = async (req, res) => {
             return res.status(404).json({ status: 'error', message: 'User not found' });
         }
 
-        const userOtpRecord = await Otp.findOne({ userId: user._id });
+        const userOtpRecord = await otpRepository.findOne({ userId: user._id });
 
         if (!userOtpRecord || userOtpRecord.otp !== otp) {
             return res.status(400).json({ status: 'error', message: 'Invalid OTP' });
@@ -193,7 +193,7 @@ export const resetPassword = async (req, res) => {
         user.password = hashedPassword;
         await userService.saveUser(user);
 
-        await Otp.deleteOne({ _id: userOtpRecord._id });
+        await otpRepository.deleteOne({ _id: userOtpRecord._id });
 
         res.status(200).json({ status: 'success', message: 'Password reset successfully' });
     } catch (error) {
