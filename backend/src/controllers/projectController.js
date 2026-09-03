@@ -65,6 +65,10 @@ export const getProjects = async (req, res) => {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
         }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         console.error('Get projects error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -94,6 +98,10 @@ export const getProjectById = async (req, res) => {
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
         }
         console.error('Get project by ID error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
@@ -154,6 +162,10 @@ export const createProject = async (req, res) => {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
         }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         console.error('Create project error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -201,6 +213,10 @@ export const updateProject = async (req, res) => {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
         }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         console.error('Update project error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -224,6 +240,10 @@ export const deleteProject = async (req, res) => {
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
         }
         console.error('Delete project error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
@@ -261,6 +281,10 @@ export const uploadCoverImage = async (req, res) => {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
         }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         console.error('Upload cover image error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -274,6 +298,10 @@ export const getAttachments = async (req, res) => {
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
         }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -317,6 +345,10 @@ export const addAttachment = async (req, res) => {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
         }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -340,6 +372,10 @@ export const deleteAttachment = async (req, res) => {
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
         }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -368,6 +404,10 @@ export const getProjectMembers = async (req, res) => {
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
         }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -405,6 +445,10 @@ export const addProjectMember = async (req, res) => {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
         }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -431,6 +475,10 @@ export const removeProjectMember = async (req, res) => {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
         }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -443,6 +491,10 @@ export const getProjectTasks = async (req, res) => {
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
         }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -469,6 +521,10 @@ export const getProjectTimeline = async (req, res) => {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
         }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -484,6 +540,10 @@ export const downloadAttachment = async (req, res) => {
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
         }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }

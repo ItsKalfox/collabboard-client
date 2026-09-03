@@ -50,6 +50,10 @@ export const getTimeline = async (req, res) => {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
         }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         console.error('Error in getTimeline:', error);
         res.status(500).json({ status: 'error', message: 'Internal server error' });
     }
@@ -125,6 +129,10 @@ export const getOngoingProjectsStats = async (req, res) => {
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
         }
         console.error('Error in getOngoingProjectsStats:', error);
         res.status(500).json({ status: 'error', message: 'Internal server error' });
@@ -215,6 +223,10 @@ export const getTeamProgress = async (req, res) => {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
         }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         console.error('Error in getTeamProgress:', error);
         res.status(500).json({ status: 'error', message: 'Internal server error' });
     }
@@ -251,6 +263,10 @@ export const getRecentFiles = async (req, res) => {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
         }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         console.error('Error in getRecentFiles:', error);
         res.status(500).json({ status: 'error', message: 'Internal server error' });
     }
@@ -281,6 +297,10 @@ export const getRecentProjects = async (req, res) => {
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
         }
         console.error('Error in getRecentProjects:', error);
         res.status(500).json({ status: 'error', message: 'Internal server error' });

@@ -37,6 +37,10 @@ export const getTasksByProject = async (req, res) => {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
         }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -67,6 +71,10 @@ export const createTask = async (req, res) => {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
         }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -79,6 +87,10 @@ export const getTaskById = async (req, res) => {
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
         }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -94,6 +106,10 @@ export const updateTask = async (req, res) => {
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
         }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -114,6 +130,10 @@ export const deleteTask = async (req, res) => {
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
         }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -147,6 +167,10 @@ export const updateTaskStatus = async (req, res) => {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
         }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -176,6 +200,10 @@ export const reviewTask = async (req, res) => {
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
         }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -209,6 +237,10 @@ export const rejectTask = async (req, res) => {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
         }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -223,6 +255,10 @@ export const getTaskReviews = async (req, res) => {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
         }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -235,6 +271,10 @@ export const getSubtasks = async (req, res) => {
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
         }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -256,6 +296,10 @@ export const createSubtask = async (req, res) => {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
         }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -275,6 +319,10 @@ export const updateSubtasksList = async (req, res) => {
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
         }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -305,6 +353,10 @@ export const uploadTaskImage = async (req, res) => {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
         }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -327,6 +379,10 @@ export const deleteTaskImage = async (req, res) => {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
         }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -338,6 +394,10 @@ export const getTaskAttachments = async (req, res) => {
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
         }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -384,6 +444,10 @@ export const addTaskAttachment = async (req, res) => {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
         }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -405,6 +469,10 @@ export const deleteTaskAttachment = async (req, res) => {
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
         }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }

@@ -40,6 +40,10 @@ export const registerUser = async (req, res) => {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
         }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         if (error.code === 11000) {
             const field = Object.keys(error.keyValue)[0];
             const capitalizedField = field.charAt(0).toUpperCase() + field.slice(1);
@@ -99,6 +103,10 @@ export const loginUser = async (req, res) => {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
         }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         console.error('Login error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -128,6 +136,10 @@ export const getCurrentUser = async (req, res) => {
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
         }
         console.error('Get current user error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
@@ -177,6 +189,10 @@ export const forgotPassword = async (req, res) => {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
         }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         console.error('Forgot password error:', error);
         res.status(500).json({ status: 'error', message: 'Server error while sending OTP' });
     }
@@ -216,6 +232,10 @@ export const resetPassword = async (req, res) => {
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
         }
         console.error('Reset password error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
@@ -260,6 +280,10 @@ export const updateProfile = async (req, res) => {
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
         }
         console.error('Update profile error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
@@ -312,6 +336,10 @@ export const updateEmail = async (req, res) => {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
         }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         if (error.code === 11000) {
             const field = Object.keys(error.keyValue)[0];
             const capitalizedField = field.charAt(0).toUpperCase() + field.slice(1);
@@ -362,6 +390,10 @@ export const changePassword = async (req, res) => {
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
         }
         console.error('Change password error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });

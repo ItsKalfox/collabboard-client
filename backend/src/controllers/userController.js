@@ -26,6 +26,10 @@ export const searchUsers = async (req, res) => {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
         }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         console.error('Search users error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -77,6 +81,10 @@ export const uploadAvatar = async (req, res) => {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
         }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         console.error('Upload avatar error:', error);
         res.status(500).json({ status: 'error', message: 'Failed to upload avatar' });
     }
@@ -106,6 +114,10 @@ export const removeAvatar = async (req, res) => {
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
         }
         console.error('Remove avatar error:', error);
         res.status(500).json({ status: 'error', message: 'Failed to remove avatar' });

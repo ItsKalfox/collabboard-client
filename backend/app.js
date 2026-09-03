@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './src/routes/authRoutes.js';
@@ -33,7 +34,15 @@ app.use((err, req, res, next) => {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-    res.status(200).json({ status: 'success', message: 'Server is running' });
+    const states = {
+        0: 'disconnected',
+        1: 'connected',
+        2: 'connecting',
+        3: 'disconnecting',
+        99: 'uninitialized'
+    };
+    const dbState = states[mongoose.connection.readyState] || 'unknown';
+    res.status(200).json({ status: 'ok', database: dbState });
 });
 
 // Routes
@@ -56,6 +65,14 @@ app.use((err, req, res, next) => {
         return res.status(409).json({
             status: 'error',
             message: `${capitalizedField} already exists`
+        });
+    }
+
+    if (err.name === 'ValidationError') {
+        const messages = Object.values(err.errors).map(val => val.message);
+        return res.status(400).json({
+            status: 'error',
+            message: messages.join(', ')
         });
     }
 
