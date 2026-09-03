@@ -23,6 +23,9 @@ export const searchUsers = async (req, res) => {
             data: { users }
         });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         console.error('Search users error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -71,6 +74,9 @@ export const uploadAvatar = async (req, res) => {
             data: { avatarUrl: uploadResult.secure_url, user: userObj }
         });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         console.error('Upload avatar error:', error);
         res.status(500).json({ status: 'error', message: 'Failed to upload avatar' });
     }
@@ -98,6 +104,9 @@ export const removeAvatar = async (req, res) => {
             data: { user: userObj }
         });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         console.error('Remove avatar error:', error);
         res.status(500).json({ status: 'error', message: 'Failed to remove avatar' });
     }

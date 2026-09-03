@@ -47,6 +47,9 @@ export const getTimeline = async (req, res) => {
 
         res.status(200).json({ status: 'success', data: timeline });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         console.error('Error in getTimeline:', error);
         res.status(500).json({ status: 'error', message: 'Internal server error' });
     }
@@ -120,6 +123,9 @@ export const getOngoingProjectsStats = async (req, res) => {
 
         res.status(200).json({ status: 'success', data: { overallProgress, categories: categoriesArray, statusStats } });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         console.error('Error in getOngoingProjectsStats:', error);
         res.status(500).json({ status: 'error', message: 'Internal server error' });
     }
@@ -206,6 +212,9 @@ export const getTeamProgress = async (req, res) => {
             }
         });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         console.error('Error in getTeamProgress:', error);
         res.status(500).json({ status: 'error', message: 'Internal server error' });
     }
@@ -239,6 +248,9 @@ export const getRecentFiles = async (req, res) => {
 
         res.status(200).json({ status: 'success', data: recentFiles });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         console.error('Error in getRecentFiles:', error);
         res.status(500).json({ status: 'error', message: 'Internal server error' });
     }
@@ -267,6 +279,9 @@ export const getRecentProjects = async (req, res) => {
 
         res.status(200).json({ status: 'success', data: recentProjects });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         console.error('Error in getRecentProjects:', error);
         res.status(500).json({ status: 'error', message: 'Internal server error' });
     }

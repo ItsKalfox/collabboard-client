@@ -8,6 +8,9 @@ export const getCloudinaryInfo = async (req, res) => {
             data: usage
         });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         console.error('Cloudinary API Error:', error);
         res.status(500).json({ status: 'error', message: 'Failed to fetch Cloudinary info' });
     }

@@ -18,6 +18,9 @@ export const updateSubtask = async (req, res) => {
 
         res.status(200).json({ status: 'success', data: { subtask } });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         console.error('Error updating subtask:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -35,6 +38,9 @@ export const deleteSubtask = async (req, res) => {
 
         res.status(200).json({ status: 'success', message: 'Subtask deleted successfully' });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         console.error('Error deleting subtask:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }

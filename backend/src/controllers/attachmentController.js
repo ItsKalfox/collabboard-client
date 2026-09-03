@@ -9,6 +9,9 @@ export const getAttachmentById = async (req, res) => {
 
         res.status(200).json({ status: 'success', data: { attachment } });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -34,6 +37,9 @@ export const deleteAttachmentById = async (req, res) => {
 
         res.status(200).json({ status: 'success', message: 'Attachment deleted successfully' });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };

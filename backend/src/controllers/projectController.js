@@ -62,6 +62,9 @@ export const getProjects = async (req, res) => {
 
         res.status(200).json({ status: 'success', data: { projects: projectsWithMembers } });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         console.error('Get projects error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -89,6 +92,9 @@ export const getProjectById = async (req, res) => {
 
         res.status(200).json({ status: 'success', data: { project: projObj } });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         console.error('Get project by ID error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -145,6 +151,9 @@ export const createProject = async (req, res) => {
 
         res.status(201).json({ status: 'success', message: 'Project created successfully', data: { project } });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         console.error('Create project error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -189,6 +198,9 @@ export const updateProject = async (req, res) => {
 
         res.status(200).json({ status: 'success', message: 'Project updated successfully', data: { project } });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         console.error('Update project error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -210,6 +222,9 @@ export const deleteProject = async (req, res) => {
 
         res.status(200).json({ status: 'success', message: 'Project deleted successfully' });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         console.error('Delete project error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -243,6 +258,9 @@ export const uploadCoverImage = async (req, res) => {
 
         res.status(200).json({ status: 'success', message: 'Cover image uploaded successfully', data: { coverImage: imageUrl } });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         console.error('Upload cover image error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -254,6 +272,9 @@ export const getAttachments = async (req, res) => {
         const attachments = await attachmentRepository.find({ projectId: req.params.id });
         res.status(200).json({ status: 'success', data: { attachments } });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -293,6 +314,9 @@ export const addAttachment = async (req, res) => {
 
         res.status(201).json({ status: 'success', data: { attachment } });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -314,6 +338,9 @@ export const deleteAttachment = async (req, res) => {
         await attachmentRepository.findByIdAndDelete(req.params.attachmentId);
         res.status(200).json({ status: 'success', message: 'Attachment deleted successfully' });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -339,6 +366,9 @@ export const getProjectMembers = async (req, res) => {
 
         res.status(200).json({ status: 'success', data: { members } });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -372,6 +402,9 @@ export const addProjectMember = async (req, res) => {
             data: { member: { ...newMember, name: user.name, email: user.email } }
         });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -395,6 +428,9 @@ export const removeProjectMember = async (req, res) => {
 
         res.status(200).json({ status: 'success', message: 'Member removed successfully' });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -405,6 +441,9 @@ export const getProjectTasks = async (req, res) => {
         const tasks = await taskRepository.findWithAttachments({ projectId: req.params.id });
         res.status(200).json({ status: 'success', data: { tasks } });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -427,6 +466,9 @@ export const getProjectTimeline = async (req, res) => {
 
         res.status(200).json({ status: 'success', data: { timeline } });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -440,6 +482,9 @@ export const downloadAttachment = async (req, res) => {
 
         res.redirect(attachment.url); // Simplified download logic using Cloudinary URL
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };

@@ -37,6 +37,9 @@ export const registerUser = async (req, res) => {
             }
         });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         if (error.code === 11000) {
             const field = Object.keys(error.keyValue)[0];
             const capitalizedField = field.charAt(0).toUpperCase() + field.slice(1);
@@ -93,6 +96,9 @@ export const loginUser = async (req, res) => {
             }
         });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         console.error('Login error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -120,6 +126,9 @@ export const getCurrentUser = async (req, res) => {
             }
         });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         console.error('Get current user error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -165,6 +174,9 @@ export const forgotPassword = async (req, res) => {
 
         res.status(200).json({ status: 'success', message: 'OTP sent to email' });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         console.error('Forgot password error:', error);
         res.status(500).json({ status: 'error', message: 'Server error while sending OTP' });
     }
@@ -202,6 +214,9 @@ export const resetPassword = async (req, res) => {
 
         res.status(200).json({ status: 'success', message: 'Password reset successfully' });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         console.error('Reset password error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -243,6 +258,9 @@ export const updateProfile = async (req, res) => {
             }
         });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         console.error('Update profile error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -291,6 +309,9 @@ export const updateEmail = async (req, res) => {
             }
         });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         if (error.code === 11000) {
             const field = Object.keys(error.keyValue)[0];
             const capitalizedField = field.charAt(0).toUpperCase() + field.slice(1);
@@ -339,6 +360,9 @@ export const changePassword = async (req, res) => {
             message: 'Password changed successfully'
         });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
         console.error('Change password error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
