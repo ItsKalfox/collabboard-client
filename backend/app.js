@@ -49,6 +49,16 @@ app.use('/api/dashboard', dashboardRoutes);
 // Global error handler
 app.use((err, req, res, next) => {
     console.error('Unhandled server error:', err);
+
+    if (err.code === 11000) {
+        const field = Object.keys(err.keyValue)[0];
+        const capitalizedField = field.charAt(0).toUpperCase() + field.slice(1);
+        return res.status(409).json({
+            status: 'error',
+            message: `${capitalizedField} already exists`
+        });
+    }
+
     res.status(err.status || 500).json({
         status: 'error',
         message: err.message || 'Internal Server Error'

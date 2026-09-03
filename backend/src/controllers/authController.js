@@ -37,6 +37,11 @@ export const registerUser = async (req, res) => {
             }
         });
     } catch (error) {
+        if (error.code === 11000) {
+            const field = Object.keys(error.keyValue)[0];
+            const capitalizedField = field.charAt(0).toUpperCase() + field.slice(1);
+            return res.status(409).json({ status: 'error', message: `${capitalizedField} already exists` });
+        }
         console.error('Registration error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -286,6 +291,11 @@ export const updateEmail = async (req, res) => {
             }
         });
     } catch (error) {
+        if (error.code === 11000) {
+            const field = Object.keys(error.keyValue)[0];
+            const capitalizedField = field.charAt(0).toUpperCase() + field.slice(1);
+            return res.status(409).json({ status: 'error', message: `${capitalizedField} already exists` });
+        }
         console.error('Update email error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
