@@ -1,4 +1,4 @@
-import Project from '../models/Project.js';
+import projectRepository from '../repositories/projectRepository.js';
 import Task from '../models/Task.js';
 import Attachment from '../models/Attachment.js';
 import User from '../models/User.js';
@@ -6,7 +6,7 @@ import User from '../models/User.js';
 export const getTimeline = async (req, res) => {
     try {
         const userId = req.user.id;
-        const projects = await Project.find({
+        const projects = await projectRepository.find({
             $or: [{ ownerId: userId }, { 'members.userId': userId }]
         });
 
@@ -55,7 +55,7 @@ export const getTimeline = async (req, res) => {
 export const getOngoingProjectsStats = async (req, res) => {
     try {
         const userId = req.user.id;
-        const activeProjects = await Project.find({
+        const activeProjects = await projectRepository.find({
             status: 'active',
             $or: [{ ownerId: userId }, { 'members.userId': userId }]
         });
@@ -136,7 +136,7 @@ export const getTeamProgress = async (req, res) => {
             query._id = projectId;
         }
 
-        const projects = await Project.find(query);
+        const projects = await projectRepository.find(query);
 
         const relevantUserIds = new Set();
         projects.forEach(p => {
@@ -214,7 +214,7 @@ export const getTeamProgress = async (req, res) => {
 export const getRecentFiles = async (req, res) => {
     try {
         const userId = req.user.id || req.user._id;
-        const projects = await Project.find({
+        const projects = await projectRepository.find({
             $or: [{ ownerId: userId }, { 'members.userId': userId }]
         });
 
@@ -247,9 +247,9 @@ export const getRecentFiles = async (req, res) => {
 export const getRecentProjects = async (req, res) => {
     try {
         const userId = req.user.id;
-        const projects = await Project.find({
+        const projects = await projectRepository.findRecent({
             $or: [{ ownerId: userId }, { 'members.userId': userId }]
-        }).sort({ updatedAt: -1 }).limit(3).populate('members.userId', 'name avatar');
+        }, 3);
 
         const recentProjects = projects.map(p => ({
             id: p._id,

@@ -1,8 +1,8 @@
 import cloudinary from '../config/cloudinary.js';
-import Project from '../models/Project.js';
+import projectRepository from '../repositories/projectRepository.js';
 import Task from '../models/Task.js';
 import Attachment from '../models/Attachment.js';
-import User from '../models/User.js';
+import userService from '../services/userService.js';
 
 // Helper to upload a buffer to Cloudinary
 const uploadToCloudinary = (buffer, options) => {
@@ -29,7 +29,7 @@ export const getProjects = async (req, res) => {
             query.name = { $regex: q, $options: 'i' };
         }
 
-        const projects = await Project.find(query).populate('members.userId', 'name email avatar').exec();
+        const projects = await projectRepository.findWithMembers(query);
 
         const projectIds = projects.map(p => p._id);
         const allTasks = await Task.find({ projectId: { $in: projectIds } }).exec();
@@ -70,7 +70,7 @@ export const getProjects = async (req, res) => {
 // GET /api/projects/:id
 export const getProjectById = async (req, res) => {
     try {
-        const project = await Project.findById(req.params.id).populate('members.userId', 'name email avatar').exec();
+        const project = await projectRepository.findByIdWithMembers(req.params.id);
         if (!project) return res.status(404).json({ status: 'error', message: 'Project not found' });
 
         const projObj = project.toObject();
@@ -109,7 +109,7 @@ export const createProject = async (req, res) => {
             }
         }
 
-        const project = await Project.create({
+        const project = await projectRepository.create({
             name,
             description,
             status,
@@ -153,7 +153,7 @@ export const createProject = async (req, res) => {
 // PUT /api/projects/:id
 export const updateProject = async (req, res) => {
     try {
-        const project = await Project.findById(req.params.id);
+        const project = await projectRepository.findById(req.params.id);
         if (!project) return res.status(404).json({ status: 'error', message: 'Project not found' });
 
         if (project.ownerId.toString() !== req.user.id) {
@@ -185,7 +185,7 @@ export const updateProject = async (req, res) => {
             project.dueDate = req.body.dueDate || null;
         }
 
-        await project.save();
+        await projectRepository.save(project);
 
         res.status(200).json({ status: 'success', message: 'Project updated successfully', data: { project } });
     } catch (error) {
@@ -197,14 +197,14 @@ export const updateProject = async (req, res) => {
 // DELETE /api/projects/:id
 export const deleteProject = async (req, res) => {
     try {
-        const project = await Project.findById(req.params.id);
+        const project = await projectRepository.findById(req.params.id);
         if (!project) return res.status(404).json({ status: 'error', message: 'Project not found' });
 
         if (project.ownerId.toString() !== req.user.id) {
             return res.status(403).json({ status: 'error', message: 'You are not authorized to delete this project' });
         }
 
-        await Project.findByIdAndDelete(req.params.id);
+        await projectRepository.findByIdAndDelete(req.params.id);
         await Task.deleteMany({ projectId: req.params.id });
         await Attachment.deleteMany({ projectId: req.params.id });
 
@@ -218,7 +218,7 @@ export const deleteProject = async (req, res) => {
 // POST /api/projects/:id/cover-image
 export const uploadCoverImage = async (req, res) => {
     try {
-        const project = await Project.findById(req.params.id);
+        const project = await projectRepository.findById(req.params.id);
         if (!project) return res.status(404).json({ status: 'error', message: 'Project not found' });
 
         if (project.ownerId.toString() !== req.user.id) {
@@ -239,7 +239,7 @@ export const uploadCoverImage = async (req, res) => {
         }
 
         project.coverImage = imageUrl;
-        await project.save();
+        await projectRepository.save(project);
 
         res.status(200).json({ status: 'success', message: 'Cover image uploaded successfully', data: { coverImage: imageUrl } });
     } catch (error) {
@@ -261,7 +261,7 @@ export const getAttachments = async (req, res) => {
 // POST /api/projects/:id/attachments
 export const addAttachment = async (req, res) => {
     try {
-        const project = await Project.findById(req.params.id);
+        const project = await projectRepository.findById(req.params.id);
         if (!project) return res.status(404).json({ status: 'error', message: 'Project not found' });
 
         let fileUrl = req.body.url || '';
@@ -303,7 +303,7 @@ export const deleteAttachment = async (req, res) => {
         const attachment = await Attachment.findOne({ _id: req.params.attachmentId, projectId: req.params.id });
         if (!attachment) return res.status(404).json({ status: 'error', message: 'Attachment not found' });
 
-        const project = await Project.findById(req.params.id);
+        const project = await projectRepository.findById(req.params.id);
         if (attachment.uploadedBy.toString() !== req.user.id && project.ownerId.toString() !== req.user.id) {
             return res.status(403).json({ status: 'error', message: 'Not authorized' });
         }
@@ -321,7 +321,7 @@ export const deleteAttachment = async (req, res) => {
 // GET /api/projects/:id/members
 export const getProjectMembers = async (req, res) => {
     try {
-        const project = await Project.findById(req.params.id).populate('members.userId', 'name email avatar').exec();
+        const project = await projectRepository.findByIdWithMembers(req.params.id);
         if (!project) return res.status(404).json({ status: 'error', message: 'Project not found' });
 
         const members = project.members.map(m => {
@@ -347,7 +347,7 @@ export const getProjectMembers = async (req, res) => {
 export const addProjectMember = async (req, res) => {
     try {
         const { userId, email, role } = req.body;
-        const project = await Project.findById(req.params.id);
+        const project = await projectRepository.findById(req.params.id);
         if (!project) return res.status(404).json({ status: 'error', message: 'Project not found' });
 
         if (project.ownerId.toString() !== req.user.id) {
@@ -355,8 +355,8 @@ export const addProjectMember = async (req, res) => {
         }
 
         let user = null;
-        if (userId) user = await User.findById(userId);
-        else if (email) user = await User.findOne({ email });
+        if (userId) user = await userService.getUserById(userId);
+        else if (email) user = await userService.getUserByEmail(email);
 
         if (!user) return res.status(404).json({ status: 'error', message: 'User not found' });
         if (project.members.some(m => m.userId.toString() === user._id.toString())) {
@@ -365,7 +365,7 @@ export const addProjectMember = async (req, res) => {
 
         const newMember = { userId: user._id, role: role || 'member' };
         project.members.push(newMember);
-        await project.save();
+        await projectRepository.save(project);
 
         res.status(201).json({
             status: 'success',
@@ -379,7 +379,7 @@ export const addProjectMember = async (req, res) => {
 // DELETE /api/projects/:id/members/:userId
 export const removeProjectMember = async (req, res) => {
     try {
-        const project = await Project.findById(req.params.id);
+        const project = await projectRepository.findById(req.params.id);
         if (!project) return res.status(404).json({ status: 'error', message: 'Project not found' });
 
         if (project.ownerId.toString() !== req.user.id) {
@@ -391,7 +391,7 @@ export const removeProjectMember = async (req, res) => {
         }
 
         project.members = project.members.filter(m => m.userId.toString() !== req.params.userId);
-        await project.save();
+        await projectRepository.save(project);
 
         res.status(200).json({ status: 'success', message: 'Member removed successfully' });
     } catch (error) {
