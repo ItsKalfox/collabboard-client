@@ -1,6 +1,6 @@
 import cloudinary from '../config/cloudinary.js';
 import Attachment from '../models/Attachment.js';
-import Task from '../models/Task.js';
+import taskRepository from '../repositories/taskRepository.js';
 
 export const getAttachmentById = async (req, res) => {
     try {
@@ -25,10 +25,10 @@ export const deleteAttachmentById = async (req, res) => {
         await Attachment.findByIdAndDelete(req.params.attachmentId);
 
         if (attachment.taskId) {
-            const task = await Task.findById(attachment.taskId);
+            const task = await taskRepository.findById(attachment.taskId);
             if (task && task.attachments) {
                 task.attachments.pull(attachment._id);
-                await task.save();
+                await taskRepository.save(task);
             }
         }
 

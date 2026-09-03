@@ -1,5 +1,5 @@
 import projectRepository from '../repositories/projectRepository.js';
-import Task from '../models/Task.js';
+import taskRepository from '../repositories/taskRepository.js';
 import Attachment from '../models/Attachment.js';
 import User from '../models/User.js';
 
@@ -11,7 +11,7 @@ export const getTimeline = async (req, res) => {
         });
 
         const projectIds = projects.map(p => p._id);
-        const tasks = await Task.find({ projectId: { $in: projectIds }, assigneeId: userId }).populate('assigneeId', 'name avatar');
+        const tasks = await taskRepository.findWithAssignee({ projectId: { $in: projectIds }, assigneeId: userId });
 
         const formatDuration = (start, end) => {
             if (!start || !end) return 'N/A';
@@ -61,7 +61,7 @@ export const getOngoingProjectsStats = async (req, res) => {
         });
 
         const projectIds = activeProjects.map(p => p._id);
-        const tasks = await Task.find({ projectId: { $in: projectIds } });
+        const tasks = await taskRepository.find({ projectId: { $in: projectIds } });
 
         let totalSubtasksAll = 0;
         let completedSubtasksAll = 0;
@@ -150,7 +150,7 @@ export const getTeamProgress = async (req, res) => {
         if (projectId) {
             taskQuery.projectId = projectId;
         }
-        const tasks = await Task.find(taskQuery);
+        const tasks = await taskRepository.find(taskQuery);
 
         const memberStats = {};
 

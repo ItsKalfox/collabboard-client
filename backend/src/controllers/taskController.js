@@ -1,6 +1,5 @@
 import cloudinary from '../config/cloudinary.js';
-import Task from '../models/Task.js';
-import Project from '../models/Project.js';
+import taskRepository from '../repositories/taskRepository.js';
 import Attachment from '../models/Attachment.js';
 
 const uploadToCloudinary = (buffer, options) => {
@@ -14,7 +13,7 @@ const uploadToCloudinary = (buffer, options) => {
 };
 
 const checkTaskAuth = async (taskId, userId) => {
-    const task = await Task.findById(taskId).populate('projectId');
+    const task = await taskRepository.findByIdWithProject(taskId);
     if (!task) return { error: 'Task not found', status: 404 };
 
     const isAssignee = task.assigneeId?.toString() === userId;
@@ -32,7 +31,7 @@ export const getTasksByProject = async (req, res) => {
         const projectId = req.params.projectId || req.query.projectId;
         if (!projectId) return res.status(400).json({ status: 'error', message: 'Project ID is required' });
 
-        const tasks = await Task.find({ projectId }).populate('assigneeId', 'name avatar').populate('attachments').exec();
+        const tasks = await taskRepository.findWithAssigneeAndAttachments({ projectId });
         res.status(200).json({ status: 'success', data: { tasks } });
     } catch (error) {
         res.status(500).json({ status: 'error', message: 'Server error' });
@@ -45,7 +44,7 @@ export const createTask = async (req, res) => {
         const projectId = req.params.projectId || req.body.projectId;
         if (!projectId || !title) return res.status(400).json({ status: 'error', message: 'Project ID and title are required' });
 
-        const task = await Task.create({
+        const task = await taskRepository.create({
             projectId,
             title,
             description,
@@ -68,7 +67,7 @@ export const createTask = async (req, res) => {
 
 export const getTaskById = async (req, res) => {
     try {
-        const task = await Task.findById(req.params.taskId).populate('assigneeId', 'name avatar').exec();
+        const task = await taskRepository.findByIdWithAssignee(req.params.taskId);
         if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
         res.status(200).json({ status: 'success', data: { task } });
     } catch (error) {
@@ -81,7 +80,7 @@ export const updateTask = async (req, res) => {
         const { task, error, status } = await checkTaskAuth(req.params.taskId, req.user.id);
         if (error) return res.status(status).json({ status: 'error', message: error });
 
-        const updatedTask = await Task.findByIdAndUpdate(req.params.taskId, req.body, { new: true });
+        const updatedTask = await taskRepository.findByIdAndUpdate(req.params.taskId, req.body, { new: true });
         res.status(200).json({ status: 'success', message: 'Task updated', data: { task: updatedTask } });
     } catch (error) {
         res.status(500).json({ status: 'error', message: 'Server error' });
@@ -96,7 +95,7 @@ export const deleteTask = async (req, res) => {
         if (task.imagePublicId) {
             try { await cloudinary.uploader.destroy(task.imagePublicId); } catch (e) { }
         }
-        await Task.findByIdAndDelete(req.params.taskId);
+        await taskRepository.findByIdAndDelete(req.params.taskId);
         await Attachment.deleteMany({ taskId: req.params.taskId });
 
         res.status(200).json({ status: 'success', message: 'Task deleted successfully' });
@@ -126,7 +125,7 @@ export const updateTaskStatus = async (req, res) => {
             });
         }
 
-        await task.save();
+        await taskRepository.save(task);
 
         res.status(200).json({ status: 'success', message: 'Status updated', data: { task } });
     } catch (error) {
@@ -137,7 +136,7 @@ export const updateTaskStatus = async (req, res) => {
 export const reviewTask = async (req, res) => {
     try {
         const { comment } = req.body;
-        const task = await Task.findById(req.params.taskId);
+        const task = await taskRepository.findById(req.params.taskId);
         if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
 
         task.reviews.push({ reviewerId: req.user.id, status: 'approved', comment });
@@ -153,7 +152,7 @@ export const reviewTask = async (req, res) => {
             userId: req.user.id
         });
 
-        await task.save();
+        await taskRepository.save(task);
 
         res.status(200).json({ status: 'success', message: 'Task approved', data: { task } });
     } catch (error) {
@@ -166,7 +165,7 @@ export const rejectTask = async (req, res) => {
         const { comment } = req.body;
         if (!comment) return res.status(400).json({ status: 'error', message: 'Comment is required for rejection' });
 
-        const task = await Task.findById(req.params.taskId);
+        const task = await taskRepository.findById(req.params.taskId);
         if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
 
         task.reviews.push({ reviewerId: req.user.id, status: 'rejected', comment });
@@ -182,7 +181,7 @@ export const rejectTask = async (req, res) => {
             userId: req.user.id
         });
 
-        await task.save();
+        await taskRepository.save(task);
 
         res.status(200).json({ status: 'success', message: 'Task rejected', data: { task } });
     } catch (error) {
@@ -192,7 +191,7 @@ export const rejectTask = async (req, res) => {
 
 export const getTaskReviews = async (req, res) => {
     try {
-        const task = await Task.findById(req.params.taskId).populate('reviews.reviewerId', 'name avatar').exec();
+        const task = await taskRepository.findByIdWithReviews(req.params.taskId);
         if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
 
         res.status(200).json({ status: 'success', data: { reviews: task.reviews } });
@@ -203,7 +202,7 @@ export const getTaskReviews = async (req, res) => {
 
 export const getSubtasks = async (req, res) => {
     try {
-        const task = await Task.findById(req.params.taskId);
+        const task = await taskRepository.findById(req.params.taskId);
         if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
         res.status(200).json({ status: 'success', data: { subtasks: task.subtasks } });
     } catch (error) {
@@ -220,7 +219,7 @@ export const createSubtask = async (req, res) => {
         if (error) return res.status(status).json({ status: 'error', message: error });
 
         task.subtasks.push({ title, completed: completed || false });
-        await task.save();
+        await taskRepository.save(task);
 
         res.status(201).json({ status: 'success', message: 'Subtask created', data: { subtasks: task.subtasks } });
     } catch (error) {
@@ -237,7 +236,7 @@ export const updateSubtasksList = async (req, res) => {
         if (error) return res.status(status).json({ status: 'error', message: error });
 
         task.subtasks = subtasks;
-        await task.save();
+        await taskRepository.save(task);
 
         res.status(200).json({ status: 'success', data: { subtasks: task.subtasks } });
     } catch (error) {
@@ -263,7 +262,7 @@ export const uploadTaskImage = async (req, res) => {
 
         task.imageUrl = result.secure_url;
         task.imagePublicId = result.public_id;
-        await task.save();
+        await taskRepository.save(task);
 
         res.status(200).json({ status: 'success', data: { imageUrl: task.imageUrl } });
     } catch (error) {
@@ -282,7 +281,7 @@ export const deleteTaskImage = async (req, res) => {
 
         task.imageUrl = null;
         task.imagePublicId = null;
-        await task.save();
+        await taskRepository.save(task);
 
         res.status(200).json({ status: 'success', message: 'Image deleted' });
     } catch (error) {
@@ -333,7 +332,7 @@ export const addTaskAttachment = async (req, res) => {
         });
 
         task.attachments.push(attachment._id);
-        await task.save();
+        await taskRepository.save(task);
 
         res.status(201).json({ status: 'success', data: { attachment } });
     } catch (error) {

@@ -1,6 +1,6 @@
 import cloudinary from '../config/cloudinary.js';
 import projectRepository from '../repositories/projectRepository.js';
-import Task from '../models/Task.js';
+import taskRepository from '../repositories/taskRepository.js';
 import Attachment from '../models/Attachment.js';
 import userService from '../services/userService.js';
 
@@ -32,7 +32,7 @@ export const getProjects = async (req, res) => {
         const projects = await projectRepository.findWithMembers(query);
 
         const projectIds = projects.map(p => p._id);
-        const allTasks = await Task.find({ projectId: { $in: projectIds } }).exec();
+        const allTasks = await taskRepository.find({ projectId: { $in: projectIds } });
 
         const tasksByProject = {};
         allTasks.forEach(t => {
@@ -140,7 +140,7 @@ export const createProject = async (req, res) => {
                     userId: req.user.id
                 }]
             }));
-            await Task.insertMany(taskDocs);
+            await taskRepository.insertMany(taskDocs);
         }
 
         res.status(201).json({ status: 'success', message: 'Project created successfully', data: { project } });
@@ -205,7 +205,7 @@ export const deleteProject = async (req, res) => {
         }
 
         await projectRepository.findByIdAndDelete(req.params.id);
-        await Task.deleteMany({ projectId: req.params.id });
+        await taskRepository.deleteMany({ projectId: req.params.id });
         await Attachment.deleteMany({ projectId: req.params.id });
 
         res.status(200).json({ status: 'success', message: 'Project deleted successfully' });
@@ -402,7 +402,7 @@ export const removeProjectMember = async (req, res) => {
 // GET /api/projects/:id/tasks
 export const getProjectTasks = async (req, res) => {
     try {
-        const tasks = await Task.find({ projectId: req.params.id }).populate('attachments');
+        const tasks = await taskRepository.findWithAttachments({ projectId: req.params.id });
         res.status(200).json({ status: 'success', data: { tasks } });
     } catch (error) {
         res.status(500).json({ status: 'error', message: 'Server error' });
@@ -413,7 +413,7 @@ export const getProjectTasks = async (req, res) => {
 // As a simple placeholder, we'll return recent tasks.
 export const getProjectTimeline = async (req, res) => {
     try {
-        const tasks = await Task.find({ projectId: req.params.id }).sort({ createdAt: -1 }).limit(parseInt(req.query.limit) || 20).populate('assigneeId', 'name');
+        const tasks = await taskRepository.findRecentTasks({ projectId: req.params.id }, parseInt(req.query.limit) || 20);
 
         const timeline = tasks.map(t => ({
             id: t._id,
