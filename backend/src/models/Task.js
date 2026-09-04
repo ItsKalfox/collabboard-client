@@ -31,17 +31,21 @@ const taskSchema = new mongoose.Schema({
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
     }]
 }, {
-    timestamps: true
+    timestamps: true,
+    optimisticConcurrency: true
 });
 
 taskSchema.virtual('id').get(function() {
     return this._id.toHexString();
 });
+taskSchema.virtual('version').get(function() {
+    return this.__v;
+});
 taskSchema.set('toJSON', {
     virtuals: true,
     transform: (doc, ret) => {
         delete ret._id;
-        delete ret.__v;
+        // Not deleting ret.__v so frontend can use it or fallback to virtual version
     }
 });
 taskSchema.set('toObject', { virtuals: true });
