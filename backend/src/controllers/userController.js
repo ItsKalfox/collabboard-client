@@ -1,11 +1,11 @@
 import cloudinary from '../config/cloudinary.js';
-import User from '../models/User.js';
+import userService from '../services/userService.js';
 
 export const searchUsers = async (req, res) => {
     try {
         const { q } = req.query;
         let query = {};
-        
+
         if (q && q.trim() !== '') {
             const searchTerm = q.trim();
             query = {
@@ -16,13 +16,20 @@ export const searchUsers = async (req, res) => {
             };
         }
 
-        const users = await User.find(query).select('-password').exec();
+        const users = await userService.searchUsers(query);
 
         res.status(200).json({
             status: 'success',
             data: { users }
         });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         console.error('Search users error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -32,11 +39,11 @@ export const uploadAvatar = async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ status: 'error', message: 'No image file provided' });
 
-        const user = await User.findById(req.user.id);
+        const user = await userService.getUserById(req.user.id);
         if (!user) return res.status(404).json({ status: 'error', message: 'User not found' });
 
         if (user.avatarPublicId) {
-            try { await cloudinary.uploader.destroy(user.avatarPublicId); } catch (e) {}
+            try { await cloudinary.uploader.destroy(user.avatarPublicId); } catch (e) { }
         }
 
         const uploadResult = await new Promise((resolve, reject) => {
@@ -60,8 +67,8 @@ export const uploadAvatar = async (req, res) => {
 
         user.avatar = uploadResult.secure_url;
         user.avatarPublicId = uploadResult.public_id;
-        await user.save();
-        
+        await userService.saveUser(user);
+
         const userObj = user.toObject();
         delete userObj.password;
 
@@ -71,6 +78,13 @@ export const uploadAvatar = async (req, res) => {
             data: { avatarUrl: uploadResult.secure_url, user: userObj }
         });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         console.error('Upload avatar error:', error);
         res.status(500).json({ status: 'error', message: 'Failed to upload avatar' });
     }
@@ -78,17 +92,17 @@ export const uploadAvatar = async (req, res) => {
 
 export const removeAvatar = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id);
+        const user = await userService.getUserById(req.user.id);
         if (!user) return res.status(404).json({ status: 'error', message: 'User not found' });
 
         if (user.avatarPublicId) {
-            try { await cloudinary.uploader.destroy(user.avatarPublicId); } catch (e) {}
+            try { await cloudinary.uploader.destroy(user.avatarPublicId); } catch (e) { }
         }
 
         user.avatar = null;
         user.avatarPublicId = null;
-        await user.save();
-        
+        await userService.saveUser(user);
+
         const userObj = user.toObject();
         delete userObj.password;
 
@@ -98,6 +112,13 @@ export const removeAvatar = async (req, res) => {
             data: { user: userObj }
         });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         console.error('Remove avatar error:', error);
         res.status(500).json({ status: 'error', message: 'Failed to remove avatar' });
     }

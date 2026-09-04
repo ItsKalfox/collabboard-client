@@ -1,39 +1,53 @@
 import cloudinary from '../config/cloudinary.js';
-import Attachment from '../models/Attachment.js';
-import Task from '../models/Task.js';
+import attachmentRepository from '../repositories/attachmentRepository.js';
+import taskRepository from '../repositories/taskRepository.js';
 
 export const getAttachmentById = async (req, res) => {
     try {
-        const attachment = await Attachment.findById(req.params.attachmentId);
+        const attachment = await attachmentRepository.findById(req.params.attachmentId);
         if (!attachment) return res.status(404).json({ status: 'error', message: 'Attachment not found' });
-        
+
         res.status(200).json({ status: 'success', data: { attachment } });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
 
 export const deleteAttachmentById = async (req, res) => {
     try {
-        const attachment = await Attachment.findById(req.params.attachmentId);
+        const attachment = await attachmentRepository.findById(req.params.attachmentId);
         if (!attachment) return res.status(404).json({ status: 'error', message: 'Attachment not found' });
-        
+
         if (attachment.publicId) {
-            try { await cloudinary.uploader.destroy(attachment.publicId); } catch (e) {}
+            try { await cloudinary.uploader.destroy(attachment.publicId); } catch (e) { }
         }
-        
-        await Attachment.findByIdAndDelete(req.params.attachmentId);
-        
+
+        await attachmentRepository.findByIdAndDelete(req.params.attachmentId);
+
         if (attachment.taskId) {
-            const task = await Task.findById(attachment.taskId);
+            const task = await taskRepository.findById(attachment.taskId);
             if (task && task.attachments) {
                 task.attachments.pull(attachment._id);
-                await task.save();
+                await taskRepository.save(task);
             }
         }
-        
+
         res.status(200).json({ status: 'success', message: 'Attachment deleted successfully' });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };

@@ -1,17 +1,17 @@
-import Project from '../models/Project.js';
-import Task from '../models/Task.js';
-import Attachment from '../models/Attachment.js';
+import projectRepository from '../repositories/projectRepository.js';
+import taskRepository from '../repositories/taskRepository.js';
+import attachmentRepository from '../repositories/attachmentRepository.js';
 import User from '../models/User.js';
 
 export const getTimeline = async (req, res) => {
     try {
         const userId = req.user.id;
-        const projects = await Project.find({
+        const projects = await projectRepository.find({
             $or: [{ ownerId: userId }, { 'members.userId': userId }]
         });
 
         const projectIds = projects.map(p => p._id);
-        const tasks = await Task.find({ projectId: { $in: projectIds }, assigneeId: userId }).populate('assigneeId', 'name avatar');
+        const tasks = await taskRepository.findWithAssignee({ projectId: { $in: projectIds }, assigneeId: userId });
 
         const formatDuration = (start, end) => {
             if (!start || !end) return 'N/A';
@@ -47,6 +47,13 @@ export const getTimeline = async (req, res) => {
 
         res.status(200).json({ status: 'success', data: timeline });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         console.error('Error in getTimeline:', error);
         res.status(500).json({ status: 'error', message: 'Internal server error' });
     }
@@ -55,13 +62,13 @@ export const getTimeline = async (req, res) => {
 export const getOngoingProjectsStats = async (req, res) => {
     try {
         const userId = req.user.id;
-        const activeProjects = await Project.find({
+        const activeProjects = await projectRepository.find({
             status: 'active',
             $or: [{ ownerId: userId }, { 'members.userId': userId }]
         });
-        
+
         const projectIds = activeProjects.map(p => p._id);
-        const tasks = await Task.find({ projectId: { $in: projectIds } });
+        const tasks = await taskRepository.find({ projectId: { $in: projectIds } });
 
         let totalSubtasksAll = 0;
         let completedSubtasksAll = 0;
@@ -120,6 +127,13 @@ export const getOngoingProjectsStats = async (req, res) => {
 
         res.status(200).json({ status: 'success', data: { overallProgress, categories: categoriesArray, statusStats } });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         console.error('Error in getOngoingProjectsStats:', error);
         res.status(500).json({ status: 'error', message: 'Internal server error' });
     }
@@ -136,8 +150,8 @@ export const getTeamProgress = async (req, res) => {
             query._id = projectId;
         }
 
-        const projects = await Project.find(query);
-        
+        const projects = await projectRepository.find(query);
+
         const relevantUserIds = new Set();
         projects.forEach(p => {
             relevantUserIds.add(p.ownerId.toString());
@@ -150,7 +164,7 @@ export const getTeamProgress = async (req, res) => {
         if (projectId) {
             taskQuery.projectId = projectId;
         }
-        const tasks = await Task.find(taskQuery);
+        const tasks = await taskRepository.find(taskQuery);
 
         const memberStats = {};
 
@@ -187,13 +201,13 @@ export const getTeamProgress = async (req, res) => {
         const membersArray = Object.values(memberStats).map(member => {
             overallTotalTasks += member.totalTasks;
             overallCompletedTasks += member.completedTasks;
-            
+
             return {
                 ...member,
                 progress: member.totalTasks === 0 ? 0 : Number(((member.completedTasks / member.totalTasks) * 100).toFixed(1))
             };
         });
-        
+
         membersArray.sort((a, b) => b.totalTasks - a.totalTasks);
 
         res.status(200).json({
@@ -206,6 +220,13 @@ export const getTeamProgress = async (req, res) => {
             }
         });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         console.error('Error in getTeamProgress:', error);
         res.status(500).json({ status: 'error', message: 'Internal server error' });
     }
@@ -214,14 +235,14 @@ export const getTeamProgress = async (req, res) => {
 export const getRecentFiles = async (req, res) => {
     try {
         const userId = req.user.id || req.user._id;
-        const projects = await Project.find({
+        const projects = await projectRepository.find({
             $or: [{ ownerId: userId }, { 'members.userId': userId }]
         });
-        
+
         const projectIds = projects.map(p => p._id);
-        const attachments = await Attachment.find({
+        const attachments = await attachmentRepository.findRecentAttachments({
             $or: [{ projectId: { $in: projectIds } }, { uploadedBy: userId }]
-        }).sort({ uploadedAt: -1 }).populate('uploadedBy', 'name avatar');
+        }, { uploadedAt: -1 }, 'uploadedBy', 'name avatar');
 
         const recentFiles = attachments.map(att => ({
             id: att._id,
@@ -239,6 +260,13 @@ export const getRecentFiles = async (req, res) => {
 
         res.status(200).json({ status: 'success', data: recentFiles });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         console.error('Error in getRecentFiles:', error);
         res.status(500).json({ status: 'error', message: 'Internal server error' });
     }
@@ -247,9 +275,9 @@ export const getRecentFiles = async (req, res) => {
 export const getRecentProjects = async (req, res) => {
     try {
         const userId = req.user.id;
-        const projects = await Project.find({
+        const projects = await projectRepository.findRecent({
             $or: [{ ownerId: userId }, { 'members.userId': userId }]
-        }).sort({ updatedAt: -1 }).limit(3).populate('members.userId', 'name avatar');
+        }, 3);
 
         const recentProjects = projects.map(p => ({
             id: p._id,
@@ -267,6 +295,13 @@ export const getRecentProjects = async (req, res) => {
 
         res.status(200).json({ status: 'success', data: recentProjects });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         console.error('Error in getRecentProjects:', error);
         res.status(500).json({ status: 'error', message: 'Internal server error' });
     }
