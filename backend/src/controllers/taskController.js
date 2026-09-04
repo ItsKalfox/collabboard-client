@@ -110,8 +110,13 @@ export const updateTask = async (req, res) => {
         });
 
         // For Optimistic Concurrency Control
-        if (req.body.__v !== undefined) task.__v = req.body.__v;
-        else if (req.body.version !== undefined) task.__v = req.body.version;
+        if (req.body.force) {
+            // Force overwrite: don't apply the frontend's stale version.
+            // By keeping the task.__v as pulled from DB, save() passes OCC.
+        } else {
+            if (req.body.__v !== undefined) task.__v = req.body.__v;
+            else if (req.body.version !== undefined) task.__v = req.body.version;
+        }
 
         const updatedTask = await taskRepository.save(task);
 
