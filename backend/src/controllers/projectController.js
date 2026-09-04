@@ -4,6 +4,10 @@ import Task from '../models/Task.js';
 import Attachment from '../models/Attachment.js';
 import User from '../models/User.js';
 import { parsePaginationAndSort, buildPaginationMeta } from '../utils/pagination.js';
+import projectRepository from '../repositories/projectRepository.js';
+import taskRepository from '../repositories/taskRepository.js';
+import attachmentRepository from '../repositories/attachmentRepository.js';
+import userService from '../services/userService.js';
 
 // Helper to upload a buffer to Cloudinary
 const uploadToCloudinary = (buffer, options) => {
@@ -51,8 +55,8 @@ export const getProjects = async (req, res) => {
             .exec();
 
         const projectIds = projects.map(p => p._id);
-        const allTasks = await Task.find({ projectId: { $in: projectIds } }).exec();
-        
+        const allTasks = await taskRepository.find({ projectId: { $in: projectIds } });
+
         const tasksByProject = {};
         allTasks.forEach(t => {
             const pid = t.projectId.toString();
@@ -90,6 +94,13 @@ export const getProjects = async (req, res) => {
             pagination
         });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         console.error('Get projects error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -98,9 +109,9 @@ export const getProjects = async (req, res) => {
 // GET /api/projects/:id
 export const getProjectById = async (req, res) => {
     try {
-        const project = await Project.findById(req.params.id).populate('members.userId', 'name email avatar').exec();
+        const project = await projectRepository.findByIdWithMembers(req.params.id);
         if (!project) return res.status(404).json({ status: 'error', message: 'Project not found' });
-        
+
         const projObj = project.toObject();
         projObj.members = projObj.members.map(m => {
             const user = m.userId;
@@ -117,6 +128,13 @@ export const getProjectById = async (req, res) => {
 
         res.status(200).json({ status: 'success', data: { project: projObj } });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         console.error('Get project by ID error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -137,7 +155,7 @@ export const createProject = async (req, res) => {
             }
         }
 
-        const project = await Project.create({
+        const project = await projectRepository.create({
             name,
             description,
             status,
@@ -168,11 +186,18 @@ export const createProject = async (req, res) => {
                     userId: req.user.id
                 }]
             }));
-            await Task.insertMany(taskDocs);
+            await taskRepository.insertMany(taskDocs);
         }
 
         res.status(201).json({ status: 'success', message: 'Project created successfully', data: { project } });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         console.error('Create project error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -181,9 +206,9 @@ export const createProject = async (req, res) => {
 // PUT /api/projects/:id
 export const updateProject = async (req, res) => {
     try {
-        const project = await Project.findById(req.params.id);
+        const project = await projectRepository.findById(req.params.id);
         if (!project) return res.status(404).json({ status: 'error', message: 'Project not found' });
-        
+
         if (project.ownerId.toString() !== req.user.id) {
             return res.status(403).json({ status: 'error', message: 'You are not authorized to update this project' });
         }
@@ -195,7 +220,7 @@ export const updateProject = async (req, res) => {
                 todayStart.setHours(0, 0, 0, 0);
                 const createdAt = new Date(project.createdAt);
                 createdAt.setHours(0, 0, 0, 0);
-                
+
                 if (newDue < todayStart) {
                     return res.status(400).json({ status: 'error', message: 'Due date cannot be before today' });
                 }
@@ -207,16 +232,23 @@ export const updateProject = async (req, res) => {
 
         // Safely update fields using Mongoose's .set() method
         project.set(req.body);
-        
+
         // Explicitly ensure dueDate is set correctly, handling empty strings as null
         if (req.body.dueDate !== undefined) {
             project.dueDate = req.body.dueDate || null;
         }
 
-        await project.save();
+        await projectRepository.save(project);
 
         res.status(200).json({ status: 'success', message: 'Project updated successfully', data: { project } });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         console.error('Update project error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -225,19 +257,26 @@ export const updateProject = async (req, res) => {
 // DELETE /api/projects/:id
 export const deleteProject = async (req, res) => {
     try {
-        const project = await Project.findById(req.params.id);
+        const project = await projectRepository.findById(req.params.id);
         if (!project) return res.status(404).json({ status: 'error', message: 'Project not found' });
-        
+
         if (project.ownerId.toString() !== req.user.id) {
             return res.status(403).json({ status: 'error', message: 'You are not authorized to delete this project' });
         }
 
-        await Project.findByIdAndDelete(req.params.id);
-        await Task.deleteMany({ projectId: req.params.id });
-        await Attachment.deleteMany({ projectId: req.params.id });
+        await projectRepository.findByIdAndDelete(req.params.id);
+        await taskRepository.deleteMany({ projectId: req.params.id });
+        await attachmentRepository.deleteMany({ projectId: req.params.id });
 
         res.status(200).json({ status: 'success', message: 'Project deleted successfully' });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         console.error('Delete project error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -246,9 +285,9 @@ export const deleteProject = async (req, res) => {
 // POST /api/projects/:id/cover-image
 export const uploadCoverImage = async (req, res) => {
     try {
-        const project = await Project.findById(req.params.id);
+        const project = await projectRepository.findById(req.params.id);
         if (!project) return res.status(404).json({ status: 'error', message: 'Project not found' });
-        
+
         if (project.ownerId.toString() !== req.user.id) {
             return res.status(403).json({ status: 'error', message: 'You are not authorized to update this project' });
         }
@@ -267,10 +306,17 @@ export const uploadCoverImage = async (req, res) => {
         }
 
         project.coverImage = imageUrl;
-        await project.save();
+        await projectRepository.save(project);
 
         res.status(200).json({ status: 'success', message: 'Cover image uploaded successfully', data: { coverImage: imageUrl } });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         console.error('Upload cover image error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
@@ -279,9 +325,16 @@ export const uploadCoverImage = async (req, res) => {
 // GET /api/projects/:id/attachments
 export const getAttachments = async (req, res) => {
     try {
-        const attachments = await Attachment.find({ projectId: req.params.id });
+        const attachments = await attachmentRepository.find({ projectId: req.params.id });
         res.status(200).json({ status: 'success', data: { attachments } });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -289,7 +342,7 @@ export const getAttachments = async (req, res) => {
 // POST /api/projects/:id/attachments
 export const addAttachment = async (req, res) => {
     try {
-        const project = await Project.findById(req.params.id);
+        const project = await projectRepository.findById(req.params.id);
         if (!project) return res.status(404).json({ status: 'error', message: 'Project not found' });
 
         let fileUrl = req.body.url || '';
@@ -309,7 +362,7 @@ export const addAttachment = async (req, res) => {
 
         if (!fileUrl) return res.status(400).json({ status: 'error', message: 'Attachment file is required' });
 
-        const attachment = await Attachment.create({
+        const attachment = await attachmentRepository.create({
             projectId: req.params.id,
             filename,
             url: fileUrl,
@@ -321,6 +374,13 @@ export const addAttachment = async (req, res) => {
 
         res.status(201).json({ status: 'success', data: { attachment } });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -328,20 +388,27 @@ export const addAttachment = async (req, res) => {
 // DELETE /api/projects/:id/attachments/:attachmentId
 export const deleteAttachment = async (req, res) => {
     try {
-        const attachment = await Attachment.findOne({ _id: req.params.attachmentId, projectId: req.params.id });
+        const attachment = await attachmentRepository.findOne({ _id: req.params.attachmentId, projectId: req.params.id });
         if (!attachment) return res.status(404).json({ status: 'error', message: 'Attachment not found' });
-        
-        const project = await Project.findById(req.params.id);
+
+        const project = await projectRepository.findById(req.params.id);
         if (attachment.uploadedBy.toString() !== req.user.id && project.ownerId.toString() !== req.user.id) {
             return res.status(403).json({ status: 'error', message: 'Not authorized' });
         }
 
         if (attachment.publicId) {
-            try { await cloudinary.uploader.destroy(attachment.publicId); } catch (e) {}
+            try { await cloudinary.uploader.destroy(attachment.publicId); } catch (e) { }
         }
-        await Attachment.findByIdAndDelete(req.params.attachmentId);
+        await attachmentRepository.findByIdAndDelete(req.params.attachmentId);
         res.status(200).json({ status: 'success', message: 'Attachment deleted successfully' });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -349,7 +416,7 @@ export const deleteAttachment = async (req, res) => {
 // GET /api/projects/:id/members
 export const getProjectMembers = async (req, res) => {
     try {
-        const project = await Project.findById(req.params.id).populate('members.userId', 'name email avatar').exec();
+        const project = await projectRepository.findByIdWithMembers(req.params.id);
         if (!project) return res.status(404).json({ status: 'error', message: 'Project not found' });
 
         const members = project.members.map(m => {
@@ -367,6 +434,13 @@ export const getProjectMembers = async (req, res) => {
 
         res.status(200).json({ status: 'success', data: { members } });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -375,7 +449,7 @@ export const getProjectMembers = async (req, res) => {
 export const addProjectMember = async (req, res) => {
     try {
         const { userId, email, role } = req.body;
-        const project = await Project.findById(req.params.id);
+        const project = await projectRepository.findById(req.params.id);
         if (!project) return res.status(404).json({ status: 'error', message: 'Project not found' });
 
         if (project.ownerId.toString() !== req.user.id) {
@@ -383,8 +457,8 @@ export const addProjectMember = async (req, res) => {
         }
 
         let user = null;
-        if (userId) user = await User.findById(userId);
-        else if (email) user = await User.findOne({ email });
+        if (userId) user = await userService.getUserById(userId);
+        else if (email) user = await userService.getUserByEmail(email);
 
         if (!user) return res.status(404).json({ status: 'error', message: 'User not found' });
         if (project.members.some(m => m.userId.toString() === user._id.toString())) {
@@ -393,13 +467,20 @@ export const addProjectMember = async (req, res) => {
 
         const newMember = { userId: user._id, role: role || 'member' };
         project.members.push(newMember);
-        await project.save();
+        await projectRepository.save(project);
 
         res.status(201).json({
             status: 'success',
             data: { member: { ...newMember, name: user.name, email: user.email } }
         });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -407,7 +488,7 @@ export const addProjectMember = async (req, res) => {
 // DELETE /api/projects/:id/members/:userId
 export const removeProjectMember = async (req, res) => {
     try {
-        const project = await Project.findById(req.params.id);
+        const project = await projectRepository.findById(req.params.id);
         if (!project) return res.status(404).json({ status: 'error', message: 'Project not found' });
 
         if (project.ownerId.toString() !== req.user.id) {
@@ -419,10 +500,17 @@ export const removeProjectMember = async (req, res) => {
         }
 
         project.members = project.members.filter(m => m.userId.toString() !== req.params.userId);
-        await project.save();
+        await projectRepository.save(project);
 
         res.status(200).json({ status: 'success', message: 'Member removed successfully' });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -465,6 +553,13 @@ export const getProjectTasks = async (req, res) => {
             pagination
         });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -473,8 +568,8 @@ export const getProjectTasks = async (req, res) => {
 // As a simple placeholder, we'll return recent tasks.
 export const getProjectTimeline = async (req, res) => {
     try {
-        const tasks = await Task.find({ projectId: req.params.id }).sort({ createdAt: -1 }).limit(parseInt(req.query.limit) || 20).populate('assigneeId', 'name');
-        
+        const tasks = await taskRepository.findRecentTasks({ projectId: req.params.id }, parseInt(req.query.limit) || 20);
+
         const timeline = tasks.map(t => ({
             id: t._id,
             projectId: t.projectId,
@@ -487,6 +582,13 @@ export const getProjectTimeline = async (req, res) => {
 
         res.status(200).json({ status: 'success', data: { timeline } });
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };
@@ -495,11 +597,18 @@ export const refreshProjectTimeline = getProjectTimeline;
 
 export const downloadAttachment = async (req, res) => {
     try {
-        const attachment = await Attachment.findOne({ _id: req.params.attachmentId, projectId: req.params.id });
+        const attachment = await attachmentRepository.findOne({ _id: req.params.attachmentId, projectId: req.params.id });
         if (!attachment) return res.status(404).json({ status: 'error', message: 'Attachment not found' });
-        
+
         res.redirect(attachment.url); // Simplified download logic using Cloudinary URL
     } catch (error) {
+        if (error.name === 'CastError' && error.kind === 'ObjectId') {
+            return res.status(404).json({ status: 'error', message: 'Resource not found' });
+        }
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({ status: 'error', message: messages.join(', ') });
+        }
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };

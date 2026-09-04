@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
+import userService from '../services/userService.js';
 
 export const protect = async (req, res, next) => {
     try {
@@ -17,8 +17,8 @@ export const protect = async (req, res, next) => {
         // Verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'super_secret_key_12345');
 
-        // Find user by ID in MongoDB
-        const user = await User.findById(decoded.id).select('-password');
+        // Get user from the token
+        const user = await userService.getUserByIdWithoutPassword(decoded.id);
 
         if (!user) {
             return res.status(401).json({ status: 'error', message: 'User not found or token invalid' });
