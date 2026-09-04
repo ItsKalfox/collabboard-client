@@ -26,6 +26,13 @@ const checkTaskAuth = async (taskId, userId) => {
     return { task };
 };
 
+const handleErrorResponse = (error, res) => {
+    if (error.name === 'VersionError') return res.status(409).json({ status: 'error', message: 'Conflict: This task was modified by another user. Please reload the task to see the latest changes.' });
+    if (error.name === 'CastError' && error.kind === 'ObjectId') return res.status(404).json({ status: 'error', message: 'Resource not found' });
+    if (error.name === 'ValidationError') return res.status(400).json({ status: 'error', message: Object.values(error.errors).map(val => val.message).join(', ') });
+    res.status(500).json({ status: 'error', message: 'Server error' });
+};
+
 export const getTasksByProject = async (req, res) => {
     try {
         const projectId = req.params.projectId || req.query.projectId;
