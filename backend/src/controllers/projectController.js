@@ -3,6 +3,7 @@ import Project from '../models/Project.js';
 import Task from '../models/Task.js';
 import Attachment from '../models/Attachment.js';
 import User from '../models/User.js';
+import { parsePaginationAndSort, buildPaginationMeta } from '../utils/pagination.js';
 
 // Helper to upload a buffer to Cloudinary
 const uploadToCloudinary = (buffer, options) => {
@@ -18,6 +19,18 @@ const uploadToCloudinary = (buffer, options) => {
 // GET /api/projects
 export const getProjects = async (req, res) => {
     try {
+        const paginationResult = parsePaginationAndSort(req.query, {
+            allowedSortFields: ['createdAt', 'updatedAt', 'name', 'dueDate', 'status', 'category'],
+            defaultSortBy: 'createdAt',
+            defaultSortOrder: 'desc'
+        });
+
+        if (paginationResult.error) {
+            return res.status(400).json({ status: 'error', message: paginationResult.error });
+        }
+
+        const { page, limit, skip, sort } = paginationResult;
+
         const { q } = req.query;
         let query = {
             $or: [
@@ -29,7 +42,13 @@ export const getProjects = async (req, res) => {
             query.name = { $regex: q, $options: 'i' };
         }
 
-        const projects = await Project.find(query).populate('members.userId', 'name email avatar').exec();
+        const total = await Project.countDocuments(query);
+        const projects = await Project.find(query)
+            .sort(sort)
+            .skip(skip)
+            .limit(limit)
+            .populate('members.userId', 'name email avatar')
+            .exec();
 
         const projectIds = projects.map(p => p._id);
         const allTasks = await Task.find({ projectId: { $in: projectIds } }).exec();
@@ -60,7 +79,16 @@ export const getProjects = async (req, res) => {
             return projObj;
         });
 
-        res.status(200).json({ status: 'success', data: { projects: projectsWithMembers } });
+        const pagination = buildPaginationMeta(total, page, limit);
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                projects: projectsWithMembers,
+                pagination
+            },
+            pagination
+        });
     } catch (error) {
         console.error('Get projects error:', error);
         res.status(500).json({ status: 'error', message: 'Server error' });
@@ -402,8 +430,40 @@ export const removeProjectMember = async (req, res) => {
 // GET /api/projects/:id/tasks
 export const getProjectTasks = async (req, res) => {
     try {
-        const tasks = await Task.find({ projectId: req.params.id }).populate('attachments');
-        res.status(200).json({ status: 'success', data: { tasks } });
+        const projectId = req.params.id || req.params.projectId;
+        if (!projectId) return res.status(400).json({ status: 'error', message: 'Project ID is required' });
+
+        const paginationResult = parsePaginationAndSort(req.query, {
+            allowedSortFields: ['createdAt', 'updatedAt', 'dueDate', 'title', 'priority', 'status'],
+            defaultSortBy: 'createdAt',
+            defaultSortOrder: 'desc'
+        });
+
+        if (paginationResult.error) {
+            return res.status(400).json({ status: 'error', message: paginationResult.error });
+        }
+
+        const { page, limit, skip, sort } = paginationResult;
+
+        const total = await Task.countDocuments({ projectId });
+        const tasks = await Task.find({ projectId })
+            .sort(sort)
+            .skip(skip)
+            .limit(limit)
+            .populate('assigneeId', 'name avatar')
+            .populate('attachments')
+            .exec();
+
+        const pagination = buildPaginationMeta(total, page, limit);
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                tasks,
+                pagination
+            },
+            pagination
+        });
     } catch (error) {
         res.status(500).json({ status: 'error', message: 'Server error' });
     }
