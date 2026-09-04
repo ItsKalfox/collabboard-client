@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Project from '../models/Project.js';
 import Task from '../models/Task.js';
 import Attachment from '../models/Attachment.js';
@@ -55,17 +56,157 @@ export const getTimeline = async (req, res) => {
 export const getOngoingProjectsStats = async (req, res) => {
     try {
         const userId = req.user.id;
-        const activeProjects = await Project.find({
-            status: 'active',
-            $or: [{ ownerId: userId }, { 'members.userId': userId }]
-        });
-        
-        const projectIds = activeProjects.map(p => p._id);
-        const tasks = await Task.find({ projectId: { $in: projectIds } });
+        const userObjId = new mongoose.Types.ObjectId(userId);
 
-        let totalSubtasksAll = 0;
-        let completedSubtasksAll = 0;
-        const categoryStats = {};
+        const stats = await Project.aggregate([
+            {
+                $match: {
+                    status: 'active',
+                    $or: [{ ownerId: userObjId }, { 'members.userId': userObjId }]
+                }
+            },
+            {
+                $lookup: {
+                    from: 'tasks',
+                    localField: '_id',
+                    foreignField: 'projectId',
+                    as: 'tasks'
+                }
+            },
+            {
+                $project: {
+                    category: {
+                        $cond: [
+                            {
+                                $or: [
+                                    { $eq: ['$category', null] },
+                                    { $eq: [{ $type: '$category' }, 'missing'] },
+                                    { $eq: ['$category', ''] },
+                                    { $eq: [{ $trim: { input: { $ifNull: ['$category', ''] } } }, ''] }
+                                ]
+                            },
+                            'Other',
+                            '$category'
+                        ]
+                    },
+                    computedTasks: {
+                        $map: {
+                            input: '$tasks',
+                            as: 'task',
+                            in: {
+                                status: {
+                                    $let: {
+                                        vars: { rawStatus: { $toLower: { $ifNull: ['$$task.status', 'todo'] } } },
+                                        in: {
+                                            $cond: [
+                                                { $eq: ['$$rawStatus', 'done'] },
+                                                'completed',
+                                                {
+                                                    $cond: [
+                                                        { $in: ['$$rawStatus', ['todo', 'in_progress', 'review', 'completed']] },
+                                                        '$$rawStatus',
+                                                        'todo'
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    }
+                                },
+                                totalUnits: {
+                                    $cond: [
+                                        { $gt: [{ $size: { $ifNull: ['$$task.subtasks', []] } }, 0] },
+                                        { $size: { $ifNull: ['$$task.subtasks', []] } },
+                                        1
+                                    ]
+                                },
+                                completedUnits: {
+                                    $cond: [
+                                        { $gt: [{ $size: { $ifNull: ['$$task.subtasks', []] } }, 0] },
+                                        {
+                                            $size: {
+                                                $filter: {
+                                                    input: { $ifNull: ['$$task.subtasks', []] },
+                                                    as: 'st',
+                                                    cond: { $eq: ['$$st.completed', true] }
+                                                }
+                                            }
+                                        },
+                                        {
+                                            $cond: [
+                                                {
+                                                    $in: [
+                                                        { $toLower: { $ifNull: ['$$task.status', 'todo'] } },
+                                                        ['completed', 'done']
+                                                    ]
+                                                },
+                                                1,
+                                                0
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                $project: {
+                    category: 1,
+                    computedTasks: 1,
+                    projectTotalTasks: { $sum: '$computedTasks.totalUnits' },
+                    projectCompletedTasks: { $sum: '$computedTasks.completedUnits' }
+                }
+            },
+            {
+                $facet: {
+                    categories: [
+                        {
+                            $group: {
+                                _id: '$category',
+                                totalProjects: { $sum: 1 },
+                                totalTasks: { $sum: '$projectTotalTasks' },
+                                completedTasks: { $sum: '$projectCompletedTasks' }
+                            }
+                        }
+                    ],
+                    tasks: [
+                        { $unwind: '$computedTasks' },
+                        {
+                            $group: {
+                                _id: '$computedTasks.status',
+                                count: { $sum: 1 }
+                            }
+                        }
+                    ],
+                    totals: [
+                        {
+                            $group: {
+                                _id: null,
+                                totalSubtasksAll: { $sum: '$projectTotalTasks' },
+                                completedSubtasksAll: { $sum: '$projectCompletedTasks' }
+                            }
+                        }
+                    ]
+                }
+            }
+        ]);
+
+        const result = stats[0] || { categories: [], tasks: [], totals: [] };
+
+        const totalSubtasksAll = result.totals[0]?.totalSubtasksAll || 0;
+        const completedSubtasksAll = result.totals[0]?.completedSubtasksAll || 0;
+
+        const overallProgress = totalSubtasksAll === 0 ? 0 : Number(((completedSubtasksAll / totalSubtasksAll) * 100).toFixed(1));
+
+        const categoriesArray = (result.categories || []).map(cat => ({
+            name: cat._id,
+            totalProjects: cat.totalProjects,
+            completedTasks: cat.completedTasks,
+            totalTasks: cat.totalTasks,
+            progress: cat.totalTasks === 0 ? 0 : Number(((cat.completedTasks / cat.totalTasks) * 100).toFixed(1))
+        }));
+
         const statusStats = {
             todo: 0,
             in_progress: 0,
@@ -73,52 +214,22 @@ export const getOngoingProjectsStats = async (req, res) => {
             completed: 0
         };
 
-        activeProjects.forEach(project => {
-            const projectTasks = tasks.filter(t => t.projectId.toString() === project._id.toString());
-            let totalSubtasks = 0;
-            let completedSubtasks = 0;
-
-            projectTasks.forEach(task => {
-                // Track status
-                let s = task.status ? task.status.toLowerCase() : 'todo';
-                if (s === 'done') s = 'completed';
-                if (statusStats[s] !== undefined) {
-                    statusStats[s] += 1;
-                } else {
-                    statusStats.todo += 1;
-                }
-
-                if (task.subtasks && task.subtasks.length > 0) {
-                    totalSubtasks += task.subtasks.length;
-                    completedSubtasks += task.subtasks.filter(sub => sub.completed).length;
-                } else {
-                    totalSubtasks += 1;
-                    if (task.status === 'completed' || task.status === 'done') {
-                        completedSubtasks += 1;
-                    }
-                }
-            });
-
-            totalSubtasksAll += totalSubtasks;
-            completedSubtasksAll += completedSubtasks;
-
-            const category = project.category || 'Other';
-            if (!categoryStats[category]) {
-                categoryStats[category] = { name: category, totalProjects: 0, completedTasks: 0, totalTasks: 0 };
+        (result.tasks || []).forEach(t => {
+            if (statusStats[t._id] !== undefined) {
+                statusStats[t._id] = t.count;
+            } else {
+                statusStats.todo += t.count;
             }
-            categoryStats[category].totalProjects += 1;
-            categoryStats[category].totalTasks += totalSubtasks;
-            categoryStats[category].completedTasks += completedSubtasks;
         });
 
-        const overallProgress = totalSubtasksAll === 0 ? 0 : Number(((completedSubtasksAll / totalSubtasksAll) * 100).toFixed(1));
-
-        const categoriesArray = Object.values(categoryStats).map(cat => ({
-            ...cat,
-            progress: cat.totalTasks === 0 ? 0 : Number(((cat.completedTasks / cat.totalTasks) * 100).toFixed(1))
-        }));
-
-        res.status(200).json({ status: 'success', data: { overallProgress, categories: categoriesArray, statusStats } });
+        res.status(200).json({
+            status: 'success',
+            data: {
+                overallProgress,
+                categories: categoriesArray,
+                statusStats
+            }
+        });
     } catch (error) {
         console.error('Error in getOngoingProjectsStats:', error);
         res.status(500).json({ status: 'error', message: 'Internal server error' });
@@ -128,73 +239,188 @@ export const getOngoingProjectsStats = async (req, res) => {
 export const getTeamProgress = async (req, res) => {
     try {
         const userId = req.user.id;
+        const userObjId = new mongoose.Types.ObjectId(userId);
         const { projectId } = req.query;
-        let query = {
-            $or: [{ ownerId: userId }, { 'members.userId': userId }]
+
+        let projectMatch = {
+            $or: [{ ownerId: userObjId }, { 'members.userId': userObjId }]
         };
+
         if (projectId) {
-            query._id = projectId;
+            if (mongoose.Types.ObjectId.isValid(projectId)) {
+                projectMatch._id = new mongoose.Types.ObjectId(projectId);
+            } else {
+                return res.status(200).json({
+                    status: 'success',
+                    data: [],
+                    overallStats: {
+                        totalPoints: 0,
+                        tasksCompleted: 0,
+                        activeMembers: 0
+                    }
+                });
+            }
         }
 
-        const projects = await Project.find(query);
-        
-        const relevantUserIds = new Set();
-        projects.forEach(p => {
-            relevantUserIds.add(p.ownerId.toString());
-            p.members.forEach(m => relevantUserIds.add(m.userId.toString()));
-        });
-
-        const users = await User.find({ _id: { $in: Array.from(relevantUserIds) } });
-
-        let taskQuery = { assigneeId: { $in: users.map(u => u._id) } };
-        if (projectId) {
-            taskQuery.projectId = projectId;
-        }
-        const tasks = await Task.find(taskQuery);
-
-        const memberStats = {};
-
-        users.forEach(user => {
-            memberStats[user._id.toString()] = {
-                id: user._id,
-                name: user.name,
-                avatar: user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}`,
-                totalTasks: 0,
-                completedTasks: 0,
-                progress: 0
-            };
-        });
-
-        tasks.forEach(task => {
-            if (!task.assigneeId) return;
-            const assigneeId = task.assigneeId.toString();
-            if (memberStats[assigneeId]) {
-                if (task.subtasks && task.subtasks.length > 0) {
-                    memberStats[assigneeId].totalTasks += task.subtasks.length;
-                    memberStats[assigneeId].completedTasks += task.subtasks.filter(s => s.completed).length;
-                } else {
-                    memberStats[assigneeId].totalTasks += 1;
-                    if (task.status === 'completed') {
-                        memberStats[assigneeId].completedTasks += 1;
+        // Aggregate to find accessible projects and their members
+        const accessibleProjects = await Project.aggregate([
+            { $match: projectMatch },
+            {
+                $project: {
+                    _id: 1,
+                    memberIds: {
+                        $concatArrays: [
+                            ['$ownerId'],
+                            {
+                                $map: {
+                                    input: { $ifNull: ['$members', []] },
+                                    as: 'm',
+                                    in: '$$m.userId'
+                                }
+                            }
+                        ]
                     }
                 }
             }
+        ]);
+
+        if (!accessibleProjects || accessibleProjects.length === 0) {
+            return res.status(200).json({
+                status: 'success',
+                data: [],
+                overallStats: {
+                    totalPoints: 0,
+                    tasksCompleted: 0,
+                    activeMembers: 0
+                }
+            });
+        }
+
+        const accessibleProjectIds = accessibleProjects.map(p => p._id);
+        const allMemberIdsSet = new Set();
+        accessibleProjects.forEach(p => {
+            (p.memberIds || []).forEach(mid => {
+                if (mid) allMemberIdsSet.add(mid.toString());
+            });
         });
+
+        const memberObjectIds = Array.from(allMemberIdsSet).map(id => new mongoose.Types.ObjectId(id));
+
+        if (memberObjectIds.length === 0) {
+            return res.status(200).json({
+                status: 'success',
+                data: [],
+                overallStats: {
+                    totalPoints: 0,
+                    tasksCompleted: 0,
+                    activeMembers: 0
+                }
+            });
+        }
+
+        const membersAggregation = await User.aggregate([
+            { $match: { _id: { $in: memberObjectIds } } },
+            {
+                $lookup: {
+                    from: 'tasks',
+                    let: { uid: '$_id' },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        { $eq: ['$assigneeId', '$$uid'] },
+                                        { $in: ['$projectId', accessibleProjectIds] }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            $project: {
+                                totalUnits: {
+                                    $cond: [
+                                        { $gt: [{ $size: { $ifNull: ['$subtasks', []] } }, 0] },
+                                        { $size: { $ifNull: ['$subtasks', []] } },
+                                        1
+                                    ]
+                                },
+                                completedUnits: {
+                                    $cond: [
+                                        { $gt: [{ $size: { $ifNull: ['$subtasks', []] } }, 0] },
+                                        {
+                                            $size: {
+                                                $filter: {
+                                                    input: { $ifNull: ['$subtasks', []] },
+                                                    as: 'st',
+                                                    cond: { $eq: ['$$st.completed', true] }
+                                                }
+                                            }
+                                        },
+                                        {
+                                            $cond: [
+                                                {
+                                                    $in: [
+                                                        { $toLower: { $ifNull: ['$status', 'todo'] } },
+                                                        ['completed', 'done']
+                                                    ]
+                                                },
+                                                1,
+                                                0
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            $group: {
+                                _id: null,
+                                totalTasks: { $sum: '$totalUnits' },
+                                completedTasks: { $sum: '$completedUnits' }
+                            }
+                        }
+                    ],
+                    as: 'taskStats'
+                }
+            },
+            {
+                $project: {
+                    id: '$_id',
+                    name: 1,
+                    avatar: 1,
+                    stats: { $arrayElemAt: ['$taskStats', 0] }
+                }
+            },
+            {
+                $project: {
+                    id: 1,
+                    name: 1,
+                    avatar: 1,
+                    totalTasks: { $ifNull: ['$stats.totalTasks', 0] },
+                    completedTasks: { $ifNull: ['$stats.completedTasks', 0] }
+                }
+            },
+            {
+                $sort: { totalTasks: -1 }
+            }
+        ]);
 
         let overallTotalTasks = 0;
         let overallCompletedTasks = 0;
 
-        const membersArray = Object.values(memberStats).map(member => {
+        const membersArray = membersAggregation.map(member => {
             overallTotalTasks += member.totalTasks;
             overallCompletedTasks += member.completedTasks;
-            
+
             return {
-                ...member,
+                id: member.id,
+                name: member.name,
+                avatar: member.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}`,
+                totalTasks: member.totalTasks,
+                completedTasks: member.completedTasks,
                 progress: member.totalTasks === 0 ? 0 : Number(((member.completedTasks / member.totalTasks) * 100).toFixed(1))
             };
         });
-        
-        membersArray.sort((a, b) => b.totalTasks - a.totalTasks);
 
         res.status(200).json({
             status: 'success',
@@ -217,7 +443,7 @@ export const getRecentFiles = async (req, res) => {
         const projects = await Project.find({
             $or: [{ ownerId: userId }, { 'members.userId': userId }]
         });
-        
+
         const projectIds = projects.map(p => p._id);
         const attachments = await Attachment.find({
             $or: [{ projectId: { $in: projectIds } }, { uploadedBy: userId }]
