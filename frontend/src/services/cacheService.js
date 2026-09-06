@@ -131,8 +131,28 @@ export const getCachedData = async (key) => {
  */
 export const fetchWithCache = async (url, options = {}) => {
   const cacheKey = url;
+
+  // 1. OFFLINE-FIRST: If device is offline, do NOT attempt network fetch.
+  // Retrieve from PouchDB / IndexedDB cache immediately (0ms network delay).
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    const cached = await getCachedData(cacheKey);
+    if (cached) {
+      return new Response(JSON.stringify(cached), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+  }
+
+  // 2. ONLINE / RACE CONDITION: Attempt network fetch with abort controller
+  // to avoid long socket timeout hangs if network drops mid-request.
   try {
-    const response = await fetch(url, options);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+    const fetchOptions = { ...options, signal: options.signal || controller.signal };
+    const response = await fetch(url, fetchOptions);
+    clearTimeout(timeoutId);
 
     // If HTTP response status is not 2xx, return response directly.
     // HTTP 401, 403, 404, 409 must NOT fall back to offline cached data.
@@ -148,7 +168,7 @@ export const fetchWithCache = async (url, options = {}) => {
 
     return response;
   } catch (err) {
-    // Genuine network failure (disconnection / TypeError: Failed to fetch)
+    // Genuine network failure or timeout -> attempt cache fallback
     console.warn(`Network request failed for ${url}, attempting cache fallback.`, err);
     const cached = await getCachedData(cacheKey);
     if (cached) {

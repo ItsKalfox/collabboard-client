@@ -11,9 +11,6 @@ import Settings from './pages/Settings';
 import AuthModule from './components/auth/AuthModule';
 import ConfirmModal from './components/Board/ConfirmModal';
 import { saveUserProfileToDB, getUserProfileFromDB } from './services/dbService';
-import { initSyncListeners } from './services/syncService';
-import { useNetworkStatus } from './hooks/useNetworkStatus';
-import OfflineBanner from './components/common/OfflineBanner';
 import NetworkStatusBanner from './components/common/NetworkStatusBanner';
 import './App.css';
 
@@ -40,7 +37,7 @@ function App() {
     if (saved) return saved;
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   });
-  
+
   const isDark = theme === 'dark';
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -56,12 +53,7 @@ function App() {
       return null;
     }
   });
-  const { isOnline, isSyncing } = useNetworkStatus();
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
-
-  useEffect(() => {
-    initSyncListeners();
-  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -94,7 +86,6 @@ function App() {
       localStorage.setItem('user', JSON.stringify(dbUser));
       return true;
     }
-    // If token exists but user object is missing, create resilient fallback user so session never breaks offline
     const fallbackUser = { id: 'offline-user', name: 'Workspace User', email: 'user@collabboard.local' };
     setCurrentUser(fallbackUser);
     localStorage.setItem('user', JSON.stringify(fallbackUser));
@@ -110,13 +101,16 @@ function App() {
       return;
     }
 
-    if (!navigator.onLine) {
+    // 1. OFFLINE-FIRST: Do NOT call /api/auth/me if device is offline.
+    // Restore local session immediately (0ms network delay).
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
       restoreLocalSession();
       return;
     }
 
+    // 2. ONLINE / RACE CONDITION: Call /api/auth/me with an AbortController cap (2.5s)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
 
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
     fetch(`${apiUrl}/auth/me`, {
@@ -126,34 +120,29 @@ function App() {
       .then(async (res) => {
         clearTimeout(timeoutId);
         if (res.status === 401 || res.status === 403) {
-          throw { isAuthError: true, status: res.status };
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setCurrentUser(null);
+          if (!authRoutes.includes(activeTab)) setSessionExpired(true);
+          return;
         }
         if (!res.ok) {
-          throw { isServerError: true, status: res.status };
+          await restoreLocalSession();
+          return;
         }
-        return res.json();
-      })
-      .then((data) => {
+        const data = await res.json();
         if (data.status === 'success' && data.data && data.data.user) {
           setCurrentUser(data.data.user);
           localStorage.setItem('user', JSON.stringify(data.data.user));
           saveUserProfileToDB(data.data.user);
         } else {
-          // Non-success response body from cache/proxy when non-401 is NOT an auth failure
-          restoreLocalSession();
+          await restoreLocalSession();
         }
       })
       .catch(async (err) => {
         clearTimeout(timeoutId);
-        if (err && err.isAuthError) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          setCurrentUser(null);
-          if (!authRoutes.includes(activeTab)) setSessionExpired(true);
-        } else {
-          console.warn('Network offline or fetch error during auth validation. Preserving local user session:', err);
-          await restoreLocalSession();
-        }
+        console.warn('Network offline or fetch timeout during auth check. Preserving local user session:', err);
+        await restoreLocalSession();
       });
   }, []);
 
@@ -258,10 +247,10 @@ function App() {
   if (authRoutes.includes(activeTab)) {
     return (
       <div className="app-container auth-bg-blur" style={themeVars}>
-        <AuthModule 
-          theme={theme} 
-          toggleTheme={toggleTheme} 
-          initialPage={activeTab} 
+        <AuthModule
+          theme={theme}
+          toggleTheme={toggleTheme}
+          initialPage={activeTab}
           onLoginSuccess={handleLoginSuccess}
         />
       </div>
@@ -308,7 +297,7 @@ function App() {
             </svg>
             <h2 style={{ margin: '0 0 10px 0', fontSize: '22px', fontWeight: '700' }}>Session Expired</h2>
             <p style={{ margin: '0 0 24px 0', color: isDark ? '#9ca3af' : '#4b5563', fontSize: '14px', lineHeight: '1.5' }}>Your session is invalid or has expired. Please sign in again to continue.</p>
-            <button 
+            <button
               onClick={() => {
                 setSessionExpired(false);
                 handleTabClick('login');
@@ -355,7 +344,7 @@ function App() {
           {/* Menu Items */}
           <div className="menu-items" style={{ position: 'relative' }}>
             {/* Sliding Active Indicator */}
-            <div 
+            <div
               style={{
                 position: 'absolute',
                 background: 'var(--item-active-bg)',
@@ -391,9 +380,9 @@ function App() {
               </>
             ) : (
               <>
-                <div className="profile-pic" style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
+                <div className="profile-pic" style={{
+                  display: 'flex',
+                  alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '22px',
                   fontWeight: '600',
@@ -413,21 +402,21 @@ function App() {
                     currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'
                   )}
                 </div>
-                
+
                 <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', alignItems: 'center', marginBottom: '8px' }}>
-                  <div className="profile-name" style={{ 
-                    whiteSpace: 'nowrap', 
-                    overflow: 'hidden', 
+                  <div className="profile-name" style={{
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     textAlign: 'center',
                     fontSize: '15px',
                     fontWeight: '600'
                   }}>{currentUser.name || 'User'}</div>
-                  <div style={{ 
-                    fontSize: '12px', 
+                  <div style={{
+                    fontSize: '12px',
                     color: 'var(--text-secondary)',
-                    whiteSpace: 'nowrap', 
-                    overflow: 'hidden', 
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     textAlign: 'center',
                     marginTop: '2px'
@@ -435,8 +424,8 @@ function App() {
                 </div>
               </>
             )}
-            
-            <button 
+
+            <button
               onClick={() => setIsLogoutConfirmOpen(true)}
               style={{
                 display: 'flex',
@@ -518,10 +507,10 @@ function App() {
           {activeTab === 'Dashboard' ? (
             <Dashboard />
           ) : activeTab === 'Board' ? (
-            <Board 
-              initialProjectId={typeof selectedProject === 'object' ? selectedProject?.id : selectedProject} 
+            <Board
+              initialProjectId={typeof selectedProject === 'object' ? selectedProject?.id : selectedProject}
               selectedProject={typeof selectedProject === 'object' ? selectedProject : null}
-              onSelectProject={(id) => setSelectedProject(id)} 
+              onSelectProject={(id) => setSelectedProject(id)}
               currentUser={currentUser}
               theme={theme}
             />
@@ -538,7 +527,6 @@ function App() {
         </div>
 
       </div>
-      <OfflineBanner isOnline={isOnline} isSyncing={isSyncing} />
     </div>
   );
 }
