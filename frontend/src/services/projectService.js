@@ -135,7 +135,7 @@ export const updateProject = async (projectId, updateData) => {
  * @returns {Promise<Object>} Project details
  */
 export const getProjectById = async (projectId) => {
-  const response = await fetch(`${API_URL}/projects/${projectId}`, {
+  const response = await fetchWithCache(`${API_URL}/projects/${projectId}`, {
     method: 'GET',
     headers: getAuthHeaders(true)
   });
