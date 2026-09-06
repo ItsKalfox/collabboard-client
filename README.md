@@ -145,13 +145,12 @@ During the initial development phase, mock data is used by the backend before Mo
 
 # Technology Stack
 
-## Frontend
-
-* React
-* JavaScript
-* Vite
-* HTML5
-* CSS3
+### Frontend
+- **React.js** - UI Library
+- **Vite** - Build Tool
+- **Dnd-kit** - Drag and drop functionality for Kanban board
+- **Recharts** - Charts for the dashboard
+- **PouchDB** - Client-side data caching layer
 
 ## Backend
 
