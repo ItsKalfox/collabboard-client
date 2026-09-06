@@ -3,7 +3,8 @@ import { fetchWithCache } from './cacheService';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 /**
- * Helper function to handle API responses and errors
+ * Helper function to handle API responses and errors.
+ * Now wraps all dashboard GET requests with a PouchDB caching layer.
  */
 const fetchAPI = async (endpoint, options = {}) => {
   try {
