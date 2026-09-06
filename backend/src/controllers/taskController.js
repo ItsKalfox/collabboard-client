@@ -1,4 +1,8 @@
 import cloudinary from '../config/cloudinary.js';
+import Task from '../models/Task.js';
+import Project from '../models/Project.js';
+import Attachment from '../models/Attachment.js';
+import { parsePaginationAndSort, buildPaginationMeta } from '../utils/pagination.js';
 import taskRepository from '../repositories/taskRepository.js';
 import attachmentRepository from '../repositories/attachmentRepository.js';
 
@@ -31,8 +35,37 @@ export const getTasksByProject = async (req, res) => {
         const projectId = req.params.projectId || req.query.projectId;
         if (!projectId) return res.status(400).json({ status: 'error', message: 'Project ID is required' });
 
-        const tasks = await taskRepository.findWithAssigneeAndAttachments({ projectId });
-        res.status(200).json({ status: 'success', data: { tasks } });
+        const paginationResult = parsePaginationAndSort(req.query, {
+            allowedSortFields: ['createdAt', 'updatedAt', 'dueDate', 'title', 'priority', 'status'],
+            defaultSortBy: 'createdAt',
+            defaultSortOrder: 'desc'
+        });
+
+        if (paginationResult.error) {
+            return res.status(400).json({ status: 'error', message: paginationResult.error });
+        }
+
+        const { page, limit, skip, sort } = paginationResult;
+
+        const total = await Task.countDocuments({ projectId });
+        const tasks = await Task.find({ projectId })
+            .sort(sort)
+            .skip(skip)
+            .limit(limit)
+            .populate('assigneeId', 'name avatar')
+            .populate('attachments')
+            .exec();
+
+        const pagination = buildPaginationMeta(total, page, limit);
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                tasks,
+                pagination
+            },
+            pagination
+        });
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });

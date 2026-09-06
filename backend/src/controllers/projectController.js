@@ -1,4 +1,9 @@
 import cloudinary from '../config/cloudinary.js';
+import Project from '../models/Project.js';
+import Task from '../models/Task.js';
+import Attachment from '../models/Attachment.js';
+import User from '../models/User.js';
+import { parsePaginationAndSort, buildPaginationMeta } from '../utils/pagination.js';
 import projectRepository from '../repositories/projectRepository.js';
 import taskRepository from '../repositories/taskRepository.js';
 import attachmentRepository from '../repositories/attachmentRepository.js';
@@ -18,6 +23,18 @@ const uploadToCloudinary = (buffer, options) => {
 // GET /api/projects
 export const getProjects = async (req, res) => {
     try {
+        const paginationResult = parsePaginationAndSort(req.query, {
+            allowedSortFields: ['createdAt', 'updatedAt', 'name', 'dueDate', 'status', 'category'],
+            defaultSortBy: 'createdAt',
+            defaultSortOrder: 'desc'
+        });
+
+        if (paginationResult.error) {
+            return res.status(400).json({ status: 'error', message: paginationResult.error });
+        }
+
+        const { page, limit, skip, sort } = paginationResult;
+
         const { q } = req.query;
         let query = {
             $or: [
@@ -29,7 +46,13 @@ export const getProjects = async (req, res) => {
             query.name = { $regex: q, $options: 'i' };
         }
 
-        const projects = await projectRepository.findWithMembers(query);
+        const total = await Project.countDocuments(query);
+        const projects = await Project.find(query)
+            .sort(sort)
+            .skip(skip)
+            .limit(limit)
+            .populate('members.userId', 'name email avatar')
+            .exec();
 
         const projectIds = projects.map(p => p._id);
         const allTasks = await taskRepository.find({ projectId: { $in: projectIds } });
@@ -60,7 +83,16 @@ export const getProjects = async (req, res) => {
             return projObj;
         });
 
-        res.status(200).json({ status: 'success', data: { projects: projectsWithMembers } });
+        const pagination = buildPaginationMeta(total, page, limit);
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                projects: projectsWithMembers,
+                pagination
+            },
+            pagination
+        });
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
@@ -486,8 +518,40 @@ export const removeProjectMember = async (req, res) => {
 // GET /api/projects/:id/tasks
 export const getProjectTasks = async (req, res) => {
     try {
-        const tasks = await taskRepository.findWithAttachments({ projectId: req.params.id });
-        res.status(200).json({ status: 'success', data: { tasks } });
+        const projectId = req.params.id || req.params.projectId;
+        if (!projectId) return res.status(400).json({ status: 'error', message: 'Project ID is required' });
+
+        const paginationResult = parsePaginationAndSort(req.query, {
+            allowedSortFields: ['createdAt', 'updatedAt', 'dueDate', 'title', 'priority', 'status'],
+            defaultSortBy: 'createdAt',
+            defaultSortOrder: 'desc'
+        });
+
+        if (paginationResult.error) {
+            return res.status(400).json({ status: 'error', message: paginationResult.error });
+        }
+
+        const { page, limit, skip, sort } = paginationResult;
+
+        const total = await Task.countDocuments({ projectId });
+        const tasks = await Task.find({ projectId })
+            .sort(sort)
+            .skip(skip)
+            .limit(limit)
+            .populate('assigneeId', 'name avatar')
+            .populate('attachments')
+            .exec();
+
+        const pagination = buildPaginationMeta(total, page, limit);
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                tasks,
+                pagination
+            },
+            pagination
+        });
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
