@@ -75,59 +75,79 @@ function App() {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
+  const restoreLocalSession = async () => {
+    const localUserStr = localStorage.getItem('user');
+    if (localUserStr) {
+      try {
+        const parsed = JSON.parse(localUserStr);
+        setCurrentUser(parsed);
+        return true;
+      } catch (e) {
+        // Fallback to IndexedDB
+      }
+    }
+    const dbUser = await getUserProfileFromDB();
+    if (dbUser) {
+      setCurrentUser(dbUser);
+      localStorage.setItem('user', JSON.stringify(dbUser));
+      return true;
+    }
+    return false;
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (token) {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      fetch(`${apiUrl}/auth/me`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      .then(res => {
+    if (!token) {
+      if (!authRoutes.includes(activeTab)) {
+        setSessionExpired(true);
+      }
+      return;
+    }
+
+    if (!navigator.onLine) {
+      restoreLocalSession();
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    fetch(`${apiUrl}/auth/me`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+      signal: controller.signal
+    })
+      .then(async (res) => {
+        clearTimeout(timeoutId);
         if (res.status === 401 || res.status === 403) {
-          throw new Error('UNAUTHORIZED');
+          throw { isAuthError: true, status: res.status };
+        }
+        if (!res.ok) {
+          throw { isServerError: true, status: res.status };
         }
         return res.json();
       })
-      .then(data => {
+      .then((data) => {
         if (data.status === 'success' && data.data && data.data.user) {
           setCurrentUser(data.data.user);
           localStorage.setItem('user', JSON.stringify(data.data.user));
           saveUserProfileToDB(data.data.user);
         } else {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          if (!authRoutes.includes(activeTab)) setSessionExpired(true);
+          throw { isAuthError: true, status: 401 };
         }
       })
       .catch(async (err) => {
-        if (err.message === 'UNAUTHORIZED') {
+        clearTimeout(timeoutId);
+        if (err.isAuthError) {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
+          setCurrentUser(null);
           if (!authRoutes.includes(activeTab)) setSessionExpired(true);
         } else {
-          // Network error or server offline: Fallback to local stored user profile
-          console.warn('Network offline or fetch failed during auth check. Preserving local user session:', err);
-          const localUserStr = localStorage.getItem('user');
-          if (localUserStr) {
-            try {
-              const parsed = JSON.parse(localUserStr);
-              setCurrentUser(parsed);
-            } catch {
-              // fallback to DB if localStorage fails
-              const dbUser = await getUserProfileFromDB();
-              if (dbUser) setCurrentUser(dbUser);
-            }
-          } else {
-            const dbUser = await getUserProfileFromDB();
-            if (dbUser) setCurrentUser(dbUser);
-          }
+          console.warn('Network offline or fetch error during auth validation. Preserving local user session:', err);
+          await restoreLocalSession();
         }
       });
-    } else {
-      if (!authRoutes.includes(activeTab)) {
-        setSessionExpired(true);
-      }
-    }
   }, []);
 
 
