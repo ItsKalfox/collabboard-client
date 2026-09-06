@@ -11,6 +11,9 @@ import Settings from './pages/Settings';
 import AuthModule from './components/auth/AuthModule';
 import ConfirmModal from './components/Board/ConfirmModal';
 import { saveUserProfileToDB, getUserProfileFromDB } from './services/dbService';
+import { initSyncListeners } from './services/syncService';
+import { useNetworkStatus } from './hooks/useNetworkStatus';
+import OfflineBanner from './components/common/OfflineBanner';
 import './App.css';
 
 function App() {
@@ -52,7 +55,12 @@ function App() {
       return null;
     }
   });
+  const { isOnline, isSyncing } = useNetworkStatus();
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
+
+  useEffect(() => {
+    initSyncListeners();
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -501,6 +509,7 @@ function App() {
         </div>
 
       </div>
+      <OfflineBanner isOnline={isOnline} isSyncing={isSyncing} />
     </div>
   );
 }

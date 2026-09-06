@@ -3,6 +3,7 @@ import { X, Calendar, CheckSquare, Clock, AlignLeft, Users, CornerDownRight, Tag
 import { formatDate } from '../../utils/dateUtils';
 import { isProjectOwner, formatActivityText } from '../../utils/projectUtils';
 import ConfirmModal from '../Board/ConfirmModal';
+import { updateTask, deleteTask, createSubtask, updateSubtask, deleteSubtask, updateTaskStatus } from '../../services/taskService';
 import './TaskPopup.css';
 
 /* ─── Dummy employee pool ───────────────────────────────────── */
@@ -152,54 +153,35 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
 
   const saveEdit = async (e) => {
     if (e) e.preventDefault();
-    console.log("saveEdit triggered", { draft, task });
     try {
       let newVersion = task.version || task.__v;
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-        const token = localStorage.getItem('token');
-        const res = await fetch(`${apiUrl}/tasks/${task.id}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            title: draft.title,
-            description: draft.description,
-            status: draft.status,
-            priority: draft.priority,
-            dueDate: draft.dueDate,
-            assigneeId: draft.assigneeId,
-            version: newVersion
-          })
+        const updatedTaskApi = await updateTask(task.id, {
+          title: draft.title,
+          description: draft.description,
+          status: draft.status,
+          priority: draft.priority,
+          dueDate: draft.dueDate,
+          assigneeId: draft.assigneeId,
+          version: newVersion
         });
-
-        if (res.status === 409) {
-            setConflictError(true);
-            return;
+        if (updatedTaskApi && (updatedTaskApi.version || updatedTaskApi.__v)) {
+          newVersion = updatedTaskApi.version || updatedTaskApi.__v;
         }
-
-        const payload = await res.json();
-        if (payload && payload.data && payload.data.task) {
-             const updatedTaskApi = payload.data.task;
-             newVersion = updatedTaskApi.version || updatedTaskApi.__v;
-        }
-
       } catch (err) {
-        console.error('Failed to update task via fetch:', err);
+        console.error('Failed to update task:', err);
       }
-      
+
       setTask(t => {
         let newAssigneeObj = t.assigneeId;
         const currentAssigneeId = typeof t.assigneeId === 'object' ? (t.assigneeId?._id || t.assigneeId?.id) : t.assigneeId;
-        
+
         if (String(draft.assigneeId) !== String(currentAssigneeId)) {
-          const userObj = String(draft.assigneeId) === String(currentUserId) 
-            ? currentUser 
-            : (project?.members?.find(m => String(m.id || m.userId) === String(draft.assigneeId)) || 
+          const userObj = String(draft.assigneeId) === String(currentUserId)
+            ? currentUser
+            : (project?.members?.find(m => String(m.id || m.userId) === String(draft.assigneeId)) ||
                (String(project?.ownerId?._id || project?.ownerId?.id) === String(draft.assigneeId) ? project?.ownerId : null));
-               
+
           if (userObj) {
             newAssigneeObj = {
               _id: draft.assigneeId,
@@ -223,13 +205,9 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
           ],
         };
       });
-      console.log("setTask called");
-      
+
       if (onUpdate) onUpdate();
-      console.log("onUpdate called");
-      
       setIsEditing(false);
-      console.log("setIsEditing(false) called");
     } catch (criticalError) {
       console.error("CRITICAL ERROR IN saveEdit:", criticalError);
       alert("Error saving: " + criticalError.message);
@@ -246,12 +224,7 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
 
   const performDeleteFullTask = async () => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const token = localStorage.getItem('token');
-      await fetch(`${apiUrl}/tasks/${task.id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      await deleteTask(task.id);
       if (onUpdate) onUpdate();
       onClose(); // Close modal
     } catch (e) {
@@ -269,30 +242,19 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
     const newCompleted = !targetSub.completed;
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const token = localStorage.getItem('token');
-      await fetch(`${apiUrl}/subtasks/${targetSub.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ completed: newCompleted })
-      });
+      await updateSubtask(targetSub.id, task.id, { completed: newCompleted });
 
       // Calculate auto-move logic based on new completion status
       const subs = task.subtasks.map((s, idx) => idx === i ? { ...s, completed: newCompleted } : s);
-      const totalSubs = subs.length;
       const doneSubs = subs.filter(s => s.completed).length;
-      
+
       let newStatus = task.status;
       if (task.status === 'todo' && doneSubs > 0) {
         newStatus = 'in_progress';
       }
 
       if (newStatus !== task.status) {
-        await fetch(`${apiUrl}/tasks/${task.id}/status`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ status: newStatus })
-        });
+        await updateTaskStatus(task.id, newStatus);
       }
 
       setTask(t => {
@@ -318,12 +280,7 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
     const targetSub = task.subtasks[i];
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const token = localStorage.getItem('token');
-      await fetch(`${apiUrl}/subtasks/${targetSub.id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      await deleteSubtask(targetSub.id, task.id);
     } catch (e) {
       console.error('Failed to delete subtask', e);
     }
@@ -398,20 +355,9 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
     let subData = { title, description, completed: false, comments: [] };
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${apiUrl}/tasks/${task.id}/subtasks`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ title, description, completed: false })
-      });
-      const data = await res.json();
-      if (data.status === 'success') {
-        const newApiSubtask = data.data.subtask;
-        subData = { ...subData, id: newApiSubtask.id };
+      const createdSub = await createSubtask(task.id, { title, description, completed: false });
+      if (createdSub && createdSub.id) {
+        subData = { ...subData, id: createdSub.id };
       }
     } catch (e) {
       console.error('Failed to add subtask', e);
@@ -443,13 +389,7 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
     const newDesc = editSubtaskDraft.description.trim();
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const token = localStorage.getItem('token');
-      await fetch(`${apiUrl}/subtasks/${targetSub.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ title: newTitle, description: newDesc })
-      });
+      await updateSubtask(targetSub.id, task.id, { title: newTitle, description: newDesc });
     } catch (e) {
       console.error('Failed to edit subtask', e);
     }

@@ -10,6 +10,7 @@ import ProjectDetailsModal from '../components/projects/ProjectDetailsModal';
 import { Search, X } from 'lucide-react';
 import { getProjects, createProject, addProjectMember } from '../services/projectService';
 import { getProjectsFromDB } from '../services/dbService';
+import { createTask } from '../services/taskService';
 
 import { normalizeMember } from '../utils/memberUtils';
 import './Board.css';
@@ -102,54 +103,49 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
     const fetchProjects = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem('token');
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-        
-        const response = await fetch(`${apiUrl}/projects`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.status === 'success' && data.data && data.data.projects) {
-            const apiProjects = data.data.projects;
-            setProjects(prev => {
-              const map = new Map();
-              // Add API projects
-              apiProjects.forEach(p => map.set(p.id, p));
-              // Fallback removed to ensure true empty state when no projects exist
-              // Add any dynamically selected project
-              prev.forEach(p => {
-                if (!map.has(p.id)) map.set(p.id, p);
-              });
-              const target = selectedProject || initialProjectId;
-              if (typeof target === 'object' && target !== null) {
-                map.set(target.id, { ...map.get(target.id), ...target });
-              }
-              return Array.from(map.values());
+        const apiProjects = await getProjects();
+        if (apiProjects && apiProjects.length > 0) {
+          setProjects(prev => {
+            const map = new Map();
+            apiProjects.forEach(p => map.set(p.id, p));
+            prev.forEach(p => {
+              if (!map.has(p.id)) map.set(p.id, p);
             });
-
             const target = selectedProject || initialProjectId;
-            const targetId = typeof target === 'object' ? target?.id : target;
-            if (targetId) {
-              setSelectedProjectId(targetId);
-            } else if (apiProjects.length > 0) {
-              setSelectedProjectId(prev => {
-                if (!prev || !apiProjects.some(p => p.id === prev)) {
-                  return apiProjects[0].id;
-                }
-                return prev;
-              });
-            } else {
-              setSelectedProjectId(null);
+            if (typeof target === 'object' && target !== null) {
+              map.set(target.id, { ...map.get(target.id), ...target });
             }
+            return Array.from(map.values());
+          });
+
+          const target = selectedProject || initialProjectId;
+          const targetId = typeof target === 'object' ? target?.id : target;
+          if (targetId) {
+            setSelectedProjectId(targetId);
+          } else if (apiProjects.length > 0) {
+            setSelectedProjectId(prev => {
+              if (!prev || !apiProjects.some(p => p.id === prev)) {
+                return apiProjects[0].id;
+              }
+              return prev;
+            });
+          } else {
+            setSelectedProjectId(null);
+          }
+        } else {
+          const dbProjects = await getProjectsFromDB();
+          if (dbProjects && dbProjects.length > 0) {
+            setProjects(dbProjects);
+            setSelectedProjectId(prev => {
+              if (!prev || !dbProjects.some(p => p.id === prev)) {
+                return dbProjects[0].id;
+              }
+              return prev;
+            });
           }
         }
       } catch (err) {
-        console.error('Error fetching projects from API:', err);
+        console.error('Error fetching projects:', err);
         const dbProjects = await getProjectsFromDB();
         if (dbProjects && dbProjects.length > 0) {
           setProjects(dbProjects);
@@ -234,59 +230,43 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
   const handleAddTaskSubmit = async (e) => {
     e.preventDefault();
     if (!selectedProjectId || !newTaskTitle.trim()) return;
-    
+
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem('token');
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const res = await fetch(`${apiUrl}/projects/${selectedProjectId}/tasks`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-
-        body: JSON.stringify({ 
-          title: newTaskTitle, 
-          status: 'todo',
-          description: newTaskDescription,
-          dueDate: newTaskDueDate || null,
-          assigneeId: newTaskAssignee || undefined,
-          subtasks: newSubtasks
-        })
-
+      const createdTask = await createTask(selectedProjectId, {
+        title: newTaskTitle,
+        status: 'todo',
+        description: newTaskDescription,
+        dueDate: newTaskDueDate || null,
+        assigneeId: newTaskAssignee || undefined,
+        subtasks: newSubtasks
       });
-      if (res.ok) {
-        const data = await res.json();
-        const newTaskId = data.data.task.id;
 
-        if (newTaskAttachments.length > 0) {
-          const uploadPromises = newTaskAttachments.map(async (f) => {
-            const formData = new FormData();
-            formData.append('file', f);
-            await fetch(`${apiUrl}/tasks/${newTaskId}/attachments`, {
-              method: 'POST',
-              headers: { 'Authorization': `Bearer ${token}` },
-              body: formData
-            });
-          });
-          await Promise.all(uploadPromises);
-        }
-
-        setRefreshKey(k => k + 1); // trigger task refetch
-        setIsAddTaskModalOpen(false);
-        setNewTaskTitle('');
-        setNewTaskDescription('');
-        setNewTaskDueDate('');
-        setNewTaskAssignee('');
-        setNewSubtasks([]);
-        setNewTaskAttachments([]);
-        setActiveTaskTab('main');
-
-      } else {
-        const errData = await res.json();
-        alert(errData.message || 'Failed to add task');
+      if (createdTask && newTaskAttachments.length > 0 && navigator.onLine) {
+        const token = localStorage.getItem('token');
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const newTaskId = createdTask.id;
+        const uploadPromises = newTaskAttachments.map(async (f) => {
+          const formData = new FormData();
+          formData.append('file', f);
+          await fetch(`${apiUrl}/tasks/${newTaskId}/attachments`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData
+          }).catch(err => console.warn('Attachment upload skipped offline:', err));
+        });
+        await Promise.all(uploadPromises);
       }
+
+      setRefreshKey(k => k + 1); // trigger task refetch
+      setIsAddTaskModalOpen(false);
+      setNewTaskTitle('');
+      setNewTaskDescription('');
+      setNewTaskDueDate('');
+      setNewTaskAssignee('');
+      setNewSubtasks([]);
+      setNewTaskAttachments([]);
+      setActiveTaskTab('main');
     } catch (err) {
       console.error(err);
       alert('Error adding task');

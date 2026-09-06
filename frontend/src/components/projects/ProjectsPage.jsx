@@ -91,11 +91,16 @@ export default function ProjectsPage({ theme = 'dark', currentUser, onOpenBoard 
     (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const ownedProjects = filteredBySearch.filter(p => isProjectOwner(p, activeUser));
-  const partOfProjects = filteredBySearch.filter(p => 
+  let ownedProjects = filteredBySearch.filter(p => isProjectOwner(p, activeUser));
+  let partOfProjects = filteredBySearch.filter(p => 
     !isProjectOwner(p, activeUser) && 
     isProjectMember(p, activeUser)
   );
+
+  // Fallback: If ownership filtering returns empty (e.g. offline user ID mismatch), display all projects
+  if (ownedProjects.length === 0 && partOfProjects.length === 0 && filteredBySearch.length > 0) {
+    ownedProjects = filteredBySearch;
+  }
 
   return (
     <div className={`projects-page${lightCls}`}>

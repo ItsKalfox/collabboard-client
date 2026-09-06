@@ -14,6 +14,8 @@ import TaskCard from './TaskCard';
 import TaskPopup from '../TaskPopup/TaskPopup';
 import { formatDate } from '../../utils/dateUtils';
 import { getTasksByProjectFromDB } from '../../services/dbService';
+import { updateTaskStatus } from '../../services/taskService';
+import { getProjectTasks } from '../../services/projectService';
 import './KanbanBoard.css';
 
 
@@ -80,22 +82,18 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
         let tasks = [];
 
         try {
-          const [tasksRes, membersRes] = await Promise.all([
-            fetch(`${apiUrl}/projects/${projectId}/tasks`, { headers: { 'Authorization': `Bearer ${token}` } }),
-            fetch(`${apiUrl}/projects/${projectId}/members`, { headers: { 'Authorization': `Bearer ${token}` } })
+          const [tasksList, membersRes] = await Promise.all([
+            getProjectTasks(projectId),
+            fetch(`${apiUrl}/projects/${projectId}/members`, { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => null)
           ]);
-          
-          if (membersRes.ok) {
+
+          tasks = tasksList || [];
+
+          if (membersRes && membersRes.ok) {
             const membersData = await membersRes.json();
             members = membersData.data?.members || [];
           }
-
-          if (tasksRes.ok) {
-            const data = await tasksRes.json();
-            tasks = data.data?.tasks || [];
-          }
         } catch {
-          // If network fetch fails, fallback to local IndexedDB stored tasks
           tasks = await getTasksByProjectFromDB(projectId);
         }
 
@@ -295,28 +293,11 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
         return c;
       }));
 
-      // Persist to backend API
+      // Persist status change (online or offline mutation queue)
       try {
-        const token = localStorage.getItem('token');
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-        const res = await fetch(`${apiUrl}/tasks/${activeId}/status`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ status: newStatus })
-        });
-
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          // Business-logic rejection — revert the move
-          showToast(data.message || 'Failed to update task status.');
-          revertMove();
-        }
-      } catch {
-        // Network failure or other error
-        showToast('Failed to update task status (network error).');
+        await updateTaskStatus(activeId, newStatus);
+      } catch (err) {
+        showToast(err.message || 'Failed to update task status.');
         revertMove();
       }
     }

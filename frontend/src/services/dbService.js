@@ -1,11 +1,12 @@
 /**
  * dbService.js
- * Native IndexedDB service for managing offline application stores:
- * - projects: cached project documents
- * - tasks: cached task documents indexed by projectId
- * - userProfile: cached logged-in user details
- * - dashboard: cached dashboard metrics by key
- * - mutationQueue: queued offline write operations for background synchronization
+ * IndexedDB Offline Database Service for CollabBoard.
+ *
+ * Stores:
+ * 1. projects: Structured project documents (keyPath: 'id')
+ * 2. tasks: Structured task documents (keyPath: 'id', index: 'projectId')
+ * 3. userProfile: Current user profile information (keyPath: 'id')
+ * 4. mutationQueue: Queued offline mutations for background sync (keyPath: 'id', autoIncrement: true)
  */
 
 const DB_NAME = 'CollabBoardOfflineDB';
@@ -13,7 +14,10 @@ const DB_VERSION = 1;
 
 let dbInstance = null;
 
-const openDB = () => {
+/**
+ * Open or initialize IndexedDB connection
+ */
+export const openDB = () => {
   if (dbInstance) return Promise.resolve(dbInstance);
 
   return new Promise((resolve, reject) => {
@@ -22,32 +26,33 @@ const openDB = () => {
     request.onupgradeneeded = (event) => {
       const db = event.target.result;
 
-      // Projects store
+      // 1. Projects Store
       if (!db.objectStoreNames.contains('projects')) {
         db.createObjectStore('projects', { keyPath: 'id' });
       }
 
-      // Tasks store (indexed by projectId for fast lookup)
+      // 2. Tasks Store (indexed by projectId)
       if (!db.objectStoreNames.contains('tasks')) {
         const taskStore = db.createObjectStore('tasks', { keyPath: 'id' });
         taskStore.createIndex('projectId', 'projectId', { unique: false });
       }
 
-      // User profile store
+      // 3. User Profile Store
       if (!db.objectStoreNames.contains('userProfile')) {
         db.createObjectStore('userProfile', { keyPath: 'id' });
       }
 
-      // Dashboard cache store
+      // 4. Dashboard Cache Store
       if (!db.objectStoreNames.contains('dashboard')) {
         db.createObjectStore('dashboard', { keyPath: 'key' });
       }
 
-      // Mutation Queue store
+      // 5. Mutation Queue Store
       if (!db.objectStoreNames.contains('mutationQueue')) {
         const queueStore = db.createObjectStore('mutationQueue', { keyPath: 'id', autoIncrement: true });
-        queueStore.createIndex('timestamp', 'timestamp', { unique: false });
+        queueStore.createIndex('createdAt', 'createdAt', { unique: false });
         queueStore.createIndex('status', 'status', { unique: false });
+        queueStore.createIndex('entityType', 'entityType', { unique: false });
       }
     };
 
@@ -63,33 +68,46 @@ const openDB = () => {
   });
 };
 
-/* --- Generic Helpers --- */
-
+/**
+ * Helper to acquire an IndexedDB transaction and object store
+ */
 const getStore = async (storeName, mode = 'readonly') => {
   const db = await openDB();
   const tx = db.transaction(storeName, mode);
   return tx.objectStore(storeName);
 };
 
-/* --- Projects --- */
+/**
+ * Generate temporary client ID for offline entity creation
+ */
+export const generateTempId = (prefix = 'offline') => {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+};
 
-export const saveProjectsToDB = async (projects) => {
+/* ==========================================
+   PROJECTS STORE API
+   ========================================== */
+
+export const saveProjects = async (projects) => {
   if (!Array.isArray(projects)) return;
   const store = await getStore('projects', 'readwrite');
   projects.forEach((proj) => {
-    if (proj && proj.id) {
-      store.put(proj);
+    if (proj && (proj.id || proj._id)) {
+      const formatted = { ...proj, id: proj.id || proj._id };
+      store.put(formatted);
     }
   });
 };
 
-export const saveProjectToDB = async (project) => {
-  if (!project || !project.id) return;
+export const saveProject = async (project) => {
+  if (!project) return;
+  const projId = project.id || project._id;
+  if (!projId) return;
   const store = await getStore('projects', 'readwrite');
-  store.put(project);
+  store.put({ ...project, id: projId });
 };
 
-export const getProjectsFromDB = async () => {
+export const getProjects = async () => {
   const store = await getStore('projects', 'readonly');
   return new Promise((resolve) => {
     const request = store.getAll();
@@ -98,7 +116,7 @@ export const getProjectsFromDB = async () => {
   });
 };
 
-export const getProjectFromDB = async (projectId) => {
+export const getProject = async (projectId) => {
   const store = await getStore('projects', 'readonly');
   return new Promise((resolve) => {
     const request = store.get(projectId);
@@ -107,40 +125,59 @@ export const getProjectFromDB = async (projectId) => {
   });
 };
 
-export const deleteProjectFromDB = async (projectId) => {
+export const deleteProject = async (projectId) => {
   const store = await getStore('projects', 'readwrite');
   store.delete(projectId);
 };
 
-/* --- Tasks --- */
+// Backward-compatible aliases
+export const saveProjectsToDB = saveProjects;
+export const saveProjectToDB = saveProject;
+export const getProjectsFromDB = getProjects;
+export const getProjectFromDB = getProject;
+export const deleteProjectFromDB = deleteProject;
 
-export const saveTasksToDB = async (projectId, tasks) => {
+
+/* ==========================================
+   TASKS STORE API
+   ========================================== */
+
+export const saveTasks = async (projectId, tasks) => {
   if (!Array.isArray(tasks)) return;
   const store = await getStore('tasks', 'readwrite');
   tasks.forEach((t) => {
-    if (t && t.id) {
-      store.put({ ...t, projectId });
+    if (t && (t.id || t._id)) {
+      const taskId = t.id || t._id;
+      store.put({ ...t, id: taskId, projectId });
     }
   });
 };
 
-export const saveTaskToDB = async (task) => {
-  if (!task || !task.id) return;
+export const saveTask = async (task) => {
+  if (!task) return;
+  const taskId = task.id || task._id;
+  if (!taskId) return;
   const store = await getStore('tasks', 'readwrite');
-  store.put(task);
+  store.put({ ...task, id: taskId });
 };
 
-export const getTasksByProjectFromDB = async (projectId) => {
+export const getTasks = async (projectId) => {
   const store = await getStore('tasks', 'readonly');
   return new Promise((resolve) => {
-    const index = store.index('projectId');
-    const request = index.getAll(projectId);
-    request.onsuccess = () => resolve(request.result || []);
-    request.onerror = () => resolve([]);
+    if (projectId) {
+      const index = store.index('projectId');
+      const request = index.getAll(projectId);
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = () => resolve([]);
+    } else {
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = () => resolve([]);
+    }
   });
 };
 
-export const getTaskFromDB = async (taskId) => {
+export const getTask = async (taskId) => {
   const store = await getStore('tasks', 'readonly');
   return new Promise((resolve) => {
     const request = store.get(taskId);
@@ -149,21 +186,31 @@ export const getTaskFromDB = async (taskId) => {
   });
 };
 
-export const deleteTaskFromDB = async (taskId) => {
+export const deleteTask = async (taskId) => {
   const store = await getStore('tasks', 'readwrite');
   store.delete(taskId);
 };
 
-/* --- User Profile --- */
+// Backward-compatible aliases
+export const saveTasksToDB = saveTasks;
+export const saveTaskToDB = saveTask;
+export const getTasksByProjectFromDB = getTasks;
+export const getTaskFromDB = getTask;
+export const deleteTaskFromDB = deleteTask;
 
-export const saveUserProfileToDB = async (user) => {
+
+/* ==========================================
+   USER PROFILE STORE API
+   ========================================== */
+
+export const saveUserProfile = async (user) => {
   if (!user) return;
   const userId = user.id || user._id || 'current_user';
   const store = await getStore('userProfile', 'readwrite');
   store.put({ ...user, id: userId });
 };
 
-export const getUserProfileFromDB = async () => {
+export const getUserProfile = async () => {
   const store = await getStore('userProfile', 'readonly');
   return new Promise((resolve) => {
     const request = store.getAll();
@@ -175,7 +222,14 @@ export const getUserProfileFromDB = async () => {
   });
 };
 
-/* --- Dashboard --- */
+// Backward-compatible aliases
+export const saveUserProfileToDB = saveUserProfile;
+export const getUserProfileFromDB = getUserProfile;
+
+
+/* ==========================================
+   DASHBOARD CACHE STORE API
+   ========================================== */
 
 export const saveDashboardDataToDB = async (key, data) => {
   const store = await getStore('dashboard', 'readwrite');
@@ -191,20 +245,42 @@ export const getDashboardDataFromDB = async (key) => {
   });
 };
 
-/* --- Mutation Queue --- */
 
-export const enqueueMutation = async (mutation) => {
+/* ==========================================
+   MUTATION QUEUE STORE API
+   ========================================== */
+
+/**
+ * Enqueue a new mutation for background synchronization
+ * Supports schema: id, type, endpoint, method, payload, entityType, entityId, createdAt, status, retryCount, error, version
+ */
+export const addMutation = async (mutationData) => {
   const store = await getStore('mutationQueue', 'readwrite');
   const record = {
-    ...mutation,
-    timestamp: Date.now(),
-    status: 'pending',
+    type: mutationData.type || 'UNKNOWN',
+    endpoint: mutationData.endpoint || '',
+    method: mutationData.method || 'POST',
+    payload: mutationData.payload || {},
+    entityType: mutationData.entityType || 'unknown',
+    entityId: mutationData.entityId || null,
+    createdAt: mutationData.createdAt || Date.now(),
+    status: mutationData.status || 'pending',
+    retryCount: mutationData.retryCount || 0,
+    error: mutationData.error || null,
+    version: mutationData.version || 1,
+    // Maintain payload.tempId if present
+    tempId: mutationData.tempId || (mutationData.payload ? mutationData.payload.tempId : null)
   };
+
   return new Promise((resolve, reject) => {
     const request = store.add(record);
     request.onsuccess = () => resolve(request.result);
     request.onerror = (e) => reject(e.target.error);
   });
+};
+
+export const enqueueMutation = async (mutation) => {
+  return addMutation(mutation);
 };
 
 export const getPendingMutations = async () => {
@@ -217,15 +293,35 @@ export const getPendingMutations = async () => {
   });
 };
 
+export const updateMutationStatus = async (id, status, error = null, retryCountIncrement = 0) => {
+  const store = await getStore('mutationQueue', 'readwrite');
+  return new Promise((resolve) => {
+    const getReq = store.get(id);
+    getReq.onsuccess = () => {
+      const record = getReq.result;
+      if (record) {
+        record.status = status;
+        if (error !== null) record.error = error;
+        if (retryCountIncrement) record.retryCount = (record.retryCount || 0) + retryCountIncrement;
+        store.put(record);
+      }
+      resolve(record);
+    };
+    getReq.onerror = () => resolve(null);
+  });
+};
+
 export const updateMutationInDB = async (mutationRecord) => {
   const store = await getStore('mutationQueue', 'readwrite');
   store.put(mutationRecord);
 };
 
-export const removeMutationFromDB = async (id) => {
+export const deleteCompletedMutation = async (id) => {
   const store = await getStore('mutationQueue', 'readwrite');
   store.delete(id);
 };
+
+export const removeMutationFromDB = deleteCompletedMutation;
 
 export const clearCompletedMutations = async () => {
   const store = await getStore('mutationQueue', 'readwrite');
@@ -235,4 +331,21 @@ export const clearCompletedMutations = async () => {
     const list = request.result || [];
     list.forEach((item) => store.delete(item.id));
   };
+};
+
+
+/* ==========================================
+   CLEARING & RESET HELPERS
+   ========================================== */
+
+export const clearStore = async (storeName) => {
+  const store = await getStore(storeName, 'readwrite');
+  store.clear();
+};
+
+export const clearAllStores = async () => {
+  const stores = ['projects', 'tasks', 'userProfile', 'dashboard', 'mutationQueue'];
+  for (const name of stores) {
+    await clearStore(name);
+  }
 };

@@ -1,10 +1,11 @@
 import { fetchWithCache } from './cacheService';
+import { getDashboardDataFromDB } from './dbService';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 /**
- * Helper function to handle API responses and errors.
- * Now wraps all dashboard GET requests with a PouchDB caching layer.
+ * Helper function to handle API responses and errors for Dashboard widgets.
+ * Wraps dashboard GET requests with fetchWithCache and fallback to IndexedDB.
  */
 const fetchAPI = async (endpoint, options = {}) => {
   try {
@@ -29,8 +30,13 @@ const fetchAPI = async (endpoint, options = {}) => {
 
     return await response.json();
   } catch (error) {
-    console.error(`Fetch error for ${endpoint}:`, error);
-    throw error;
+    console.warn(`Fetch error for ${endpoint}, checking IndexedDB fallback:`, error);
+    const cached = await getDashboardDataFromDB(endpoint);
+    if (cached) {
+      return cached;
+    }
+    // Return safe empty response shape when offline and no cache exists yet
+    return { status: 'success', data: [] };
   }
 };
 

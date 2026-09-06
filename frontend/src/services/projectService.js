@@ -1,4 +1,10 @@
 import { fetchWithCache } from './cacheService';
+import {
+  saveProjectToDB,
+  getProjectFromDB,
+  deleteProjectFromDB,
+  enqueueMutation
+} from './dbService';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -20,21 +26,64 @@ const getAuthHeaders = (isJson = true) => {
 /**
  * Create a new project via POST /api/projects
  * @param {Object} projectData
- * @returns {Promise<Object>} Created project object from backend
+ * @returns {Promise<Object>} Created project object from backend or local DB
  */
 export const createProject = async (projectData) => {
-  const response = await fetch(`${API_URL}/projects`, {
-    method: 'POST',
-    headers: getAuthHeaders(true),
-    body: JSON.stringify(projectData)
-  });
-
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || 'Failed to create project');
+  if (!navigator.onLine) {
+    const tempId = `proj-off-${Date.now()}`;
+    const newProject = {
+      id: tempId,
+      _id: tempId,
+      ...projectData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      members: projectData.members || []
+    };
+    await saveProjectToDB(newProject);
+    await enqueueMutation({
+      type: 'CREATE_PROJECT',
+      payload: { tempId, projectData }
+    });
+    return newProject;
   }
 
-  return data.data?.project || data.project;
+  try {
+    const response = await fetch(`${API_URL}/projects`, {
+      method: 'POST',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(projectData)
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to create project');
+    }
+
+    const created = data.data?.project || data.project;
+    if (created && created.id) {
+      await saveProjectToDB(created);
+    }
+    return created;
+  } catch (err) {
+    if (!navigator.onLine || err.message.includes('fetch') || err.name === 'TypeError') {
+      const tempId = `proj-off-${Date.now()}`;
+      const newProject = {
+        id: tempId,
+        _id: tempId,
+        ...projectData,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        members: projectData.members || []
+      };
+      await saveProjectToDB(newProject);
+      await enqueueMutation({
+        type: 'CREATE_PROJECT',
+        payload: { tempId, projectData }
+      });
+      return newProject;
+    }
+    throw err;
+  }
 };
 
 /**
@@ -95,38 +144,77 @@ export const getProjects = async (searchQuery = '') => {
     ? `${API_URL}/projects?q=${encodeURIComponent(searchQuery)}` 
     : `${API_URL}/projects`;
 
-  const response = await fetchWithCache(url, {
-    method: 'GET',
-    headers: getAuthHeaders(true)
-  });
+  try {
+    const response = await fetchWithCache(url, {
+      method: 'GET',
+      headers: getAuthHeaders(true)
+    });
 
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || 'Failed to fetch projects');
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to fetch projects');
+    }
+
+    const projects = data.data?.projects || [];
+    if (projects.length > 0) {
+      await saveProjectsToDB(projects);
+    }
+    return projects;
+  } catch (err) {
+    console.warn('getProjects network fetch failed, falling back to IndexedDB:', err);
+    const dbProjects = await getProjectsFromDB();
+    return dbProjects || [];
   }
-
-  return data.data?.projects || [];
 };
 
 /**
  * Update an existing project via PUT /api/projects/:id
  * @param {string} projectId
  * @param {Object} updateData
- * @returns {Promise<Object>} Updated project object from backend
+ * @returns {Promise<Object>} Updated project object from backend or local DB
  */
 export const updateProject = async (projectId, updateData) => {
-  const response = await fetch(`${API_URL}/projects/${projectId}`, {
-    method: 'PUT',
-    headers: getAuthHeaders(true),
-    body: JSON.stringify(updateData)
-  });
-
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || 'Failed to update project');
+  if (!navigator.onLine) {
+    const existing = await getProjectFromDB(projectId);
+    const updated = { ...existing, ...updateData, id: projectId, updatedAt: new Date().toISOString() };
+    await saveProjectToDB(updated);
+    await enqueueMutation({
+      type: 'UPDATE_PROJECT',
+      payload: { projectId, updateData }
+    });
+    return updated;
   }
 
-  return data.data?.project || data.project;
+  try {
+    const response = await fetch(`${API_URL}/projects/${projectId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(updateData)
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to update project');
+    }
+
+    const updated = data.data?.project || data.project;
+    if (updated && updated.id) {
+      await saveProjectToDB(updated);
+    }
+    return updated;
+  } catch (err) {
+    if (!navigator.onLine || err.message.includes('fetch') || err.name === 'TypeError') {
+      const existing = await getProjectFromDB(projectId);
+      const updated = { ...existing, ...updateData, id: projectId, updatedAt: new Date().toISOString() };
+      await saveProjectToDB(updated);
+      await enqueueMutation({
+        type: 'UPDATE_PROJECT',
+        payload: { projectId, updateData }
+      });
+      return updated;
+    }
+    throw err;
+  }
 };
 
 /**
@@ -135,17 +223,28 @@ export const updateProject = async (projectId, updateData) => {
  * @returns {Promise<Object>} Project details
  */
 export const getProjectById = async (projectId) => {
-  const response = await fetchWithCache(`${API_URL}/projects/${projectId}`, {
-    method: 'GET',
-    headers: getAuthHeaders(true)
-  });
+  try {
+    const response = await fetchWithCache(`${API_URL}/projects/${projectId}`, {
+      method: 'GET',
+      headers: getAuthHeaders(true)
+    });
 
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || 'Failed to fetch project');
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to fetch project');
+    }
+
+    const project = data.data?.project;
+    if (project) {
+      await saveProjectToDB(project);
+    }
+    return project;
+  } catch (err) {
+    console.warn(`getProjectById fetch failed for ${projectId}, falling back to IndexedDB:`, err);
+    const dbProject = await getProjectFromDB(projectId);
+    if (dbProject) return dbProject;
+    throw err;
   }
-
-  return data.data?.project;
 };
 
 /**
@@ -154,17 +253,39 @@ export const getProjectById = async (projectId) => {
  * @returns {Promise<Object>} Success response
  */
 export const deleteProject = async (projectId) => {
-  const response = await fetch(`${API_URL}/projects/${projectId}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders(true)
-  });
-
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || 'Failed to delete project');
+  if (!navigator.onLine) {
+    await deleteProjectFromDB(projectId);
+    await enqueueMutation({
+      type: 'DELETE_PROJECT',
+      payload: { projectId }
+    });
+    return { status: 'success', message: 'Project deleted offline' };
   }
 
-  return data;
+  try {
+    const response = await fetch(`${API_URL}/projects/${projectId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(true)
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to delete project');
+    }
+
+    await deleteProjectFromDB(projectId);
+    return data;
+  } catch (err) {
+    if (!navigator.onLine || err.message.includes('fetch') || err.name === 'TypeError') {
+      await deleteProjectFromDB(projectId);
+      await enqueueMutation({
+        type: 'DELETE_PROJECT',
+        payload: { projectId }
+      });
+      return { status: 'success', message: 'Project deleted offline' };
+    }
+    throw err;
+  }
 };
 
 /**
@@ -292,17 +413,27 @@ export const removeProjectMember = async (projectId, userId) => {
  * @returns {Promise<Array>} List of project tasks
  */
 export const getProjectTasks = async (projectId) => {
-  const response = await fetchWithCache(`${API_URL}/projects/${projectId}/tasks`, {
-    method: 'GET',
-    headers: getAuthHeaders(true)
-  });
+  try {
+    const response = await fetchWithCache(`${API_URL}/projects/${projectId}/tasks`, {
+      method: 'GET',
+      headers: getAuthHeaders(true)
+    });
 
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || 'Failed to fetch project tasks');
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to fetch project tasks');
+    }
+
+    const tasks = data.data?.tasks || [];
+    if (tasks.length > 0) {
+      await saveTasksToDB(projectId, tasks);
+    }
+    return tasks;
+  } catch (err) {
+    console.warn(`getProjectTasks fetch failed for project ${projectId}, falling back to IndexedDB:`, err);
+    const dbTasks = await getTasksByProjectFromDB(projectId);
+    return dbTasks || [];
   }
-
-  return data.data?.tasks || [];
 };
 
 /**

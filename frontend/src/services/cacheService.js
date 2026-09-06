@@ -3,10 +3,12 @@ import {
   saveProjectsToDB,
   saveProjectToDB,
   saveTasksToDB,
+  saveUserProfileToDB,
   saveDashboardDataToDB,
   getProjectsFromDB,
   getProjectFromDB,
   getTasksByProjectFromDB,
+  getUserProfileFromDB,
   getDashboardDataFromDB,
 } from './dbService';
 
@@ -39,11 +41,12 @@ export const cacheData = async (key, data) => {
         await saveProjectToDB(data.data.project);
       }
       if (data.data.tasks) {
-        // Extract projectId from URL if possible
         const projectTaskMatch = key.match(/\/projects\/([^/]+)\/tasks/);
-        if (projectTaskMatch && projectTaskMatch[1]) {
-          await saveTasksToDB(projectTaskMatch[1], data.data.tasks);
-        }
+        const projectId = projectTaskMatch ? projectTaskMatch[1] : (data.data.tasks[0]?.projectId || null);
+        await saveTasksToDB(projectId, data.data.tasks);
+      }
+      if (data.data.user) {
+        await saveUserProfileToDB(data.data.user);
       }
       if (key.includes('/dashboard/')) {
         const endpoint = key.split('/api')[1] || key;
@@ -76,10 +79,12 @@ export const getCachedData = async (key) => {
   try {
     if (key.includes('/projects?q=') || key.endsWith('/projects')) {
       const projects = await getProjectsFromDB();
-      return { status: 'success', data: { projects } };
+      if (projects && projects.length > 0) {
+        return { status: 'success', data: { projects } };
+      }
     }
 
-    const singleProjectMatch = key.match(/\/projects\/([a-f0-9A-Z_-]+)$/i);
+    const singleProjectMatch = key.match(/\/projects\/([a-f0-9A-Za-z_-]+)$/i);
     if (singleProjectMatch && singleProjectMatch[1]) {
       const project = await getProjectFromDB(singleProjectMatch[1]);
       if (project) {
@@ -87,10 +92,19 @@ export const getCachedData = async (key) => {
       }
     }
 
-    const tasksMatch = key.match(/\/projects\/([a-f0-9A-Z_-]+)\/tasks$/i);
+    const tasksMatch = key.match(/\/projects\/([a-f0-9A-Za-z_-]+)\/tasks$/i);
     if (tasksMatch && tasksMatch[1]) {
       const tasks = await getTasksByProjectFromDB(tasksMatch[1]);
-      return { status: 'success', data: { tasks } };
+      if (tasks && tasks.length > 0) {
+        return { status: 'success', data: { tasks } };
+      }
+    }
+
+    if (key.includes('/auth/me') || key.includes('/users/me')) {
+      const user = await getUserProfileFromDB();
+      if (user) {
+        return { status: 'success', data: { user } };
+      }
     }
 
     if (key.includes('/dashboard/')) {
@@ -108,25 +122,33 @@ export const getCachedData = async (key) => {
 };
 
 /**
- * Performs a network-first fetch. If network request fails,
+ * Performs a network-first fetch. If genuine network request failure occurs (e.g. offline),
  * attempts to retrieve the response from local cache / IndexedDB.
+ * HTTP status errors (401, 403, 404, 409) return the response directly without fallback.
  * @param {string} url - The URL to fetch.
  * @param {Object} options - Standard fetch options.
- * @returns {Promise<Response>} Simulated or real fetch Response object.
+ * @returns {Promise<Response>} Real or simulated Response object.
  */
 export const fetchWithCache = async (url, options = {}) => {
   const cacheKey = url;
   try {
     const response = await fetch(url, options);
+
+    // If HTTP response status is not 2xx, return response directly.
+    // HTTP 401, 403, 404, 409 must NOT fall back to offline cached data.
     if (!response.ok) {
-      throw new Error(`HTTP Error: ${response.status}`);
+      return response;
     }
-    
-    // Clone response before reading stream
-    const data = await response.clone().json();
-    await cacheData(cacheKey, data);
+
+    // Successful GET -> cache response body asynchronously into IndexedDB & PouchDB
+    const clonedResponse = response.clone();
+    clonedResponse.json().then(data => {
+      cacheData(cacheKey, data);
+    }).catch(e => console.warn('Could not parse response JSON for caching:', e));
+
     return response;
   } catch (err) {
+    // Genuine network failure (disconnection / TypeError: Failed to fetch)
     console.warn(`Network request failed for ${url}, attempting cache fallback.`, err);
     const cached = await getCachedData(cacheKey);
     if (cached) {

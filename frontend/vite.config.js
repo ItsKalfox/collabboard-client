@@ -10,7 +10,7 @@ export default defineConfig({
     nodePolyfills(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
         name: 'CollabBoard',
         short_name: 'CollabBoard',
@@ -18,6 +18,8 @@ export default defineConfig({
         theme_color: '#000000',
         background_color: '#000000',
         display: 'standalone',
+        scope: '/',
+        start_url: '/',
         icons: [
           {
             src: 'pwa-192x192.png',
@@ -32,10 +34,33 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp}'],
-        navigateFallback: '/index.html'
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff,woff2}'],
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api/],
+        runtimeCaching: [
+          {
+            // Bypass service worker caching completely for auth endpoints
+            urlPattern: /^\/api\/auth\/.*/i,
+            handler: 'NetworkOnly',
+            options: {
+              cacheName: 'auth-api-no-cache'
+            }
+          },
+          {
+            // NetworkFirst for GET API requests; non-GET (POST, PUT, PATCH, DELETE) bypass automatically in Workbox
+            urlPattern: /^\/api\/.*/i,
+            handler: 'NetworkFirst',
+            method: 'GET',
+            options: {
+              cacheName: 'api-cache',
+              networkTimeoutSeconds: 5,
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          }
+        ]
       }
     })
   ],
 })
-

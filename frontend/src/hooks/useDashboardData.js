@@ -17,26 +17,53 @@ export const useDashboardData = (fetchFunction, initialData = null) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchData = useCallback(async () => {
+  const executeFetch = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const result = await fetchFunction();
       setData(result);
     } catch (err) {
+      console.warn('Dashboard hook fetch error:', err);
       setError(err.message || 'An error occurred while fetching data');
-      setData(prev => (prev === null && initialData !== null ? initialData : prev));
+      if (initialData !== null) setData(initialData);
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchFunction]);
+  }, [fetchFunction, initialData]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    let isMounted = true;
+    
+    setLoading(true);
+    setError(null);
+    
+    fetchFunction()
+      .then(result => {
+        if (isMounted) {
+          setData(result);
+          setError(null);
+        }
+      })
+      .catch(err => {
+        if (isMounted) {
+          console.warn('Dashboard fetch error:', err);
+          setError(err.message || 'An error occurred while fetching data');
+          if (initialData !== null) setData(initialData);
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoading(false);
+        }
+      });
 
-  return { data, loading, error, refetch: fetchData };
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchFunction, initialData]);
+
+  return { data, loading, error, refetch: executeFetch };
 };
 
 // Specific hooks for each widget
