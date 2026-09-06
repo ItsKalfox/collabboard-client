@@ -1,8 +1,12 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { registerSW } from 'virtual:pwa-register'
 import './index.css'
 import App from './App.jsx'
 import { ThemeProvider } from './context/ThemeContext.jsx'
+
+// Auto-register service worker for offline App Shell support
+registerSW({ immediate: true })
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -11,3 +15,4 @@ createRoot(document.getElementById('root')).render(
     </ThemeProvider>
   </StrictMode>,
 )
+
