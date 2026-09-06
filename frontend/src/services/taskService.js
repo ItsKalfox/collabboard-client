@@ -3,7 +3,8 @@ import {
   saveTaskToDB,
   getTaskFromDB,
   deleteTaskFromDB,
-  enqueueMutation
+  enqueueMutation,
+  generateTempId
 } from './dbService';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -21,19 +22,25 @@ const getAuthHeaders = (isJson = true) => {
  */
 export const createTask = async (projectId, taskData) => {
   if (!navigator.onLine) {
-    const tempId = `task-off-${Date.now()}`;
+    const tempId = generateTempId('task');
     const newTask = {
       id: tempId,
       _id: tempId,
       projectId,
       ...taskData,
+      subtasks: taskData.subtasks || [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
     await saveTaskToDB(newTask);
     await enqueueMutation({
       type: 'CREATE_TASK',
-      payload: { projectId, taskData, tempId }
+      endpoint: `/projects/${projectId}/tasks`,
+      method: 'POST',
+      payload: { ...taskData, tempId },
+      entityType: 'task',
+      entityId: tempId,
+      tempId
     });
     return newTask;
   }
@@ -55,19 +62,25 @@ export const createTask = async (projectId, taskData) => {
     return created;
   } catch (err) {
     if (!navigator.onLine || err.message.includes('fetch') || err.name === 'TypeError') {
-      const tempId = `task-off-${Date.now()}`;
+      const tempId = generateTempId('task');
       const newTask = {
         id: tempId,
         _id: tempId,
         projectId,
         ...taskData,
+        subtasks: taskData.subtasks || [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
       await saveTaskToDB(newTask);
       await enqueueMutation({
         type: 'CREATE_TASK',
-        payload: { projectId, taskData, tempId }
+        endpoint: `/projects/${projectId}/tasks`,
+        method: 'POST',
+        payload: { ...taskData, tempId },
+        entityType: 'task',
+        entityId: tempId,
+        tempId
       });
       return newTask;
     }
@@ -86,7 +99,11 @@ export const updateTaskStatus = async (taskId, status) => {
     }
     await enqueueMutation({
       type: 'UPDATE_TASK_STATUS',
-      payload: { taskId, status }
+      endpoint: `/tasks/${taskId}/status`,
+      method: 'PATCH',
+      payload: { status },
+      entityType: 'task',
+      entityId: taskId
     });
     return { status: 'success', message: 'Task status updated offline' };
   }
@@ -114,7 +131,11 @@ export const updateTaskStatus = async (taskId, status) => {
       }
       await enqueueMutation({
         type: 'UPDATE_TASK_STATUS',
-        payload: { taskId, status }
+        endpoint: `/tasks/${taskId}/status`,
+        method: 'PATCH',
+        payload: { status },
+        entityType: 'task',
+        entityId: taskId
       });
       return { status: 'success', message: 'Task status updated offline' };
     }
@@ -123,19 +144,22 @@ export const updateTaskStatus = async (taskId, status) => {
 };
 
 /**
- * Update task details
+ * Update task details (title, description, due date, priority, assignee, etc.)
  */
 export const updateTask = async (taskId, updateData) => {
   if (!navigator.onLine) {
     const existing = await getTaskFromDB(taskId);
-    if (existing) {
-      await saveTaskToDB({ ...existing, ...updateData, updatedAt: new Date().toISOString() });
-    }
+    const updated = { ...(existing || {}), ...updateData, id: taskId, updatedAt: new Date().toISOString() };
+    await saveTaskToDB(updated);
     await enqueueMutation({
       type: 'UPDATE_TASK',
-      payload: { taskId, updateData }
+      endpoint: `/tasks/${taskId}`,
+      method: 'PATCH',
+      payload: updateData,
+      entityType: 'task',
+      entityId: taskId
     });
-    return { ...existing, ...updateData };
+    return updated;
   }
 
   try {
@@ -152,18 +176,21 @@ export const updateTask = async (taskId, updateData) => {
     if (updated) {
       await saveTaskToDB(updated);
     }
-    return updated;
+    return updated || updateData;
   } catch (err) {
     if (!navigator.onLine || err.message.includes('fetch') || err.name === 'TypeError') {
       const existing = await getTaskFromDB(taskId);
-      if (existing) {
-        await saveTaskToDB({ ...existing, ...updateData, updatedAt: new Date().toISOString() });
-      }
+      const updated = { ...(existing || {}), ...updateData, id: taskId, updatedAt: new Date().toISOString() };
+      await saveTaskToDB(updated);
       await enqueueMutation({
         type: 'UPDATE_TASK',
-        payload: { taskId, updateData }
+        endpoint: `/tasks/${taskId}`,
+        method: 'PATCH',
+        payload: updateData,
+        entityType: 'task',
+        entityId: taskId
       });
-      return { ...existing, ...updateData };
+      return updated;
     }
     throw err;
   }
@@ -177,7 +204,11 @@ export const deleteTask = async (taskId) => {
     await deleteTaskFromDB(taskId);
     await enqueueMutation({
       type: 'DELETE_TASK',
-      payload: { taskId }
+      endpoint: `/tasks/${taskId}`,
+      method: 'DELETE',
+      payload: { taskId },
+      entityType: 'task',
+      entityId: taskId
     });
     return { status: 'success', message: 'Task deleted offline' };
   }
@@ -198,7 +229,11 @@ export const deleteTask = async (taskId) => {
       await deleteTaskFromDB(taskId);
       await enqueueMutation({
         type: 'DELETE_TASK',
-        payload: { taskId }
+        endpoint: `/tasks/${taskId}`,
+        method: 'DELETE',
+        payload: { taskId },
+        entityType: 'task',
+        entityId: taskId
       });
       return { status: 'success', message: 'Task deleted offline' };
     }
@@ -211,7 +246,7 @@ export const deleteTask = async (taskId) => {
  */
 export const createSubtask = async (taskId, subtaskData) => {
   if (!navigator.onLine) {
-    const tempId = `sub-off-${Date.now()}`;
+    const tempId = generateTempId('subtask');
     const newSub = { id: tempId, ...subtaskData };
     const task = await getTaskFromDB(taskId);
     if (task) {
@@ -220,7 +255,12 @@ export const createSubtask = async (taskId, subtaskData) => {
     }
     await enqueueMutation({
       type: 'CREATE_SUBTASK',
-      payload: { taskId, subtaskData }
+      endpoint: `/tasks/${taskId}/subtasks`,
+      method: 'POST',
+      payload: { ...subtaskData, tempId },
+      entityType: 'subtask',
+      entityId: tempId,
+      tempId
     });
     return newSub;
   }
@@ -236,7 +276,7 @@ export const createSubtask = async (taskId, subtaskData) => {
     return data.data?.subtask;
   } catch (err) {
     if (!navigator.onLine || err.message.includes('fetch') || err.name === 'TypeError') {
-      const tempId = `sub-off-${Date.now()}`;
+      const tempId = generateTempId('subtask');
       const newSub = { id: tempId, ...subtaskData };
       const task = await getTaskFromDB(taskId);
       if (task) {
@@ -245,7 +285,12 @@ export const createSubtask = async (taskId, subtaskData) => {
       }
       await enqueueMutation({
         type: 'CREATE_SUBTASK',
-        payload: { taskId, subtaskData }
+        endpoint: `/tasks/${taskId}/subtasks`,
+        method: 'POST',
+        payload: { ...subtaskData, tempId },
+        entityType: 'subtask',
+        entityId: tempId,
+        tempId
       });
       return newSub;
     }
@@ -261,13 +306,17 @@ export const updateSubtask = async (subtaskId, taskId, updateData) => {
     if (taskId) {
       const task = await getTaskFromDB(taskId);
       if (task && task.subtasks) {
-        const subtasks = task.subtasks.map(s => s.id === subtaskId ? { ...s, ...updateData } : s);
+        const subtasks = task.subtasks.map(s => (s.id === subtaskId || s._id === subtaskId) ? { ...s, ...updateData } : s);
         await saveTaskToDB({ ...task, subtasks });
       }
     }
     await enqueueMutation({
       type: 'UPDATE_SUBTASK',
-      payload: { subtaskId, updateData }
+      endpoint: `/subtasks/${subtaskId}`,
+      method: 'PATCH',
+      payload: updateData,
+      entityType: 'subtask',
+      entityId: subtaskId
     });
     return { status: 'success', message: 'Subtask updated offline' };
   }
@@ -286,13 +335,17 @@ export const updateSubtask = async (subtaskId, taskId, updateData) => {
       if (taskId) {
         const task = await getTaskFromDB(taskId);
         if (task && task.subtasks) {
-          const subtasks = task.subtasks.map(s => s.id === subtaskId ? { ...s, ...updateData } : s);
+          const subtasks = task.subtasks.map(s => (s.id === subtaskId || s._id === subtaskId) ? { ...s, ...updateData } : s);
           await saveTaskToDB({ ...task, subtasks });
         }
       }
       await enqueueMutation({
         type: 'UPDATE_SUBTASK',
-        payload: { subtaskId, updateData }
+        endpoint: `/subtasks/${subtaskId}`,
+        method: 'PATCH',
+        payload: updateData,
+        entityType: 'subtask',
+        entityId: subtaskId
       });
       return { status: 'success', message: 'Subtask updated offline' };
     }
@@ -308,13 +361,17 @@ export const deleteSubtask = async (subtaskId, taskId) => {
     if (taskId) {
       const task = await getTaskFromDB(taskId);
       if (task && task.subtasks) {
-        const subtasks = task.subtasks.filter(s => s.id !== subtaskId);
+        const subtasks = task.subtasks.filter(s => s.id !== subtaskId && s._id !== subtaskId);
         await saveTaskToDB({ ...task, subtasks });
       }
     }
     await enqueueMutation({
       type: 'DELETE_SUBTASK',
-      payload: { subtaskId }
+      endpoint: `/subtasks/${subtaskId}`,
+      method: 'DELETE',
+      payload: { subtaskId },
+      entityType: 'subtask',
+      entityId: subtaskId
     });
     return { status: 'success', message: 'Subtask deleted offline' };
   }
@@ -332,13 +389,17 @@ export const deleteSubtask = async (subtaskId, taskId) => {
       if (taskId) {
         const task = await getTaskFromDB(taskId);
         if (task && task.subtasks) {
-          const subtasks = task.subtasks.filter(s => s.id !== subtaskId);
+          const subtasks = task.subtasks.filter(s => s.id !== subtaskId && s._id !== subtaskId);
           await saveTaskToDB({ ...task, subtasks });
         }
       }
       await enqueueMutation({
         type: 'DELETE_SUBTASK',
-        payload: { subtaskId }
+        endpoint: `/subtasks/${subtaskId}`,
+        method: 'DELETE',
+        payload: { subtaskId },
+        entityType: 'subtask',
+        entityId: subtaskId
       });
       return { status: 'success', message: 'Subtask deleted offline' };
     }
