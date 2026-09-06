@@ -87,34 +87,46 @@ function App() {
       localStorage.setItem('user', JSON.stringify(dbUser));
       return true;
     }
-    const fallbackUser = { id: 'offline-user', name: 'Workspace User', email: 'user@collabboard.local' };
-    setCurrentUser(fallbackUser);
-    localStorage.setItem('user', JSON.stringify(fallbackUser));
-    return true;
+    const token = localStorage.getItem('token');
+    if (token) {
+      const fallbackUser = { id: 'offline-user', name: 'Workspace User', email: 'user@collabboard.local' };
+      setCurrentUser(fallbackUser);
+      localStorage.setItem('user', JSON.stringify(fallbackUser));
+      return true;
+    }
+    return false;
   };
 
   useEffect(() => {
-    // 1. OFFLINE GUARD: If offline, NEVER trigger Session Expired.
-    // Restore local session from localStorage / IndexedDB immediately.
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    const token = localStorage.getItem('token');
+    const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+
+    // 1. OFFLINE MODE:
+    // When offline, NEVER call /api/auth/me and NEVER trigger sessionExpired.
+    if (isOffline) {
       setSessionExpired(false);
-      restoreLocalSession();
+      if (token || localStorage.getItem('user')) {
+        restoreLocalSession();
+      } else if (!authRoutes.includes(activeTab)) {
+        handleTabClick('login');
+      }
       return;
     }
 
-    const token = localStorage.getItem('token');
+    // 2. NO LOCAL TOKEN ONLINE:
     if (!token) {
       const localUserStr = localStorage.getItem('user');
       if (localUserStr) {
         setSessionExpired(false);
         restoreLocalSession();
       } else if (!authRoutes.includes(activeTab)) {
-        setSessionExpired(true);
+        setSessionExpired(false);
+        handleTabClick('login');
       }
       return;
     }
 
-    // 2. ONLINE / RACE CONDITION: Call /api/auth/me with AbortController timeout (2.5s)
+    // 3. ONLINE VALIDATION (/api/auth/me):
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2500);
 
@@ -125,8 +137,9 @@ function App() {
     })
       .then(async (res) => {
         clearTimeout(timeoutId);
-        // Genuine HTTP 401 or 403 response ONLY -> Session Expired
-        if (res.status === 401 || res.status === 403) {
+
+        // Genuine HTTP 401 Unauthorized ONLY -> Session Expired
+        if (res.status === 401) {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           setCurrentUser(null);
@@ -135,26 +148,28 @@ function App() {
           }
           return;
         }
-        // Non-200 non-401 HTTP response -> preserve local session without expiring
-        if (!res.ok) {
-          await restoreLocalSession();
-          return;
-        }
+
         // HTTP 200 Success -> Authenticated
-        const data = await res.json();
-        if (data.status === 'success' && data.data && data.data.user) {
-          setCurrentUser(data.data.user);
-          setSessionExpired(false);
-          localStorage.setItem('user', JSON.stringify(data.data.user));
-          saveUserProfileToDB(data.data.user);
-        } else {
-          await restoreLocalSession();
+        if (res.status === 200) {
+          const data = await res.json();
+          if (data.status === 'success' && data.data && data.data.user) {
+            setCurrentUser(data.data.user);
+            setSessionExpired(false);
+            localStorage.setItem('user', JSON.stringify(data.data.user));
+            saveUserProfileToDB(data.data.user);
+            return;
+          }
         }
+
+        // Any other response status (e.g. 500, 502, 503, 404) -> DO NOT EXPIRE SESSION
+        setSessionExpired(false);
+        await restoreLocalSession();
       })
       .catch(async (err) => {
-        // Genuine network error (Offline / Failed to fetch / AbortError) -> DO NOT EXPIRE SESSION
+        // Network Exception (Offline / Failed to fetch / AbortError) -> DO NOT EXPIRE SESSION
         clearTimeout(timeoutId);
-        console.warn('Network error or fetch timeout during auth check. Preserving local user session:', err);
+        console.warn('Network exception during /api/auth/me check. Preserving local user session:', err);
+        setSessionExpired(false);
         await restoreLocalSession();
       });
   }, []);
