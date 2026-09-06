@@ -23,25 +23,26 @@ export default function NetworkStatusBanner() {
 
   if (!isOnline) {
     bannerClass += ' network-banner--offline';
-    icon = <WifiOff size={16} />;
-    message = `You're offline — changes will be saved and synchronized when you're back online.${pendingCount > 0 ? ` (${pendingCount} pending change${pendingCount > 1 ? 's' : ''})` : ''}`;
+    icon = <WifiOff size={18} />;
+    message = `System Offline — Working in Offline Mode (${pendingCount > 0 ? `${pendingCount} change${pendingCount > 1 ? 's' : ''} saved locally` : 'All changes saved locally'})`;
   } else if (hasConflict || hasFailed) {
     bannerClass += ' network-banner--conflict';
-    icon = <AlertTriangle size={16} />;
-    message = 'Some changes need your attention (conflicts or sync errors detected).';
+    icon = <AlertTriangle size={18} />;
+    message = 'System Notice — Some changes require sync attention.';
   } else if (pendingCount > 0 || isSyncing) {
     bannerClass += ' network-banner--syncing';
-    icon = <RefreshCw size={16} className="spin-icon" />;
-    message = `Back online — synchronizing ${pendingCount} change${pendingCount > 1 ? 's' : ''}...`;
+    icon = <RefreshCw size={18} className="spin-icon" />;
+    message = `System Syncing — Uploading ${pendingCount} offline change${pendingCount > 1 ? 's' : ''}...`;
   } else if (justSyncCompleted) {
     bannerClass += ' network-banner--success';
-    icon = <CheckCircle size={16} />;
-    message = 'All changes synchronized.';
+    icon = <CheckCircle size={18} />;
+    message = 'System Online — All offline changes synchronized!';
   }
 
   return (
     <div className={bannerClass} role="status" aria-live="polite">
       <div className="network-banner-content">
+        <span className="network-banner-badge">OFFLINE MODE</span>
         <span className="network-banner-icon">{icon}</span>
         <span className="network-banner-text">{message}</span>
       </div>
