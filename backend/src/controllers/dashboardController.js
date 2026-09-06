@@ -447,7 +447,7 @@ export const getTeamProgress = async (req, res) => {
             overallStats: {
                 totalPoints: overallTotalTasks * 10,
                 tasksCompleted: overallCompletedTasks,
-                activeMembers: relevantUserIds.size
+                activeMembers: allMemberIdsSet.size
             }
         });
     } catch (error) {
