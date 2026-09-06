@@ -212,7 +212,7 @@ export const deleteAttachment = async (projectId, attachmentId) => {
  * @returns {Promise<Array>} List of project members
  */
 export const getProjectMembers = async (projectId) => {
-  const response = await fetch(`${API_URL}/projects/${projectId}/members`, {
+  const response = await fetchWithCache(`${API_URL}/projects/${projectId}/members`, {
     method: 'GET',
     headers: getAuthHeaders(true)
   });
