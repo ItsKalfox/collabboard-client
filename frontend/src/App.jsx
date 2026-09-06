@@ -95,7 +95,9 @@ function App() {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (!token) {
+    const localUserStr = localStorage.getItem('user');
+
+    if (!token && !localUserStr) {
       if (!authRoutes.includes(activeTab)) {
         setSessionExpired(true);
       }
@@ -120,8 +122,8 @@ function App() {
     })
       .then(async (res) => {
         clearTimeout(timeoutId);
-        // Genuine HTTP 401 or 403 response ONLY -> Session Expired
-        if (res.status === 401 || res.status === 403) {
+        // Genuine HTTP 401 response ONLY while online -> Session Expired
+        if (res.status === 401 && navigator.onLine) {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           setCurrentUser(null);
@@ -130,21 +132,19 @@ function App() {
           }
           return;
         }
-        // Non-200 non-401 HTTP response -> preserve local session without expiring
-        if (!res.ok) {
-          await restoreLocalSession();
-          return;
-        }
         // HTTP 200 Success -> Authenticated
-        const data = await res.json();
-        if (data.status === 'success' && data.data && data.data.user) {
-          setCurrentUser(data.data.user);
-          setSessionExpired(false);
-          localStorage.setItem('user', JSON.stringify(data.data.user));
-          saveUserProfileToDB(data.data.user);
-        } else {
-          await restoreLocalSession();
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === 'success' && data.data && data.data.user) {
+            setCurrentUser(data.data.user);
+            setSessionExpired(false);
+            localStorage.setItem('user', JSON.stringify(data.data.user));
+            saveUserProfileToDB(data.data.user);
+            return;
+          }
         }
+        // Non-200 non-401 response -> preserve local session without expiring
+        await restoreLocalSession();
       })
       .catch(async (err) => {
         // Genuine network error (Offline / Failed to fetch / AbortError) -> DO NOT EXPIRE SESSION
@@ -277,7 +277,7 @@ function App() {
         onConfirm={handleLogout}
         confirmText="Logout"
       />
-      {sessionExpired && (
+      {sessionExpired && (typeof navigator === 'undefined' || navigator.onLine) && (
         <div style={{
           position: 'fixed',
           top: 0, left: 0, right: 0, bottom: 0,
