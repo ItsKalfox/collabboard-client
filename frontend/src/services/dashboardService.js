@@ -1,3 +1,5 @@
+import { fetchWithCache } from './cacheService';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 /**
@@ -15,7 +17,7 @@ const fetchAPI = async (endpoint, options = {}) => {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetchWithCache(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers,
     });
