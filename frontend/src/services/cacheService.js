@@ -33,4 +33,27 @@ export const getCachedData = async (key) => {
 };
 
 export const fetchWithCache = async (url, options = {}) => {
+  const cacheKey = url;
+  try {
+    const response = await fetch(url, options);
+    if (!response.ok) {
+      throw new Error(`HTTP Error: ${response.status}`);
+    }
+    
+    // We clone the response because reading JSON consumes the stream
+    const data = await response.clone().json();
+    await cacheData(cacheKey, data);
+    return response;
+  } catch (err) {
+    console.warn(`Network request failed for ${url}, attempting cache fallback.`, err);
+    const cached = await getCachedData(cacheKey);
+    if (cached) {
+      // Return a simulated fetch Response object
+      return new Response(JSON.stringify(cached), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    throw err; // If neither network nor cache succeeded
+  }
 };
