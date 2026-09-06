@@ -1,95 +1,147 @@
-.network-banner {
-  position: sticky;
-  top: 0;
-  left: 0;
-  right: 0;
+/* Bottom-Center Offline Status Toast */
+.offline-toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 9999;
-  padding: 10px 20px;
-  font-size: 13px;
-  font-weight: 600;
   display: flex;
   align-items: center;
-  justify-content: center;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  animation: bannerSlideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  gap: 14px;
+  padding: 12px 20px;
+  border-radius: 14px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  animation: toastSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 480px;
+  width: calc(100% - 32px);
+  pointer-events: auto;
 }
 
-@keyframes bannerSlideDown {
+@keyframes toastSlideUp {
   from {
-    transform: translateY(-100%);
+    transform: translate(-50%, 20px);
     opacity: 0;
   }
   to {
-    transform: translateY(0);
+    transform: translate(-50%, 0);
     opacity: 1;
   }
 }
 
-.network-banner-content {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  max-width: 1200px;
-  width: 100%;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.network-banner-badge {
-  background: rgba(0, 0, 0, 0.3);
-  color: inherit;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.8px;
-  padding: 3px 8px;
-  border-radius: 20px;
-  text-transform: uppercase;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  flex-shrink: 0;
-}
-
-.network-banner-icon {
+.offline-toast-icon {
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
 }
 
-.network-banner-text {
-  line-height: 1.4;
-  text-align: center;
-  letter-spacing: 0.2px;
+.offline-toast-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
 }
 
-/* Offline state */
-.network-banner--offline {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.95), rgba(217, 119, 6, 0.95));
-  color: #0f172a;
-  border-bottom: 1px solid rgba(251, 191, 36, 0.4);
+.offline-toast-title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.2px;
 }
 
-/* Syncing state */
-.network-banner--syncing {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(37, 99, 235, 0.95));
-  color: #ffffff;
-  border-bottom: 1px solid rgba(147, 197, 253, 0.4);
+.offline-toast-subtitle {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.35;
+  opacity: 0.9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* Conflict / Failed state */
-.network-banner--conflict {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(220, 38, 38, 0.95));
-  color: #ffffff;
-  border-bottom: 1px solid rgba(252, 165, 165, 0.4);
+/* OFFLINE State - Warm Amber Glass */
+.offline-toast--offline {
+  background: rgba(30, 27, 20, 0.88);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
 }
 
-/* Success state */
-.network-banner--success {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(5, 150, 105, 0.95));
-  color: #ffffff;
-  border-bottom: 1px solid rgba(110, 231, 183, 0.4);
+.offline-toast--offline .offline-toast-icon {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+}
+
+.offline-toast--offline .offline-toast-title {
+  color: #fef3c7;
+}
+
+.offline-toast--offline .offline-toast-subtitle {
+  color: #fde68a;
+}
+
+/* SYNCING State - Tech Blue Glass */
+.offline-toast--syncing {
+  background: rgba(15, 23, 42, 0.88);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+.offline-toast--syncing .offline-toast-icon {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+}
+
+.offline-toast--syncing .offline-toast-title {
+  color: #eff6ff;
+}
+
+.offline-toast--syncing .offline-toast-subtitle {
+  color: #bfdbfe;
+}
+
+/* CONFLICT State - Rose Red Glass */
+.offline-toast--conflict {
+  background: rgba(30, 20, 20, 0.88);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.offline-toast--conflict .offline-toast-icon {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.offline-toast--conflict .offline-toast-title {
+  color: #fef2f2;
+}
+
+.offline-toast--conflict .offline-toast-subtitle {
+  color: #fecaca;
+}
+
+/* SUCCESS State - Emerald Green Glass */
+.offline-toast--success {
+  background: rgba(16, 30, 24, 0.88);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.offline-toast--success .offline-toast-icon {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+}
+
+.offline-toast--success .offline-toast-title {
+  color: #ecfdf5;
+}
+
+.offline-toast--success .offline-toast-subtitle {
+  color: #a7f3d0;
 }
 
 @keyframes spin {
