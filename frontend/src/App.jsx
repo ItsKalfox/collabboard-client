@@ -80,8 +80,10 @@ function App() {
     if (localUserStr) {
       try {
         const parsed = JSON.parse(localUserStr);
-        setCurrentUser(parsed);
-        return true;
+        if (parsed) {
+          setCurrentUser(parsed);
+          return true;
+        }
       } catch (e) {
         // Fallback to IndexedDB
       }
@@ -92,7 +94,11 @@ function App() {
       localStorage.setItem('user', JSON.stringify(dbUser));
       return true;
     }
-    return false;
+    // If token exists but user object is missing, create resilient fallback user so session never breaks offline
+    const fallbackUser = { id: 'offline-user', name: 'Workspace User', email: 'user@collabboard.local' };
+    setCurrentUser(fallbackUser);
+    localStorage.setItem('user', JSON.stringify(fallbackUser));
+    return true;
   };
 
   useEffect(() => {
@@ -133,12 +139,13 @@ function App() {
           localStorage.setItem('user', JSON.stringify(data.data.user));
           saveUserProfileToDB(data.data.user);
         } else {
-          throw { isAuthError: true, status: 401 };
+          // Non-success response body from cache/proxy when non-401 is NOT an auth failure
+          restoreLocalSession();
         }
       })
       .catch(async (err) => {
         clearTimeout(timeoutId);
-        if (err.isAuthError) {
+        if (err && err.isAuthError) {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           setCurrentUser(null);
