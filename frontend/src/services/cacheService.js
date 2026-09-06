@@ -20,6 +20,16 @@ export const cacheData = async (key, data) => {
 };
 
 export const getCachedData = async (key) => {
+  try {
+    const doc = await db.get(key);
+    return doc.data;
+  } catch (err) {
+    if (err.name === 'not_found') {
+      return null;
+    }
+    console.error('Failed to get cached data:', err);
+    return null;
+  }
 };
 
 export const fetchWithCache = async (url, options = {}) => {
