@@ -12,46 +12,39 @@ export default function NetworkStatusBanner() {
     justSyncCompleted
   } = useNetworkStatus();
 
-  // If online, fully synced, and no active notifications, do not render toast
+  // If online, fully synced, and no conflicts/notices, do not render banner
   if (isOnline && pendingCount === 0 && !isSyncing && !hasConflict && !hasFailed && !justSyncCompleted) {
     return null;
   }
 
-  let toastClass = 'offline-toast';
-  let icon = <WifiOff size={20} />;
-  let title = '';
-  let subtitle = '';
+  let bannerClass = 'network-banner';
+  let icon = <WifiOff size={16} />;
+  let message = '';
 
   if (!isOnline) {
-    toastClass += ' offline-toast--offline';
-    icon = <WifiOff size={20} />;
-    title = "You're offline";
-    subtitle = pendingCount > 0 
-      ? `Changes will be saved and synced when you're back online (${pendingCount} saved).`
-      : "Changes will be saved and synced when you're back online.";
+    bannerClass += ' network-banner--offline';
+    icon = <WifiOff size={18} />;
+    message = `System Offline — Working in Offline Mode (${pendingCount > 0 ? `${pendingCount} change${pendingCount > 1 ? 's' : ''} saved locally` : 'All changes saved locally'})`;
   } else if (hasConflict || hasFailed) {
-    toastClass += ' offline-toast--conflict';
-    icon = <AlertTriangle size={20} />;
-    title = "Sync Attention Required";
-    subtitle = "Some offline changes need your review.";
+    bannerClass += ' network-banner--conflict';
+    icon = <AlertTriangle size={18} />;
+    message = 'System Notice — Some changes require sync attention.';
   } else if (pendingCount > 0 || isSyncing) {
-    toastClass += ' offline-toast--syncing';
-    icon = <RefreshCw size={20} className="spin-icon" />;
-    title = "You're back online";
-    subtitle = `Syncing your changes... (${pendingCount} remaining)`;
+    bannerClass += ' network-banner--syncing';
+    icon = <RefreshCw size={18} className="spin-icon" />;
+    message = `System Syncing — Uploading ${pendingCount} offline change${pendingCount > 1 ? 's' : ''}...`;
   } else if (justSyncCompleted) {
-    toastClass += ' offline-toast--success';
-    icon = <CheckCircle size={20} />;
-    title = "All changes synced";
-    subtitle = "Your offline changes have been saved to the server.";
+    bannerClass += ' network-banner--success';
+    icon = <CheckCircle size={18} />;
+    message = 'System Online — All offline changes synchronized!';
   }
 
   return (
-    <div className={toastClass} role="status" aria-live="polite">
-      <div className="offline-toast-icon">{icon}</div>
-      <div className="offline-toast-body">
-        <div className="offline-toast-title">{title}</div>
-        <div className="offline-toast-subtitle">{subtitle}</div>
+    <div className={bannerClass} role="status" aria-live="polite">
+      <div className="network-banner-content">
+        <span className="network-banner-badge">OFFLINE MODE</span>
+        <span className="network-banner-icon">{icon}</span>
+        <span className="network-banner-text">{message}</span>
       </div>
     </div>
   );

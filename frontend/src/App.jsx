@@ -94,20 +94,23 @@ function App() {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const localUserStr = localStorage.getItem('user');
-
-    if (!token && !localUserStr) {
-      if (!authRoutes.includes(activeTab)) {
-        setSessionExpired(true);
-      }
+    // 1. OFFLINE GUARD: If offline, NEVER trigger Session Expired.
+    // Restore local session from localStorage / IndexedDB immediately.
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setSessionExpired(false);
+      restoreLocalSession();
       return;
     }
 
-    // 1. OFFLINE-FIRST: Do NOT call /api/auth/me if device is offline.
-    // Restore local session immediately and clear sessionExpired state.
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      restoreLocalSession();
+    const token = localStorage.getItem('token');
+    if (!token) {
+      const localUserStr = localStorage.getItem('user');
+      if (localUserStr) {
+        setSessionExpired(false);
+        restoreLocalSession();
+      } else if (!authRoutes.includes(activeTab)) {
+        setSessionExpired(true);
+      }
       return;
     }
 
@@ -122,8 +125,8 @@ function App() {
     })
       .then(async (res) => {
         clearTimeout(timeoutId);
-        // Genuine HTTP 401 response ONLY while online -> Session Expired
-        if (res.status === 401 && navigator.onLine) {
+        // Genuine HTTP 401 or 403 response ONLY -> Session Expired
+        if (res.status === 401 || res.status === 403) {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           setCurrentUser(null);
@@ -132,19 +135,21 @@ function App() {
           }
           return;
         }
-        // HTTP 200 Success -> Authenticated
-        if (res.ok) {
-          const data = await res.json();
-          if (data.status === 'success' && data.data && data.data.user) {
-            setCurrentUser(data.data.user);
-            setSessionExpired(false);
-            localStorage.setItem('user', JSON.stringify(data.data.user));
-            saveUserProfileToDB(data.data.user);
-            return;
-          }
+        // Non-200 non-401 HTTP response -> preserve local session without expiring
+        if (!res.ok) {
+          await restoreLocalSession();
+          return;
         }
-        // Non-200 non-401 response -> preserve local session without expiring
-        await restoreLocalSession();
+        // HTTP 200 Success -> Authenticated
+        const data = await res.json();
+        if (data.status === 'success' && data.data && data.data.user) {
+          setCurrentUser(data.data.user);
+          setSessionExpired(false);
+          localStorage.setItem('user', JSON.stringify(data.data.user));
+          saveUserProfileToDB(data.data.user);
+        } else {
+          await restoreLocalSession();
+        }
       })
       .catch(async (err) => {
         // Genuine network error (Offline / Failed to fetch / AbortError) -> DO NOT EXPIRE SESSION
