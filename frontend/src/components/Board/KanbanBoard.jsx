@@ -13,7 +13,9 @@ import KanbanColumn from './KanbanColumn';
 import TaskCard from './TaskCard';
 import TaskPopup from '../TaskPopup/TaskPopup';
 import { formatDate } from '../../utils/dateUtils';
+import { getTasksByProjectFromDB } from '../../services/dbService';
 import './KanbanBoard.css';
+
 
 
 
@@ -93,7 +95,8 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
             tasks = data.data?.tasks || [];
           }
         } catch {
-          // If network fetch fails, fallback to local mock data
+          // If network fetch fails, fallback to local IndexedDB stored tasks
+          tasks = await getTasksByProjectFromDB(projectId);
         }
 
 

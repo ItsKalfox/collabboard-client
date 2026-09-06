@@ -8,7 +8,9 @@ import ActionModal from '../components/Board/ActionModal';
 import ProjectDetailsModal from '../components/projects/ProjectDetailsModal';
 
 import { Search, X } from 'lucide-react';
-import { searchUsers } from '../services/projectService';
+import { getProjects, createProject, addProjectMember } from '../services/projectService';
+import { getProjectsFromDB } from '../services/dbService';
+
 import { normalizeMember } from '../utils/memberUtils';
 import './Board.css';
 
@@ -148,7 +150,16 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
         }
       } catch (err) {
         console.error('Error fetching projects from API:', err);
-
+        const dbProjects = await getProjectsFromDB();
+        if (dbProjects && dbProjects.length > 0) {
+          setProjects(dbProjects);
+          setSelectedProjectId(prev => {
+            if (!prev || !dbProjects.some(p => p.id === prev)) {
+              return dbProjects[0].id;
+            }
+            return prev;
+          });
+        }
       } finally {
         setLoading(false);
       }
