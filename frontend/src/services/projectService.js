@@ -95,7 +95,7 @@ export const getProjects = async (searchQuery = '') => {
     ? `${API_URL}/projects?q=${encodeURIComponent(searchQuery)}` 
     : `${API_URL}/projects`;
 
-  const response = await fetch(url, {
+  const response = await fetchWithCache(url, {
     method: 'GET',
     headers: getAuthHeaders(true)
   });
