@@ -292,7 +292,7 @@ export const removeProjectMember = async (projectId, userId) => {
  * @returns {Promise<Array>} List of project tasks
  */
 export const getProjectTasks = async (projectId) => {
-  const response = await fetch(`${API_URL}/projects/${projectId}/tasks`, {
+  const response = await fetchWithCache(`${API_URL}/projects/${projectId}/tasks`, {
     method: 'GET',
     headers: getAuthHeaders(true)
   });
