@@ -95,6 +95,7 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [draft, setDraft] = useState({});
+  const [conflictError, setConflictError] = useState(false);
   const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
   const dropdownRef = useRef();
 
@@ -121,14 +122,11 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
     setIsEditing(true);
   };
 
-  const saveEdit = async (e) => {
-    if (e) e.preventDefault();
-    console.log("saveEdit triggered", { draft, task });
+  const forceOverwrite = async () => {
     try {
-      try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
         const token = localStorage.getItem('token');
-        await fetch(`${apiUrl}/tasks/${task.id}`, {
+        const res = await fetch(`${apiUrl}/tasks/${task.id}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -140,9 +138,54 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
             status: draft.status,
             priority: draft.priority,
             dueDate: draft.dueDate,
-            assigneeId: draft.assigneeId
+            assigneeId: draft.assigneeId,
+            force: true
           })
         });
+        if (res.ok) {
+           setConflictError(false);
+           if (onUpdate) onUpdate();
+           setIsEditing(false);
+        }
+    } catch (e) { console.error(e); }
+  };
+
+  const saveEdit = async (e) => {
+    if (e) e.preventDefault();
+    console.log("saveEdit triggered", { draft, task });
+    try {
+      let newVersion = task.version || task.__v;
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${apiUrl}/tasks/${task.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            title: draft.title,
+            description: draft.description,
+            status: draft.status,
+            priority: draft.priority,
+            dueDate: draft.dueDate,
+            assigneeId: draft.assigneeId,
+            version: newVersion
+          })
+        });
+
+        if (res.status === 409) {
+            setConflictError(true);
+            return;
+        }
+
+        const payload = await res.json();
+        if (payload && payload.data && payload.data.task) {
+             const updatedTaskApi = payload.data.task;
+             newVersion = updatedTaskApi.version || updatedTaskApi.__v;
+        }
+
       } catch (err) {
         console.error('Failed to update task via fetch:', err);
       }
@@ -172,6 +215,8 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
           ...t,
           ...draft,
           assigneeId: newAssigneeObj,
+          version: newVersion,
+          __v: newVersion,
           activities: [
             { text: 'Task details were updated', timestamp: fmtNow() },
             ...(t.activities || []),
@@ -601,6 +646,22 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
           setConfirmState({ isOpen: false, type: null, payload: null });
         }}
       />
+
+      {conflictError && (
+        <div className="popup-backdrop" style={{ zIndex: 9999 }}>
+          <div className="popup-panel" style={{ width: '400px', height: 'auto', padding: '24px', textAlign: 'center', margin: 'auto', position: 'relative', top: '20%' }}>
+            <h3 style={{ color: '#ef4444', margin: '0 0 16px' }}>Task Conflict Detected!</h3>
+            <p style={{ margin: '16px 0', color: 'var(--popup-text-main)' }}>
+              This task was modified by another user while you were editing it. 
+              Overwriting will discard their changes.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyItems: 'center', justifyContent: 'center', marginTop: '24px' }}>
+               <button onClick={() => { setConflictError(false); if(onUpdate) onUpdate(); onClose(); }} style={{ padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', background: 'var(--bg-sec)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>Discard & Reload</button>
+               <button onClick={forceOverwrite} style={{ padding: '8px 16px', borderRadius: '6px', background: '#ef4444', color: 'white', border: 'none', cursor: 'pointer' }}>Force Overwrite</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Backdrop */}
       <div

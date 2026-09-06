@@ -30,6 +30,13 @@ const checkTaskAuth = async (taskId, userId) => {
     return { task };
 };
 
+const handleErrorResponse = (error, res) => {
+    if (error.name === 'VersionError') return res.status(409).json({ status: 'error', message: 'Conflict: This task was modified by another user. Please reload the task to see the latest changes.' });
+    if (error.name === 'CastError' && error.kind === 'ObjectId') return res.status(404).json({ status: 'error', message: 'Resource not found' });
+    if (error.name === 'ValidationError') return res.status(400).json({ status: 'error', message: Object.values(error.errors).map(val => val.message).join(', ') });
+    res.status(500).json({ status: 'error', message: 'Server error' });
+};
+
 export const getTasksByProject = async (req, res) => {
     try {
         const projectId = req.params.projectId || req.query.projectId;
@@ -134,9 +141,30 @@ export const updateTask = async (req, res) => {
         const { task, error, status } = await checkTaskAuth(req.params.taskId, req.user.id);
         if (error) return res.status(status).json({ status: 'error', message: error });
 
-        const updatedTask = await taskRepository.findByIdAndUpdate(req.params.taskId, req.body, { new: true });
+        // Update fields directly on the task document
+        const allowedUpdates = ['title', 'description', 'status', 'priority', 'assigneeId', 'dueDate'];
+        Object.keys(req.body).forEach(key => {
+            if (allowedUpdates.includes(key)) {
+                task[key] = req.body[key];
+            }
+        });
+
+        // For Optimistic Concurrency Control
+        if (req.body.force) {
+            // Force overwrite: don't apply the frontend's stale version.
+            // By keeping the task.__v as pulled from DB, save() passes OCC.
+        } else {
+            if (req.body.__v !== undefined) task.__v = req.body.__v;
+            else if (req.body.version !== undefined) task.__v = req.body.version;
+        }
+
+        const updatedTask = await taskRepository.save(task);
+
         res.status(200).json({ status: 'success', message: 'Task updated', data: { task: updatedTask } });
     } catch (error) {
+        if (error.name === 'VersionError') {
+            return res.status(409).json({ status: 'error', message: 'Conflict: This task was modified by another user. Please reload the task to see the latest changes.' });
+        }
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
             return res.status(404).json({ status: 'error', message: 'Resource not found' });
         }
