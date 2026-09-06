@@ -107,6 +107,10 @@ export const createProject = async (projectData) => {
  * Upload a cover image for a project via POST /api/projects/:id/cover-image
  */
 export const uploadCoverImage = async (projectId, imageFile) => {
+  if (!navigator.onLine) {
+    throw new Error('Cover image uploads require an internet connection.');
+  }
+
   const formData = new FormData();
   formData.append('image', imageFile);
 
@@ -128,6 +132,10 @@ export const uploadCoverImage = async (projectId, imageFile) => {
  * Upload an attachment to a project via POST /api/projects/:id/attachments
  */
 export const uploadAttachment = async (projectId, file) => {
+  if (!navigator.onLine) {
+    throw new Error('File uploads require an internet connection.');
+  }
+
   const formData = new FormData();
   formData.append('file', file);
 
@@ -329,6 +337,10 @@ export const getAttachments = async (projectId) => {
  * Delete an attachment from a project via DELETE /api/projects/:id/attachments/:attachmentId
  */
 export const deleteAttachment = async (projectId, attachmentId) => {
+  if (!navigator.onLine) {
+    throw new Error('Deleting attachments requires an internet connection.');
+  }
+
   const response = await fetch(`${API_URL}/projects/${projectId}/attachments/${attachmentId}`, {
     method: 'DELETE',
     headers: getAuthHeaders(true)
@@ -370,6 +382,10 @@ export const getProjectMembers = async (projectId) => {
  */
 export const searchUsers = async (query) => {
   if (!query || !query.trim()) return [];
+  if (!navigator.onLine) {
+    throw new Error('User search is unavailable offline.');
+  }
+
   const response = await fetch(`${API_URL}/users/search?q=${encodeURIComponent(query.trim())}`, {
     method: 'GET',
     headers: getAuthHeaders(true)
@@ -387,6 +403,10 @@ export const searchUsers = async (query) => {
  * Add a member to a project via POST /api/projects/:id/members
  */
 export const addProjectMember = async (projectId, memberData) => {
+  if (!navigator.onLine) {
+    throw new Error('Member invitations require an internet connection.');
+  }
+
   const response = await fetch(`${API_URL}/projects/${projectId}/members`, {
     method: 'POST',
     headers: getAuthHeaders(true),
@@ -405,6 +425,10 @@ export const addProjectMember = async (projectId, memberData) => {
  * Remove a member from a project via DELETE /api/projects/:id/members/:userId
  */
 export const removeProjectMember = async (projectId, userId) => {
+  if (!navigator.onLine) {
+    throw new Error('Member removal requires an internet connection.');
+  }
+
   const response = await fetch(`${API_URL}/projects/${projectId}/members/${userId}`, {
     method: 'DELETE',
     headers: getAuthHeaders(true)
@@ -485,6 +509,10 @@ export const refreshProjectTimeline = async (projectId, since) => {
  * Download an attachment via GET /api/projects/:id/attachments/:attachmentId/download
  */
 export const downloadAttachment = async (projectId, attachmentId) => {
+  if (!navigator.onLine) {
+    throw new Error('Downloading attachments requires an internet connection.');
+  }
+
   const response = await fetch(`${API_URL}/projects/${projectId}/attachments/${attachmentId}/download`, {
     method: 'GET',
     headers: getAuthHeaders(true)

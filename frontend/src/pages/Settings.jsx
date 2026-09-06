@@ -157,6 +157,12 @@ export default function Settings({ currentUser, setCurrentUser }) {
     if (!file) return;
     e.target.value = '';
 
+    if (!navigator.onLine) {
+      setAvatarAlert({ type: 'error', msg: 'Profile picture updates require an internet connection.' });
+      autoClose(setAvatarAlert);
+      return;
+    }
+
     setAvatarUploading(true);
     setAvatarAlert({ type: '', msg: '' });
 
@@ -186,6 +192,13 @@ export default function Settings({ currentUser, setCurrentUser }) {
 
   const handleRemoveAvatar = async () => {
     if (!currentUser?.avatar) return;
+
+    if (!navigator.onLine) {
+      setAvatarAlert({ type: 'error', msg: 'Profile picture removal requires an internet connection.' });
+      autoClose(setAvatarAlert);
+      return;
+    }
+
     setAvatarUploading(true);
     setAvatarAlert({ type: '', msg: '' });
 
