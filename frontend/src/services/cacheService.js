@@ -1,5 +1,6 @@
-// cacheService.js
-// PouchDB client-side data caching
+import PouchDB from 'pouchdb';
+
+const db = new PouchDB('collabboard_cache');
 
 export const cacheData = async (key, data) => {
 };
