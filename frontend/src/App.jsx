@@ -10,6 +10,7 @@ import Board from './pages/Board';
 import Settings from './pages/Settings';
 import AuthModule from './components/auth/AuthModule';
 import ConfirmModal from './components/Board/ConfirmModal';
+import { saveUserProfileToDB, getUserProfileFromDB } from './services/dbService';
 import './App.css';
 
 function App() {
@@ -43,11 +44,19 @@ function App() {
 
   const isAuthRoute = authRoutes.includes(activeTab);
 
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(() => {
+    const savedUser = localStorage.getItem('user');
+    try {
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch {
+      return null;
+    }
+  });
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setCurrentUser(null);
     handleTabClick('login');
     setIsLogoutConfirmOpen(false);
@@ -64,20 +73,46 @@ function App() {
       fetch(`${apiUrl}/auth/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
-      .then(res => res.json())
+      .then(res => {
+        if (res.status === 401 || res.status === 403) {
+          throw new Error('UNAUTHORIZED');
+        }
+        return res.json();
+      })
       .then(data => {
         if (data.status === 'success' && data.data && data.data.user) {
           setCurrentUser(data.data.user);
           localStorage.setItem('user', JSON.stringify(data.data.user));
+          saveUserProfileToDB(data.data.user);
         } else {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           if (!authRoutes.includes(activeTab)) setSessionExpired(true);
         }
       })
-      .catch(err => {
-        console.error('Failed to fetch user:', err);
-        if (!authRoutes.includes(activeTab)) setSessionExpired(true);
+      .catch(async (err) => {
+        if (err.message === 'UNAUTHORIZED') {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          if (!authRoutes.includes(activeTab)) setSessionExpired(true);
+        } else {
+          // Network error or server offline: Fallback to local stored user profile
+          console.warn('Network offline or fetch failed during auth check. Preserving local user session:', err);
+          const localUserStr = localStorage.getItem('user');
+          if (localUserStr) {
+            try {
+              const parsed = JSON.parse(localUserStr);
+              setCurrentUser(parsed);
+            } catch {
+              // fallback to DB if localStorage fails
+              const dbUser = await getUserProfileFromDB();
+              if (dbUser) setCurrentUser(dbUser);
+            }
+          } else {
+            const dbUser = await getUserProfileFromDB();
+            if (dbUser) setCurrentUser(dbUser);
+          }
+        }
       });
     } else {
       if (!authRoutes.includes(activeTab)) {
@@ -85,6 +120,7 @@ function App() {
       }
     }
   }, []);
+
 
 
 
