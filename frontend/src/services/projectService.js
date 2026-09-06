@@ -1,9 +1,14 @@
 import { fetchWithCache } from './cacheService';
 import {
   saveProjectToDB,
+  saveProjectsToDB,
   getProjectFromDB,
+  getProjectsFromDB,
   deleteProjectFromDB,
-  enqueueMutation
+  saveTasksToDB,
+  getTasksByProjectFromDB,
+  enqueueMutation,
+  generateTempId
 } from './dbService';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -30,7 +35,7 @@ const getAuthHeaders = (isJson = true) => {
  */
 export const createProject = async (projectData) => {
   if (!navigator.onLine) {
-    const tempId = `proj-off-${Date.now()}`;
+    const tempId = generateTempId('project');
     const newProject = {
       id: tempId,
       _id: tempId,
@@ -42,7 +47,12 @@ export const createProject = async (projectData) => {
     await saveProjectToDB(newProject);
     await enqueueMutation({
       type: 'CREATE_PROJECT',
-      payload: { tempId, projectData }
+      endpoint: '/projects',
+      method: 'POST',
+      payload: { ...projectData, tempId },
+      entityType: 'project',
+      entityId: tempId,
+      tempId
     });
     return newProject;
   }
@@ -60,13 +70,15 @@ export const createProject = async (projectData) => {
     }
 
     const created = data.data?.project || data.project;
-    if (created && created.id) {
-      await saveProjectToDB(created);
+    if (created && (created.id || created._id)) {
+      const projToSave = { ...created, id: created.id || created._id };
+      await saveProjectToDB(projToSave);
+      return projToSave;
     }
     return created;
   } catch (err) {
     if (!navigator.onLine || err.message.includes('fetch') || err.name === 'TypeError') {
-      const tempId = `proj-off-${Date.now()}`;
+      const tempId = generateTempId('project');
       const newProject = {
         id: tempId,
         _id: tempId,
@@ -78,7 +90,12 @@ export const createProject = async (projectData) => {
       await saveProjectToDB(newProject);
       await enqueueMutation({
         type: 'CREATE_PROJECT',
-        payload: { tempId, projectData }
+        endpoint: '/projects',
+        method: 'POST',
+        payload: { ...projectData, tempId },
+        entityType: 'project',
+        entityId: tempId,
+        tempId
       });
       return newProject;
     }
@@ -88,9 +105,6 @@ export const createProject = async (projectData) => {
 
 /**
  * Upload a cover image for a project via POST /api/projects/:id/cover-image
- * @param {string} projectId
- * @param {File} imageFile
- * @returns {Promise<string>} Uploaded cover image URL
  */
 export const uploadCoverImage = async (projectId, imageFile) => {
   const formData = new FormData();
@@ -112,9 +126,6 @@ export const uploadCoverImage = async (projectId, imageFile) => {
 
 /**
  * Upload an attachment to a project via POST /api/projects/:id/attachments
- * @param {string} projectId
- * @param {File} file
- * @returns {Promise<Object>} Uploaded attachment object
  */
 export const uploadAttachment = async (projectId, file) => {
   const formData = new FormData();
@@ -136,8 +147,6 @@ export const uploadAttachment = async (projectId, file) => {
 
 /**
  * Fetch all projects via GET /api/projects
- * @param {string} searchQuery
- * @returns {Promise<Array>} List of projects
  */
 export const getProjects = async (searchQuery = '') => {
   const url = searchQuery 
@@ -169,18 +178,19 @@ export const getProjects = async (searchQuery = '') => {
 
 /**
  * Update an existing project via PUT /api/projects/:id
- * @param {string} projectId
- * @param {Object} updateData
- * @returns {Promise<Object>} Updated project object from backend or local DB
  */
 export const updateProject = async (projectId, updateData) => {
   if (!navigator.onLine) {
     const existing = await getProjectFromDB(projectId);
-    const updated = { ...existing, ...updateData, id: projectId, updatedAt: new Date().toISOString() };
+    const updated = { ...(existing || {}), ...updateData, id: projectId, updatedAt: new Date().toISOString() };
     await saveProjectToDB(updated);
     await enqueueMutation({
       type: 'UPDATE_PROJECT',
-      payload: { projectId, updateData }
+      endpoint: `/projects/${projectId}`,
+      method: 'PUT',
+      payload: updateData,
+      entityType: 'project',
+      entityId: projectId
     });
     return updated;
   }
@@ -198,18 +208,24 @@ export const updateProject = async (projectId, updateData) => {
     }
 
     const updated = data.data?.project || data.project;
-    if (updated && updated.id) {
-      await saveProjectToDB(updated);
+    if (updated) {
+      const projToSave = { ...updated, id: updated.id || updated._id || projectId };
+      await saveProjectToDB(projToSave);
+      return projToSave;
     }
-    return updated;
+    return updateData;
   } catch (err) {
     if (!navigator.onLine || err.message.includes('fetch') || err.name === 'TypeError') {
       const existing = await getProjectFromDB(projectId);
-      const updated = { ...existing, ...updateData, id: projectId, updatedAt: new Date().toISOString() };
+      const updated = { ...(existing || {}), ...updateData, id: projectId, updatedAt: new Date().toISOString() };
       await saveProjectToDB(updated);
       await enqueueMutation({
         type: 'UPDATE_PROJECT',
-        payload: { projectId, updateData }
+        endpoint: `/projects/${projectId}`,
+        method: 'PUT',
+        payload: updateData,
+        entityType: 'project',
+        entityId: projectId
       });
       return updated;
     }
@@ -219,8 +235,6 @@ export const updateProject = async (projectId, updateData) => {
 
 /**
  * Fetch a single project by ID via GET /api/projects/:id
- * @param {string} projectId
- * @returns {Promise<Object>} Project details
  */
 export const getProjectById = async (projectId) => {
   try {
@@ -249,15 +263,17 @@ export const getProjectById = async (projectId) => {
 
 /**
  * Delete a project via DELETE /api/projects/:id
- * @param {string} projectId
- * @returns {Promise<Object>} Success response
  */
 export const deleteProject = async (projectId) => {
   if (!navigator.onLine) {
     await deleteProjectFromDB(projectId);
     await enqueueMutation({
       type: 'DELETE_PROJECT',
-      payload: { projectId }
+      endpoint: `/projects/${projectId}`,
+      method: 'DELETE',
+      payload: { projectId },
+      entityType: 'project',
+      entityId: projectId
     });
     return { status: 'success', message: 'Project deleted offline' };
   }
@@ -280,7 +296,11 @@ export const deleteProject = async (projectId) => {
       await deleteProjectFromDB(projectId);
       await enqueueMutation({
         type: 'DELETE_PROJECT',
-        payload: { projectId }
+        endpoint: `/projects/${projectId}`,
+        method: 'DELETE',
+        payload: { projectId },
+        entityType: 'project',
+        entityId: projectId
       });
       return { status: 'success', message: 'Project deleted offline' };
     }
@@ -290,8 +310,6 @@ export const deleteProject = async (projectId) => {
 
 /**
  * Fetch attachments for a project via GET /api/projects/:id/attachments
- * @param {string} projectId
- * @returns {Promise<Array>} List of attachments
  */
 export const getAttachments = async (projectId) => {
   const response = await fetch(`${API_URL}/projects/${projectId}/attachments`, {
@@ -309,9 +327,6 @@ export const getAttachments = async (projectId) => {
 
 /**
  * Delete an attachment from a project via DELETE /api/projects/:id/attachments/:attachmentId
- * @param {string} projectId
- * @param {string} attachmentId
- * @returns {Promise<Object>} Success response
  */
 export const deleteAttachment = async (projectId, attachmentId) => {
   const response = await fetch(`${API_URL}/projects/${projectId}/attachments/${attachmentId}`, {
@@ -329,27 +344,29 @@ export const deleteAttachment = async (projectId, attachmentId) => {
 
 /**
  * Fetch project members via GET /api/projects/:id/members
- * @param {string} projectId
- * @returns {Promise<Array>} List of project members
  */
 export const getProjectMembers = async (projectId) => {
-  const response = await fetchWithCache(`${API_URL}/projects/${projectId}/members`, {
-    method: 'GET',
-    headers: getAuthHeaders(true)
-  });
+  try {
+    const response = await fetchWithCache(`${API_URL}/projects/${projectId}/members`, {
+      method: 'GET',
+      headers: getAuthHeaders(true)
+    });
 
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || 'Failed to fetch project members');
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to fetch project members');
+    }
+
+    return data.data?.members || [];
+  } catch (err) {
+    console.warn(`getProjectMembers fetch failed for ${projectId}:`, err);
+    const dbProj = await getProjectFromDB(projectId);
+    return dbProj?.members || [];
   }
-
-  return data.data?.members || [];
 };
 
 /**
  * Search users via GET /api/users/search?q={query}
- * @param {string} query
- * @returns {Promise<Array>} List of matching users
  */
 export const searchUsers = async (query) => {
   if (!query || !query.trim()) return [];
@@ -368,9 +385,6 @@ export const searchUsers = async (query) => {
 
 /**
  * Add a member to a project via POST /api/projects/:id/members
- * @param {string} projectId
- * @param {Object} memberData - { userId, email, role }
- * @returns {Promise<Object>} Added member object
  */
 export const addProjectMember = async (projectId, memberData) => {
   const response = await fetch(`${API_URL}/projects/${projectId}/members`, {
@@ -389,9 +403,6 @@ export const addProjectMember = async (projectId, memberData) => {
 
 /**
  * Remove a member from a project via DELETE /api/projects/:id/members/:userId
- * @param {string} projectId
- * @param {string} userId
- * @returns {Promise<Object>} Response data
  */
 export const removeProjectMember = async (projectId, userId) => {
   const response = await fetch(`${API_URL}/projects/${projectId}/members/${userId}`, {
@@ -409,8 +420,6 @@ export const removeProjectMember = async (projectId, userId) => {
 
 /**
  * Fetch project tasks & subtasks via GET /api/projects/:id/tasks
- * @param {string} projectId
- * @returns {Promise<Array>} List of project tasks
  */
 export const getProjectTasks = async (projectId) => {
   try {
@@ -438,9 +447,6 @@ export const getProjectTasks = async (projectId) => {
 
 /**
  * Fetch project timeline history via GET /api/projects/:id/timeline
- * @param {string} projectId
- * @param {number} [limit]
- * @returns {Promise<Array>} List of timeline activities
  */
 export const getProjectTimeline = async (projectId, limit) => {
   const query = limit ? `?limit=${limit}` : '';
@@ -459,9 +465,6 @@ export const getProjectTimeline = async (projectId, limit) => {
 
 /**
  * Refresh project timeline via GET /api/projects/:id/timeline/refresh?since={since}
- * @param {string} projectId
- * @param {string|number} [since]
- * @returns {Promise<Object>} Object with newActivities array and lastRefreshedAt
  */
 export const refreshProjectTimeline = async (projectId, since) => {
   const query = since ? `?since=${encodeURIComponent(since)}` : '';
@@ -480,9 +483,6 @@ export const refreshProjectTimeline = async (projectId, since) => {
 
 /**
  * Download an attachment via GET /api/projects/:id/attachments/:attachmentId/download
- * @param {string} projectId
- * @param {string} attachmentId
- * @returns {Promise<{ blob: Blob, filename: string|null }>}
  */
 export const downloadAttachment = async (projectId, attachmentId) => {
   const response = await fetch(`${API_URL}/projects/${projectId}/attachments/${attachmentId}/download`, {
@@ -501,7 +501,6 @@ export const downloadAttachment = async (projectId, attachmentId) => {
     throw new Error(errorMsg);
   }
 
-  // Extract filename from Content-Disposition header if available
   const disposition = response.headers.get('Content-Disposition');
   let filename = null;
   if (disposition && disposition.includes('filename=')) {
@@ -514,8 +513,3 @@ export const downloadAttachment = async (projectId, attachmentId) => {
   const blob = await response.blob();
   return { blob, filename };
 };
-
-
-
-
-
