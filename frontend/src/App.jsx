@@ -68,6 +68,7 @@ function App() {
   }, [theme]);
 
   const restoreLocalSession = async () => {
+    setSessionExpired(false);
     const localUserStr = localStorage.getItem('user');
     if (localUserStr) {
       try {
@@ -102,13 +103,13 @@ function App() {
     }
 
     // 1. OFFLINE-FIRST: Do NOT call /api/auth/me if device is offline.
-    // Restore local session immediately (0ms network delay).
+    // Restore local session immediately and clear sessionExpired state.
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       restoreLocalSession();
       return;
     }
 
-    // 2. ONLINE / RACE CONDITION: Call /api/auth/me with an AbortController cap (2.5s)
+    // 2. ONLINE / RACE CONDITION: Call /api/auth/me with AbortController timeout (2.5s)
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2500);
 
@@ -119,20 +120,26 @@ function App() {
     })
       .then(async (res) => {
         clearTimeout(timeoutId);
+        // Genuine HTTP 401 or 403 response ONLY -> Session Expired
         if (res.status === 401 || res.status === 403) {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           setCurrentUser(null);
-          if (!authRoutes.includes(activeTab)) setSessionExpired(true);
+          if (!authRoutes.includes(activeTab)) {
+            setSessionExpired(true);
+          }
           return;
         }
+        // Non-200 non-401 HTTP response -> preserve local session without expiring
         if (!res.ok) {
           await restoreLocalSession();
           return;
         }
+        // HTTP 200 Success -> Authenticated
         const data = await res.json();
         if (data.status === 'success' && data.data && data.data.user) {
           setCurrentUser(data.data.user);
+          setSessionExpired(false);
           localStorage.setItem('user', JSON.stringify(data.data.user));
           saveUserProfileToDB(data.data.user);
         } else {
@@ -140,8 +147,9 @@ function App() {
         }
       })
       .catch(async (err) => {
+        // Genuine network error (Offline / Failed to fetch / AbortError) -> DO NOT EXPIRE SESSION
         clearTimeout(timeoutId);
-        console.warn('Network offline or fetch timeout during auth check. Preserving local user session:', err);
+        console.warn('Network error or fetch timeout during auth check. Preserving local user session:', err);
         await restoreLocalSession();
       });
   }, []);
@@ -190,6 +198,7 @@ function App() {
 
   const handleLoginSuccess = (user) => {
     setCurrentUser(user);
+    setSessionExpired(false);
     localStorage.setItem('user', JSON.stringify(user));
     handleTabClick('Dashboard');
   };
