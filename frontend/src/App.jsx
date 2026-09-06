@@ -9,7 +9,6 @@ import Dashboard from './pages/Dashboard';
 import Board from './pages/Board';
 import Settings from './pages/Settings';
 import AuthModule from './components/auth/AuthModule';
-import OfflineBanner from './components/shared/OfflineBanner';
 import ConfirmModal from './components/Board/ConfirmModal';
 import './App.css';
 
@@ -199,7 +198,6 @@ function App() {
 
   return (
     <div className="app-container" style={themeVars}>
-      <OfflineBanner />
       <ConfirmModal
         isOpen={isLogoutConfirmOpen}
         onClose={() => setIsLogoutConfirmOpen(false)}

@@ -1,3 +1,5 @@
+import { fetchWithCache } from './cacheService';
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 /**
@@ -93,7 +95,7 @@ export const getProjects = async (searchQuery = '') => {
     ? `${API_URL}/projects?q=${encodeURIComponent(searchQuery)}` 
     : `${API_URL}/projects`;
 
-  const response = await fetch(url, {
+  const response = await fetchWithCache(url, {
     method: 'GET',
     headers: getAuthHeaders(true)
   });
@@ -133,7 +135,7 @@ export const updateProject = async (projectId, updateData) => {
  * @returns {Promise<Object>} Project details
  */
 export const getProjectById = async (projectId) => {
-  const response = await fetch(`${API_URL}/projects/${projectId}`, {
+  const response = await fetchWithCache(`${API_URL}/projects/${projectId}`, {
     method: 'GET',
     headers: getAuthHeaders(true)
   });
@@ -210,7 +212,7 @@ export const deleteAttachment = async (projectId, attachmentId) => {
  * @returns {Promise<Array>} List of project members
  */
 export const getProjectMembers = async (projectId) => {
-  const response = await fetch(`${API_URL}/projects/${projectId}/members`, {
+  const response = await fetchWithCache(`${API_URL}/projects/${projectId}/members`, {
     method: 'GET',
     headers: getAuthHeaders(true)
   });
@@ -290,7 +292,7 @@ export const removeProjectMember = async (projectId, userId) => {
  * @returns {Promise<Array>} List of project tasks
  */
 export const getProjectTasks = async (projectId) => {
-  const response = await fetch(`${API_URL}/projects/${projectId}/tasks`, {
+  const response = await fetchWithCache(`${API_URL}/projects/${projectId}/tasks`, {
     method: 'GET',
     headers: getAuthHeaders(true)
   });
