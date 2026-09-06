@@ -302,6 +302,16 @@ export const getAllMutationsFromDB = async () => {
   });
 };
 
+export const getMutationsByStatus = async (status) => {
+  const store = await getStore('mutationQueue', 'readonly');
+  return new Promise((resolve) => {
+    const index = store.index('status');
+    const request = index.getAll(status);
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => resolve([]);
+  });
+};
+
 export const updateMutationStatus = async (id, status, error = null, retryCountIncrement = 0) => {
   const store = await getStore('mutationQueue', 'readwrite');
   return new Promise((resolve) => {

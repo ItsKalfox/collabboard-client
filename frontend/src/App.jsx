@@ -14,6 +14,7 @@ import { saveUserProfileToDB, getUserProfileFromDB } from './services/dbService'
 import { initSyncListeners } from './services/syncService';
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 import OfflineBanner from './components/common/OfflineBanner';
+import NetworkStatusBanner from './components/common/NetworkStatusBanner';
 import './App.css';
 
 function App() {
@@ -242,6 +243,7 @@ function App() {
 
   return (
     <div className="app-container" style={themeVars}>
+      <NetworkStatusBanner />
       <ConfirmModal
         isOpen={isLogoutConfirmOpen}
         onClose={() => setIsLogoutConfirmOpen(false)}
