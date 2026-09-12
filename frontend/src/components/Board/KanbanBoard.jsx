@@ -13,6 +13,7 @@ import KanbanColumn from './KanbanColumn';
 import TaskCard from './TaskCard';
 import TaskPopup from '../TaskPopup/TaskPopup';
 import { formatDate } from '../../utils/dateUtils';
+import { useSocket } from '../../context/SocketContext';
 import './KanbanBoard.css';
 
 
@@ -58,11 +59,88 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
   const [loading, setLoading] = useState(true);
   const [localRefresh, setLocalRefresh] = useState(0);
   const [toastMessage, setToastMessage] = useState(null);
+  const { socket } = useSocket() || {};
 
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
   };
+
+  useEffect(() => {
+    if (socket && projectId) {
+      socket.emit('join_board', projectId);
+      
+      const handleTaskCreated = (newTask) => {
+        setColumns(prev => {
+          const uiTask = {
+            ...newTask,
+            tag: newTask.priority === 'high' ? 'High Priority' : newTask.priority === 'medium' ? 'Medium Priority' : newTask.priority === 'low' ? 'Low Priority' : newTask.category || 'Task',
+            tagColor: newTask.priority === 'high' ? 'red' : newTask.priority === 'medium' ? 'amber' : newTask.priority === 'low' ? 'green' : 'cyan',
+            date: new Date(newTask.dueDate || newTask.createdAt || Date.now()).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' }),
+            progressCurrent: newTask.subtasks ? newTask.subtasks.filter(st => st.completed).length : 0,
+            progressTotal: newTask.subtasks ? newTask.subtasks.length : 1,
+            members: []
+          };
+          
+          return prev.map(c => {
+            if (c.id === (uiTask.status || 'todo')) {
+              if (c.tasks.some(t => t.id === uiTask.id)) return c;
+              return { ...c, tasks: [...c.tasks, uiTask] };
+            }
+            return c;
+          });
+        });
+      };
+      const handleTaskUpdated = (updatedTask) => {
+        setColumns(prev => prev.map(c => ({
+          ...c,
+          tasks: c.tasks.map(t => t.id === updatedTask.id ? { ...t, ...updatedTask } : t)
+        })));
+      };
+      
+      const handleTaskMoved = (movedTask) => {
+        setColumns(prev => {
+          let updatedPrev = prev.map(c => ({
+            ...c,
+            tasks: c.tasks.filter(t => t.id !== movedTask.id)
+          }));
+          
+          return updatedPrev.map(c => {
+            if (c.id === movedTask.status) {
+              return { ...c, tasks: [...c.tasks, movedTask] };
+            }
+            return c;
+          });
+        });
+      };
+      
+      const handleTaskDeleted = (taskId) => {
+        setColumns(prev => prev.map(c => ({
+          ...c,
+          tasks: c.tasks.filter(t => t.id !== taskId)
+        })));
+      };
+      
+      const handleReconnect = () => {
+        setLocalRefresh(r => r + 1);
+      };
+      
+      socket.on('task_created', handleTaskCreated);
+      socket.on('task_updated', handleTaskUpdated);
+      socket.on('task_moved', handleTaskMoved);
+      socket.on('task_deleted', handleTaskDeleted);
+      socket.on('connect', handleReconnect);
+      
+      return () => {
+        socket.off('task_created', handleTaskCreated);
+        socket.off('task_updated', handleTaskUpdated);
+        socket.off('task_moved', handleTaskMoved);
+        socket.off('task_deleted', handleTaskDeleted);
+        socket.off('connect', handleReconnect);
+        socket.emit('leave_board', projectId);
+      };
+    }
+  }, [socket, projectId]);
 
   useEffect(() => {
     if (!projectId) return;
@@ -302,14 +380,21 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({ status: newStatus })
+          body: JSON.stringify({ 
+            status: newStatus,
+            version: task.version 
+          })
         });
 
         if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          // Business-logic rejection — revert the move
-          showToast(data.message || 'Failed to update task status.');
-          revertMove();
+          if (res.status === 409) {
+            showToast('Task was modified by someone else. Refreshing...');
+            setLocalRefresh(r => r + 1);
+          } else {
+            const data = await res.json().catch(() => ({}));
+            showToast(data.message || 'Failed to update task status.');
+            revertMove();
+          }
         }
       } catch {
         // Network failure or other error
