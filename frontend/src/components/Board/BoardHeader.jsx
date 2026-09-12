@@ -140,30 +140,51 @@ export default function BoardHeader({
           {/* Avatars */}
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <div className="pc-list-members" style={{ marginRight: '16px', display: 'flex', flexDirection: 'row-reverse' }}>
-              {projectMembers.map(normalizeMember).slice(0, 4).map((member, idx, arr) => (
-                <div
-                  key={idx}
-                  className="pc-list-avatar"
-                  style={{ backgroundColor: member.avatar ? 'transparent' : (member.bg || COLOR_HEX.blue), zIndex: idx, marginLeft: idx !== arr.length - 1 ? '-10px' : '0' }}
-                >
-                  <div className="avatar-inner">
-                    {member.avatar ? (
-                      <img src={member.avatar} alt={member.name} />
-                    ) : (
-                      member.initials || getInitials(member.name)
+              {projectMembers.map(normalizeMember).slice(0, 4).map((member, idx, arr) => {
+                const isActive = activeUsers.some(u => {
+                  const uId = typeof u === 'object' ? (u.userId || u.id || u._id) : u;
+                  const mId = member.userId || member.id || member._id;
+                  return uId && mId && String(uId) === String(mId);
+                });
+                
+                return (
+                  <div
+                    key={idx}
+                    className="pc-list-avatar"
+                    style={{ backgroundColor: member.avatar ? 'transparent' : (member.bg || COLOR_HEX.blue), zIndex: idx, marginLeft: idx !== arr.length - 1 ? '-10px' : '0', position: 'relative' }}
+                  >
+                    <div className="avatar-inner">
+                      {member.avatar ? (
+                        <img src={member.avatar} alt={member.name} />
+                      ) : (
+                        member.initials || getInitials(member.name)
+                      )}
+                    </div>
+                    {isActive && (
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '0',
+                        right: '0',
+                        width: '8px',
+                        height: '8px',
+                        backgroundColor: '#10b981',
+                        border: '2px solid white',
+                        borderRadius: '50%',
+                        zIndex: 2
+                      }} title="Active now" />
                     )}
-                  </div>
-                  <div className="custom-avatar-tooltip">
-                    <div className="tooltip-avatar" style={{ backgroundColor: member.bg || COLOR_HEX.blue }}>
-                      {member.avatar ? <img src={member.avatar} alt="" /> : (member.initials || getInitials(member.name))}
+                    <div className="custom-avatar-tooltip">
+                      <div className="tooltip-avatar" style={{ backgroundColor: member.bg || COLOR_HEX.blue }}>
+                        {member.avatar ? <img src={member.avatar} alt="" /> : (member.initials || getInitials(member.name))}
+                      </div>
+                      <div className="tooltip-info">
+                        <span className="name">{member.name} {isActive && '(Active)'}</span>
+                        <span className="email">{member.email || member.role || 'Member'}</span>
+                      </div>
                     </div>
-                    <div className="tooltip-info">
-                      <span className="name">{member.name}</span>
-                      <span className="email">{member.email || member.role || 'Member'}</span>
-                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {projectMembers.length > 4 && (
                 <div className="pc-list-avatar-more" style={{ zIndex: 10 }}>
                   +{projectMembers.length - 4}
