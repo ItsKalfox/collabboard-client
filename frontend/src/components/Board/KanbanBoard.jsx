@@ -91,10 +91,16 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
           });
         });
       };
+      const handleTaskUpdated = (updatedTask) => {
+        // Will implement in next commit
+      };
+      
       socket.on('task_created', handleTaskCreated);
+      socket.on('task_updated', handleTaskUpdated);
       
       return () => {
         socket.off('task_created', handleTaskCreated);
+        socket.off('task_updated', handleTaskUpdated);
         socket.emit('leave_board', projectId);
       };
     }
