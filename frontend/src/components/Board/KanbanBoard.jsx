@@ -115,7 +115,10 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
       };
       
       const handleTaskDeleted = (taskId) => {
-        // Will implement in next commit
+        setColumns(prev => prev.map(c => ({
+          ...c,
+          tasks: c.tasks.filter(t => t.id !== taskId)
+        })));
       };
       
       socket.on('task_created', handleTaskCreated);
