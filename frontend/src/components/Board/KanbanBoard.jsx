@@ -71,7 +71,25 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
       socket.emit('join_board', projectId);
       
       const handleTaskCreated = (newTask) => {
-        // We will process this in the next step
+        setColumns(prev => {
+          const uiTask = {
+            ...newTask,
+            tag: newTask.priority === 'high' ? 'High Priority' : newTask.priority === 'medium' ? 'Medium Priority' : newTask.priority === 'low' ? 'Low Priority' : newTask.category || 'Task',
+            tagColor: newTask.priority === 'high' ? 'red' : newTask.priority === 'medium' ? 'amber' : newTask.priority === 'low' ? 'green' : 'cyan',
+            date: new Date(newTask.dueDate || newTask.createdAt || Date.now()).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' }),
+            progressCurrent: newTask.subtasks ? newTask.subtasks.filter(st => st.completed).length : 0,
+            progressTotal: newTask.subtasks ? newTask.subtasks.length : 1,
+            members: []
+          };
+          
+          return prev.map(c => {
+            if (c.id === (uiTask.status || 'todo')) {
+              if (c.tasks.some(t => t.id === uiTask.id)) return c;
+              return { ...c, tasks: [...c.tasks, uiTask] };
+            }
+            return c;
+          });
+        });
       };
       socket.on('task_created', handleTaskCreated);
       
