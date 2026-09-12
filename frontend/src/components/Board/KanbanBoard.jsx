@@ -380,7 +380,10 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({ status: newStatus })
+          body: JSON.stringify({ 
+            status: newStatus,
+            version: task.version 
+          })
         });
 
         if (!res.ok) {
