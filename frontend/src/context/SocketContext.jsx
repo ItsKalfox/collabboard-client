@@ -15,6 +15,7 @@ export const SocketProvider = ({ children }) => {
       auth: { token }
     });
     setSocket(newSocket);
+    newSocket.connect();
 
     newSocket.on('connect', () => setIsConnected(true));
     newSocket.on('disconnect', () => setIsConnected(false));
