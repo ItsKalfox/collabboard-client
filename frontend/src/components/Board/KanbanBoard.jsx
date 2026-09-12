@@ -114,14 +114,20 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
         });
       };
       
+      const handleTaskDeleted = (taskId) => {
+        // Will implement in next commit
+      };
+      
       socket.on('task_created', handleTaskCreated);
       socket.on('task_updated', handleTaskUpdated);
       socket.on('task_moved', handleTaskMoved);
+      socket.on('task_deleted', handleTaskDeleted);
       
       return () => {
         socket.off('task_created', handleTaskCreated);
         socket.off('task_updated', handleTaskUpdated);
         socket.off('task_moved', handleTaskMoved);
+        socket.off('task_deleted', handleTaskDeleted);
         socket.emit('leave_board', projectId);
       };
     }
