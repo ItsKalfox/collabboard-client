@@ -121,16 +121,22 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
         })));
       };
       
+      const handleReconnect = () => {
+        setLocalRefresh(r => r + 1);
+      };
+      
       socket.on('task_created', handleTaskCreated);
       socket.on('task_updated', handleTaskUpdated);
       socket.on('task_moved', handleTaskMoved);
       socket.on('task_deleted', handleTaskDeleted);
+      socket.on('connect', handleReconnect);
       
       return () => {
         socket.off('task_created', handleTaskCreated);
         socket.off('task_updated', handleTaskUpdated);
         socket.off('task_moved', handleTaskMoved);
         socket.off('task_deleted', handleTaskDeleted);
+        socket.off('connect', handleReconnect);
         socket.emit('leave_board', projectId);
       };
     }
