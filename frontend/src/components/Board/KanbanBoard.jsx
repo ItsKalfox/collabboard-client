@@ -92,7 +92,10 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
         });
       };
       const handleTaskUpdated = (updatedTask) => {
-        // Will implement in next commit
+        setColumns(prev => prev.map(c => ({
+          ...c,
+          tasks: c.tasks.map(t => t.id === updatedTask.id ? { ...t, ...updatedTask } : t)
+        })));
       };
       
       socket.on('task_created', handleTaskCreated);
