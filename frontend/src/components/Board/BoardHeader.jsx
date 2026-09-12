@@ -25,6 +25,7 @@ export default function BoardHeader({
   const { isConnected, socket } = useSocket() || { isConnected: false };
   const [projectMembers, setProjectMembers] = useState([]);
   const [projectAttachments, setProjectAttachments] = useState([]);
+  const [activeUsers, setActiveUsers] = useState([]);
 
   const subTabs = ['Board', 'Timeline', 'Activity'];
 
@@ -82,7 +83,7 @@ export default function BoardHeader({
   useEffect(() => {
     if (socket) {
       const handleActiveUsers = (users) => {
-        // Will implement in next commit
+        setActiveUsers(users);
       };
       
       socket.on('active_users', handleActiveUsers);
