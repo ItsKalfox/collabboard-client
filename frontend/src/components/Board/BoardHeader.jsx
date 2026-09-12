@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { normalizeMember, getInitials } from '../../utils/memberUtils';
 import { getAttachments } from '../../services/projectService';
+import { useSocket } from '../../context/SocketContext';
 import './BoardHeader.css';
 
 const COLOR_HEX = {
@@ -21,6 +22,7 @@ export default function BoardHeader({
   activeSubTab = 'Board',
   onSubTabChange
 }) {
+  const { isConnected } = useSocket() || { isConnected: false };
   const [projectMembers, setProjectMembers] = useState([]);
   const [projectAttachments, setProjectAttachments] = useState([]);
 
@@ -95,8 +97,18 @@ export default function BoardHeader({
       <div className="board-title-row" style={{ alignItems: 'flex-start', margin: 0 }}>
         
         {/* LEFT: Title */}
-        <div className="board-title-group" style={{ alignItems: 'center', display: 'flex' }}>
+        <div className="board-title-group" style={{ alignItems: 'center', display: 'flex', gap: '12px' }}>
           <h1 className="board-main-title">{name}</h1>
+          <div 
+            title={isConnected ? "Connected to live sync" : "Disconnected"}
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: isConnected ? '#10b981' : '#f43f5e',
+              boxShadow: isConnected ? '0 0 8px #10b981' : 'none'
+            }}
+          />
         </div>
 
         {/* RIGHT: Deadline, Avatars, Add Task */}
