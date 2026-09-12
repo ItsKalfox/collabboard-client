@@ -69,6 +69,10 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
   useEffect(() => {
     if (socket && projectId) {
       socket.emit('join_board', projectId);
+      
+      return () => {
+        socket.emit('leave_board', projectId);
+      };
     }
   }, [socket, projectId]);
 
