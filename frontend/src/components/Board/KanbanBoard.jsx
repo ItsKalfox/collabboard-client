@@ -388,7 +388,7 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
 
         if (!res.ok) {
           if (res.status === 409) {
-            // OCC conflict
+            showToast('Task was modified by someone else. Refreshing...');
           } else {
             const data = await res.json().catch(() => ({}));
             showToast(data.message || 'Failed to update task status.');
