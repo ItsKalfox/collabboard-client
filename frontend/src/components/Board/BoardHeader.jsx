@@ -22,7 +22,7 @@ export default function BoardHeader({
   activeSubTab = 'Board',
   onSubTabChange
 }) {
-  const { isConnected } = useSocket() || { isConnected: false };
+  const { isConnected, socket } = useSocket() || { isConnected: false };
   const [projectMembers, setProjectMembers] = useState([]);
   const [projectAttachments, setProjectAttachments] = useState([]);
 
@@ -78,6 +78,19 @@ export default function BoardHeader({
     fetchMembers();
     fetchAttachmentsData();
   }, [projectId, project]);
+
+  useEffect(() => {
+    if (socket) {
+      const handleActiveUsers = (users) => {
+        // Will implement in next commit
+      };
+      
+      socket.on('active_users', handleActiveUsers);
+      return () => {
+        socket.off('active_users', handleActiveUsers);
+      };
+    }
+  }, [socket]);
 
   const displayTags = [category, status === 'active' ? 'Active' : 'Archived', ...(tags || [])];
   
