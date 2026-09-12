@@ -22,7 +22,7 @@ export default function BoardHeader({
   activeSubTab = 'Board',
   onSubTabChange
 }) {
-  const { isConnected, socket } = useSocket() || { isConnected: false };
+  const { isConnected, connectionState, socket } = useSocket() || { isConnected: false, connectionState: 'disconnected' };
   const [projectMembers, setProjectMembers] = useState([]);
   const [projectAttachments, setProjectAttachments] = useState([]);
   const [activeUsers, setActiveUsers] = useState([]);
@@ -114,13 +114,19 @@ export default function BoardHeader({
         <div className="board-title-group" style={{ alignItems: 'center', display: 'flex', gap: '12px' }}>
           <h1 className="board-main-title">{name}</h1>
           <div 
-            title={isConnected ? "Connected to live sync" : "Disconnected"}
+            title={
+              connectionState === 'connected' ? "Connected to live sync" : 
+              connectionState === 'reconnecting' ? "Reconnecting..." : "Disconnected"
+            }
             style={{
               width: '8px',
               height: '8px',
               borderRadius: '50%',
-              backgroundColor: isConnected ? '#10b981' : '#f43f5e',
-              boxShadow: isConnected ? '0 0 8px #10b981' : 'none'
+              backgroundColor: connectionState === 'connected' ? '#10b981' : 
+                               connectionState === 'reconnecting' ? '#f59e0b' : '#f43f5e',
+              boxShadow: connectionState === 'connected' ? '0 0 8px #10b981' : 
+                         connectionState === 'reconnecting' ? '0 0 8px #f59e0b' : 'none',
+              transition: 'background-color 0.3s, box-shadow 0.3s'
             }}
           />
         </div>
