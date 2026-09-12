@@ -13,6 +13,7 @@ import KanbanColumn from './KanbanColumn';
 import TaskCard from './TaskCard';
 import TaskPopup from '../TaskPopup/TaskPopup';
 import { formatDate } from '../../utils/dateUtils';
+import { useSocket } from '../../context/SocketContext';
 import './KanbanBoard.css';
 
 
@@ -58,6 +59,7 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
   const [loading, setLoading] = useState(true);
   const [localRefresh, setLocalRefresh] = useState(0);
   const [toastMessage, setToastMessage] = useState(null);
+  const { socket } = useSocket() || {};
 
   const showToast = (msg) => {
     setToastMessage(msg);
