@@ -5,6 +5,7 @@ const SocketContext = createContext();
 
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
+  const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -14,6 +15,8 @@ export const SocketProvider = ({ children }) => {
       auth: { token }
     });
     setSocket(newSocket);
+
+    newSocket.on('connect', () => setIsConnected(true));
 
     return () => {
       newSocket.disconnect();
