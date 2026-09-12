@@ -18,6 +18,7 @@ export const SocketProvider = ({ children }) => {
 
     newSocket.on('connect', () => setIsConnected(true));
     newSocket.on('disconnect', () => setIsConnected(false));
+    newSocket.on('connect_error', () => setIsConnected(false));
 
     return () => {
       newSocket.disconnect();
