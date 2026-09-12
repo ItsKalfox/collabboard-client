@@ -387,10 +387,13 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
         });
 
         if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          // Business-logic rejection — revert the move
-          showToast(data.message || 'Failed to update task status.');
-          revertMove();
+          if (res.status === 409) {
+            // OCC conflict
+          } else {
+            const data = await res.json().catch(() => ({}));
+            showToast(data.message || 'Failed to update task status.');
+            revertMove();
+          }
         }
       } catch {
         // Network failure or other error
