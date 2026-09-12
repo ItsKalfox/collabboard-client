@@ -70,7 +70,13 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
     if (socket && projectId) {
       socket.emit('join_board', projectId);
       
+      const handleTaskCreated = (newTask) => {
+        // We will process this in the next step
+      };
+      socket.on('task_created', handleTaskCreated);
+      
       return () => {
+        socket.off('task_created', handleTaskCreated);
         socket.emit('leave_board', projectId);
       };
     }
