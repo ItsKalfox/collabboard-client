@@ -262,10 +262,13 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
       } else {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
         const token = localStorage.getItem('token');
-        await fetch(`${apiUrl}/tasks/${taskId}`, {
+        const res = await fetch(`${apiUrl}/tasks/${taskId}`, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
         });
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: Failed to delete task online`);
+        }
       }
       if (onUpdate) onUpdate();
       onClose(); // Close modal

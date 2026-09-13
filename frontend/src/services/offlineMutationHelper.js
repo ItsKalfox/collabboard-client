@@ -126,6 +126,30 @@ export const handleOfflineCreateTask = async (projectId, taskData) => {
 };
 
 /**
+ * Helper to extract tasks array from various cached response shapes.
+ */
+const getTasksArrayFromCache = (cached) => {
+  if (!cached) return [];
+  if (Array.isArray(cached)) return cached;
+  if (Array.isArray(cached.tasks)) return cached.tasks;
+  if (cached.data && Array.isArray(cached.data.tasks)) return cached.data.tasks;
+  if (cached.data && Array.isArray(cached.data)) return cached.data;
+  return [];
+};
+
+/**
+ * Helper to wrap updated tasks array back into the original cached structure.
+ */
+const createUpdatedCachePayload = (cached, updatedTasks) => {
+  if (!cached) return { status: 'success', data: { tasks: updatedTasks } };
+  if (Array.isArray(cached)) return updatedTasks;
+  if (Array.isArray(cached.tasks)) return { ...cached, tasks: updatedTasks };
+  if (cached.data && Array.isArray(cached.data.tasks)) return { ...cached, data: { ...cached.data, tasks: updatedTasks } };
+  if (cached.data && Array.isArray(cached.data)) return { ...cached, data: updatedTasks };
+  return { status: 'success', data: { tasks: updatedTasks } };
+};
+
+/**
  * Handles offline updating of a task (fields or status).
  */
 export const handleOfflineUpdateTask = async (taskId, projectId, updateData, isStatusOnly = false) => {
@@ -134,9 +158,13 @@ export const handleOfflineUpdateTask = async (taskId, projectId, updateData, isS
   const cached = await getCachedData(tasksUrl);
   let updatedTask = null;
 
-  if (cached && cached.data && Array.isArray(cached.data.tasks)) {
-    const updatedTasks = cached.data.tasks.map(task => {
-      if (task._id === taskId) {
+  if (cached) {
+    const currentTasks = getTasksArrayFromCache(cached);
+    const targetIdStr = String(taskId);
+
+    const updatedTasks = currentTasks.map(task => {
+      const tId = String(task.id || task._id);
+      if (tId === targetIdStr) {
         updatedTask = {
           ...task,
           ...updateData,
@@ -148,7 +176,7 @@ export const handleOfflineUpdateTask = async (taskId, projectId, updateData, isS
       return task;
     });
 
-    await cacheData(scopedKey, { status: 'success', data: { tasks: updatedTasks } });
+    await cacheData(scopedKey, createUpdatedCachePayload(cached, updatedTasks));
   }
 
   const endpoint = isStatusOnly
@@ -167,7 +195,7 @@ export const handleOfflineUpdateTask = async (taskId, projectId, updateData, isS
     projectId
   });
 
-  return updatedTask || { _id: taskId, ...updateData, _isPending: true };
+  return updatedTask || { _id: taskId, id: taskId, ...updateData, _isPending: true };
 };
 
 /**
@@ -178,9 +206,16 @@ export const handleOfflineDeleteTask = async (taskId, projectId) => {
   const scopedKey = getScopedCacheKey(tasksUrl);
   const cached = await getCachedData(tasksUrl);
 
-  if (cached && cached.data && Array.isArray(cached.data.tasks)) {
-    const updatedTasks = cached.data.tasks.filter(task => task._id !== taskId);
-    await cacheData(scopedKey, { status: 'success', data: { tasks: updatedTasks } });
+  if (cached) {
+    const currentTasks = getTasksArrayFromCache(cached);
+    const targetIdStr = String(taskId);
+
+    const updatedTasks = currentTasks.filter(task => {
+      const tId = String(task.id || task._id);
+      return tId !== targetIdStr;
+    });
+
+    await cacheData(scopedKey, createUpdatedCachePayload(cached, updatedTasks));
   }
 
   await enqueueMutation({
@@ -203,23 +238,28 @@ export const handleOfflineSubtaskOperation = async (subtaskId, taskId, projectId
   const scopedKey = getScopedCacheKey(tasksUrl);
   const cached = await getCachedData(tasksUrl);
 
-  if (cached && cached.data && Array.isArray(cached.data.tasks)) {
-    const updatedTasks = cached.data.tasks.map(task => {
-      if (task._id === taskId) {
+  if (cached) {
+    const currentTasks = getTasksArrayFromCache(cached);
+    const targetTaskIdStr = String(taskId);
+    const targetSubIdStr = subtaskId ? String(subtaskId) : null;
+
+    const updatedTasks = currentTasks.map(task => {
+      const tId = String(task.id || task._id);
+      if (tId === targetTaskIdStr) {
         let subtasks = task.subtasks || [];
         if (action === 'CREATE') {
-          subtasks = [...subtasks, { _id: subtaskId || generateTempId('subtask'), ...payload }];
+          subtasks = [...subtasks, { _id: subtaskId || generateTempId('subtask'), id: subtaskId || generateTempId('subtask'), ...payload }];
         } else if (action === 'UPDATE') {
-          subtasks = subtasks.map(s => s._id === subtaskId ? { ...s, ...payload } : s);
+          subtasks = subtasks.map(s => String(s.id || s._id) === targetSubIdStr ? { ...s, ...payload } : s);
         } else if (action === 'DELETE') {
-          subtasks = subtasks.filter(s => s._id !== subtaskId);
+          subtasks = subtasks.filter(s => String(s.id || s._id) !== targetSubIdStr);
         }
         return { ...task, subtasks, _isPending: true };
       }
       return task;
     });
 
-    await cacheData(scopedKey, { status: 'success', data: { tasks: updatedTasks } });
+    await cacheData(scopedKey, createUpdatedCachePayload(cached, updatedTasks));
   }
 
   let endpoint = `${API_URL}/tasks/${taskId}/subtasks`;
