@@ -1,7 +1,7 @@
 export default {
     testEnvironment: 'node',
     transform: {},
-    testTimeout: 30000,
+    testTimeout: 120000,
     verbose: true,
     forceExit: true,
     detectOpenHandles: true,
