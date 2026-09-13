@@ -10,6 +10,7 @@ import {
 } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { fetchWithCache } from '../../services/cacheService';
+import { handleOfflineUpdateTask } from '../../services/offlineMutationHelper';
 import KanbanColumn from './KanbanColumn';
 import TaskCard from './TaskCard';
 import TaskPopup from '../TaskPopup/TaskPopup';
@@ -285,11 +286,17 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
         if (c.id === newStatus) {
           return {
             ...c,
-            tasks: c.tasks.map(t => t.id === activeId ? { ...t, status: newStatus } : t)
+            tasks: c.tasks.map(t => t.id === activeId ? { ...t, status: newStatus, _isPending: true } : t)
           };
         }
         return c;
       }));
+
+      if (!navigator.onLine) {
+        await handleOfflineUpdateTask(activeId, projectId, { status: newStatus }, true);
+        showToast('Moved offline (pending sync).');
+        return;
+      }
 
       // Persist to backend API
       try {
@@ -311,9 +318,9 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
           revertMove();
         }
       } catch {
-        // Network failure or other error
-        showToast('Failed to update task status (network error).');
-        revertMove();
+        // Network failure or offline error -> queue mutation locally instead of reverting!
+        await handleOfflineUpdateTask(activeId, projectId, { status: newStatus }, true);
+        showToast('Moved offline (pending sync).');
       }
     }
   };

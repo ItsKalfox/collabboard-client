@@ -3,6 +3,7 @@ import { X, Calendar, CheckSquare, Clock, AlignLeft, Users, CornerDownRight, Tag
 import { formatDate } from '../../utils/dateUtils';
 import { isProjectOwner, formatActivityText } from '../../utils/projectUtils';
 import ConfirmModal from '../Board/ConfirmModal';
+import { handleOfflineUpdateTask, handleOfflineDeleteTask, handleOfflineSubtaskOperation } from '../../services/offlineMutationHelper';
 import './TaskPopup.css';
 
 /* ─── Dummy employee pool ───────────────────────────────────── */
@@ -152,13 +153,23 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
 
   const saveEdit = async (e) => {
     if (e) e.preventDefault();
-    console.log("saveEdit triggered", { draft, task });
+    const taskId = task.id || task._id;
+    const targetProjectId = project?.id || project?._id || task.projectId;
+
+    if (!navigator.onLine) {
+      await handleOfflineUpdateTask(taskId, targetProjectId, draft);
+      setTask(t => ({ ...t, ...draft, _isPending: true }));
+      if (onUpdate) onUpdate();
+      setIsEditing(false);
+      return;
+    }
+
     try {
       let newVersion = task.version || task.__v;
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
         const token = localStorage.getItem('token');
-        const res = await fetch(`${apiUrl}/tasks/${task.id}`, {
+        const res = await fetch(`${apiUrl}/tasks/${taskId}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -187,7 +198,8 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
         }
 
       } catch (err) {
-        console.error('Failed to update task via fetch:', err);
+        console.warn('Network error during task update fetch, queueing offline:', err);
+        await handleOfflineUpdateTask(taskId, targetProjectId, draft);
       }
       
       setTask(t => {
@@ -217,19 +229,16 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
           assigneeId: newAssigneeObj,
           version: newVersion,
           __v: newVersion,
+          _isPending: true,
           activities: [
             { text: 'Task details were updated', timestamp: fmtNow() },
             ...(t.activities || []),
           ],
         };
       });
-      console.log("setTask called");
       
       if (onUpdate) onUpdate();
-      console.log("onUpdate called");
-      
       setIsEditing(false);
-      console.log("setIsEditing(false) called");
     } catch (criticalError) {
       console.error("CRITICAL ERROR IN saveEdit:", criticalError);
       alert("Error saving: " + criticalError.message);
@@ -245,17 +254,26 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
   };
 
   const performDeleteFullTask = async () => {
+    const taskId = task.id || task._id;
+    const targetProjectId = project?.id || project?._id || task.projectId;
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const token = localStorage.getItem('token');
-      await fetch(`${apiUrl}/tasks/${task.id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      if (!navigator.onLine) {
+        await handleOfflineDeleteTask(taskId, targetProjectId);
+      } else {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const token = localStorage.getItem('token');
+        await fetch(`${apiUrl}/tasks/${taskId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      }
       if (onUpdate) onUpdate();
       onClose(); // Close modal
     } catch (e) {
-      console.error('Failed to delete task', e);
+      console.warn('Failed to delete task online, falling back to offline delete:', e);
+      await handleOfflineDeleteTask(taskId, targetProjectId);
+      if (onUpdate) onUpdate();
+      onClose();
     }
   };
 

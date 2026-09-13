@@ -11,6 +11,7 @@ import Settings from './pages/Settings';
 import AuthModule from './components/auth/AuthModule';
 import ConfirmModal from './components/Board/ConfirmModal';
 import { isTokenExpired } from './utils/jwtUtils';
+import { initSyncEngine } from './services/syncEngine';
 import './App.css';
 
 function App() {
@@ -57,6 +58,7 @@ function App() {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
+    initSyncEngine();
   }, [theme]);
 
   // Helper to safely parse locally stored user snapshot

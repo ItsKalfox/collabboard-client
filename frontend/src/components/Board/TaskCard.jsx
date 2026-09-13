@@ -50,7 +50,26 @@ export default function TaskCard({ task, onOptionClick, isOverlay, disabled, isA
       {/* Card Header: Tag & Date */}
       <div className="task-card-header">
         <span className={`task-tag-pill tag-${tagColor}`}>{tag}</span>
-        <div className="task-card-header-right">
+        <div className="task-card-header-right" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {(task._isPending || task.isPendingSync || (typeof id === 'string' && id.startsWith('temp-'))) && (
+            <span
+              className="task-pending-badge"
+              style={{
+                fontSize: '10px',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                backgroundColor: '#f59e0b',
+                color: '#ffffff',
+                fontWeight: '600',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '2px'
+              }}
+              title="This change is saved locally and will sync when online"
+            >
+              ⏳ Pending sync
+            </span>
+          )}
           <span className="task-card-date">{date}</span>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { fetchWithCache } from './cacheService';
+import { handleOfflineCreateProject } from './offlineMutationHelper';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -23,18 +24,27 @@ const getAuthHeaders = (isJson = true) => {
  * @returns {Promise<Object>} Created project object from backend
  */
 export const createProject = async (projectData) => {
-  const response = await fetch(`${API_URL}/projects`, {
-    method: 'POST',
-    headers: getAuthHeaders(true),
-    body: JSON.stringify(projectData)
-  });
-
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || 'Failed to create project');
+  if (!navigator.onLine) {
+    return await handleOfflineCreateProject(projectData);
   }
 
-  return data.data?.project || data.project;
+  try {
+    const response = await fetch(`${API_URL}/projects`, {
+      method: 'POST',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(projectData)
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to create project');
+    }
+
+    return data.data?.project || data.project;
+  } catch (err) {
+    console.warn('Network error creating project, falling back to offline outbox:', err);
+    return await handleOfflineCreateProject(projectData);
+  }
 };
 
 /**
