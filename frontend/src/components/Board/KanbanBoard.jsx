@@ -68,38 +68,44 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
     if (!projectId) return;
 
     const fetchData = async () => {
-      setLoading(true);
+      // Only show full skeleton loader if board has no columns/tasks yet
+      if (loading && (!columns || columns.every(c => c.tasks.length === 0))) {
+        setLoading(true);
+      }
+
       try {
         const token = localStorage.getItem('token');
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
         
-        // Fetch tasks and members in parallel using cacheService
         let members = [];
         let tasks = [];
 
+        // 1. Fetch tasks independently
         try {
-          const [tasksRes, membersRes] = await Promise.all([
-            fetchWithCache(`${apiUrl}/projects/${projectId}/tasks`, { headers: { 'Authorization': `Bearer ${token}` } }),
-            fetchWithCache(`${apiUrl}/projects/${projectId}/members`, { headers: { 'Authorization': `Bearer ${token}` } })
-          ]);
-          
-          if (membersRes.ok) {
-            const membersData = await membersRes.json();
-            members = membersData.data?.members || [];
-          }
-
+          const tasksRes = await fetchWithCache(`${apiUrl}/projects/${projectId}/tasks`, { headers: { 'Authorization': `Bearer ${token}` } });
           if (tasksRes.ok) {
             const data = await tasksRes.json();
             tasks = data.data?.tasks || [];
           }
-        } catch {
-          // If network fetch fails, fallback to local mock data
+        } catch (tasksErr) {
+          console.warn('Network request failed for tasks, attempting cache fallback.', tasksErr);
         }
 
+        // 2. Fetch members independently (failure must NOT block tasks rendering)
+        try {
+          const membersRes = await fetchWithCache(`${apiUrl}/projects/${projectId}/members`, { headers: { 'Authorization': `Bearer ${token}` } });
+          if (membersRes.ok) {
+            const membersData = await membersRes.json();
+            members = membersData.data?.members || [];
+          }
+        } catch (membersErr) {
+          console.warn('Members fetch failed offline (falling back to empty members array):', membersErr);
+        }
 
         const newCols = COLUMNS_DEF.map(col => ({ ...col, tasks: [] }));
         tasks.forEach(task => {
-          const taskId = task.id || task._id;
+          const rawId = task.id || task._id;
+          const taskId = resolveId(rawId) || rawId;
 
           // Find assignee details
           const assigneeObjId = typeof task.assigneeId === 'object' ? (task.assigneeId?._id || task.assigneeId?.id) : task.assigneeId;

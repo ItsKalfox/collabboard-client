@@ -4,6 +4,8 @@ import { formatDate } from '../../utils/dateUtils';
 import { isProjectOwner, formatActivityText } from '../../utils/projectUtils';
 import ConfirmModal from '../Board/ConfirmModal';
 import { handleOfflineUpdateTask, handleOfflineDeleteTask, handleOfflineSubtaskOperation } from '../../services/offlineMutationHelper';
+import { resolveId, getRealId, generateTempId } from '../../services/tempIdMap';
+import { cacheData, getCachedData, getScopedCacheKey } from '../../services/cacheService';
 import './TaskPopup.css';
 
 /* ─── Dummy employee pool ───────────────────────────────────── */
@@ -253,8 +255,50 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
     setConfirmState({ isOpen: true, type: 'task' });
   };
 
+  const syncTaskSubtasksToCache = async (updatedSubtasks, optionalStatus = null) => {
+    try {
+      const rawTaskId = task._id || task.id;
+      const realTaskId = resolveId(rawTaskId) || rawTaskId;
+      const targetProjectId = project?.id || project?._id || task.projectId;
+      if (!targetProjectId) return;
+
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const tasksUrl = `${apiUrl}/projects/${targetProjectId}/tasks`;
+      const scopedKey = getScopedCacheKey(tasksUrl);
+      const cached = await getCachedData(tasksUrl);
+
+      if (cached && cached.data) {
+        const tasksList = Array.isArray(cached.data.tasks) ? cached.data.tasks : (Array.isArray(cached.data) ? cached.data : []);
+        const targetIdStr = String(realTaskId);
+        const rawIdStr = String(rawTaskId);
+
+        const updatedTasks = tasksList.map(t => {
+          const tId = String(t.id || t._id);
+          const resolvedTId = String(resolveId(tId) || tId);
+          if (tId === targetIdStr || tId === rawIdStr || resolvedTId === targetIdStr) {
+            return {
+              ...t,
+              subtasks: updatedSubtasks,
+              status: optionalStatus || t.status
+            };
+          }
+          return t;
+        });
+
+        const newPayload = Array.isArray(cached.data.tasks) 
+          ? { ...cached.data, tasks: updatedTasks } 
+          : (Array.isArray(cached.data) ? updatedTasks : { ...cached.data, tasks: updatedTasks });
+
+        await cacheData(scopedKey, { ...cached, data: newPayload });
+      }
+    } catch (err) {
+      console.warn('Failed to update task subtasks in cache:', err);
+    }
+  };
+
   const performDeleteFullTask = async () => {
-    const taskId = task.id || task._id;
+    const rawTaskId = task._id || task.id;
+    const taskId = resolveId(rawTaskId) || rawTaskId;
     const targetProjectId = project?.id || project?._id || task.projectId;
     try {
       if (!navigator.onLine) {
@@ -290,47 +334,59 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
     if (isReadOnly) return;
     const targetSub = task.subtasks[i];
     const newCompleted = !targetSub.completed;
+    const rawTaskId = task._id || task.id;
+    const realTaskId = resolveId(rawTaskId) || rawTaskId;
+    const targetProjectId = project?.id || project?._id || task.projectId;
+    const subId = targetSub.id || targetSub._id;
 
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const token = localStorage.getItem('token');
-      await fetch(`${apiUrl}/subtasks/${targetSub.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ completed: newCompleted })
-      });
+    const subs = task.subtasks.map((s, idx) => idx === i ? { ...s, completed: newCompleted } : s);
+    const totalSubs = subs.length;
+    const doneSubs = subs.filter(s => s.completed).length;
+    
+    let newStatus = task.status;
+    if (task.status === 'todo' && doneSubs > 0) {
+      newStatus = 'in_progress';
+    }
 
-      // Calculate auto-move logic based on new completion status
-      const subs = task.subtasks.map((s, idx) => idx === i ? { ...s, completed: newCompleted } : s);
-      const totalSubs = subs.length;
-      const doneSubs = subs.filter(s => s.completed).length;
-      
-      let newStatus = task.status;
-      if (task.status === 'todo' && doneSubs > 0) {
-        newStatus = 'in_progress';
-      }
-
-      if (newStatus !== task.status) {
-        await fetch(`${apiUrl}/tasks/${task.id}/status`, {
+    if (!navigator.onLine) {
+      await handleOfflineSubtaskOperation(subId, realTaskId, targetProjectId, 'UPDATE', { completed: newCompleted });
+    } else {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${apiUrl}/subtasks/${subId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ status: newStatus })
+          body: JSON.stringify({ completed: newCompleted })
         });
-      }
+        if (!res.ok) {
+          await handleOfflineSubtaskOperation(subId, realTaskId, targetProjectId, 'UPDATE', { completed: newCompleted });
+        }
 
-      setTask(t => {
-        const verb = newCompleted ? 'completed' : 'reopened';
-        return {
-          ...t,
-          subtasks: subs,
-          status: newStatus,
-          activities: [{ text: `Subtask "${subs[i].title}" ${verb}`, timestamp: fmtNow() }, ...(t.activities || [])],
-        };
-      });
-      if (onUpdate) onUpdate();
-    } catch (e) {
-      console.error('Failed to toggle subtask', e);
+        if (newStatus !== task.status) {
+          await fetch(`${apiUrl}/tasks/${realTaskId}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ status: newStatus })
+          });
+        }
+      } catch (e) {
+        console.warn('Failed to toggle subtask online, falling back to offline:', e);
+        await handleOfflineSubtaskOperation(subId, realTaskId, targetProjectId, 'UPDATE', { completed: newCompleted });
+      }
     }
+
+    setTask(t => {
+      const verb = newCompleted ? 'completed' : 'reopened';
+      return {
+        ...t,
+        subtasks: subs,
+        status: newStatus,
+        activities: [{ text: `Subtask "${subs[i].title}" ${verb}`, timestamp: fmtNow() }, ...(t.activities || [])],
+      };
+    });
+    await syncTaskSubtasksToCache(subs, newStatus);
+    if (onUpdate) onUpdate();
   };
 
   const deleteSubtask = (i) => {
@@ -339,23 +395,38 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
 
   const performDeleteSubtask = async (i) => {
     const targetSub = task.subtasks[i];
+    const rawTaskId = task._id || task.id;
+    const realTaskId = resolveId(rawTaskId) || rawTaskId;
+    const targetProjectId = project?.id || project?._id || task.projectId;
+    const subId = targetSub.id || targetSub._id;
 
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const token = localStorage.getItem('token');
-      await fetch(`${apiUrl}/subtasks/${targetSub.id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-    } catch (e) {
-      console.error('Failed to delete subtask', e);
+    const remainingSubs = task.subtasks.filter((_, idx) => idx !== i);
+
+    if (!navigator.onLine) {
+      await handleOfflineSubtaskOperation(subId, realTaskId, targetProjectId, 'DELETE');
+    } else {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${apiUrl}/subtasks/${subId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) {
+          await handleOfflineSubtaskOperation(subId, realTaskId, targetProjectId, 'DELETE');
+        }
+      } catch (e) {
+        console.warn('Failed to delete subtask online, falling back to offline:', e);
+        await handleOfflineSubtaskOperation(subId, realTaskId, targetProjectId, 'DELETE');
+      }
     }
 
     setTask(t => ({
       ...t,
-      subtasks: t.subtasks.filter((_, idx) => idx !== i),
+      subtasks: remainingSubs,
       activities: [{ text: `Subtask "${targetSub.title}" deleted`, timestamp: fmtNow() }, ...(t.activities || [])],
     }));
+    await syncTaskSubtasksToCache(remainingSubs);
     if (onUpdate) onUpdate();
   };
 
@@ -366,8 +437,10 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       const token = localStorage.getItem('token');
+      const rawTaskId = task._id || task.id;
+      const realTaskId = resolveId(rawTaskId) || rawTaskId;
       
-      await fetch(`${apiUrl}/tasks/${task.id}/review`, {
+      await fetch(`${apiUrl}/tasks/${realTaskId}/review`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ comment: reviewComment })
@@ -390,8 +463,10 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       const token = localStorage.getItem('token');
+      const rawTaskId = task._id || task.id;
+      const realTaskId = resolveId(rawTaskId) || rawTaskId;
       
-      await fetch(`${apiUrl}/tasks/${task.id}/reject`, {
+      await fetch(`${apiUrl}/tasks/${realTaskId}/reject`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ comment: reviewComment })
@@ -418,33 +493,49 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
     const description = newSubDesc.trim();
     if (!title) return;
 
-    let subData = { title, description, completed: false, comments: [] };
+    const rawTaskId = task._id || task.id;
+    const realTaskId = resolveId(rawTaskId) || rawTaskId;
+    const targetProjectId = project?.id || project?._id || task.projectId;
 
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${apiUrl}/tasks/${task.id}/subtasks`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ title, description, completed: false })
-      });
-      const data = await res.json();
-      if (data.status === 'success') {
-        const newApiSubtask = data.data.subtask;
-        subData = { ...subData, id: newApiSubtask.id };
+    let subData = { id: generateTempId('subtask'), title, description, completed: false, comments: [] };
+    let newSubtasks = [...(task.subtasks || []), subData];
+
+    if (!navigator.onLine) {
+      await handleOfflineSubtaskOperation(subData.id, realTaskId, targetProjectId, 'CREATE', { title, description, completed: false });
+    } else {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${apiUrl}/tasks/${realTaskId}/subtasks`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ title, description, completed: false })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === 'success' && data.data?.subtask) {
+            const newApiSubtask = data.data.subtask;
+            subData = { ...subData, id: newApiSubtask.id || newApiSubtask._id, _id: newApiSubtask._id || newApiSubtask.id };
+            newSubtasks = [...(task.subtasks || []), subData];
+          }
+        } else {
+          await handleOfflineSubtaskOperation(subData.id, realTaskId, targetProjectId, 'CREATE', { title, description, completed: false });
+        }
+      } catch (e) {
+        console.warn('Failed to add subtask online, falling back to offline operation:', e);
+        await handleOfflineSubtaskOperation(subData.id, realTaskId, targetProjectId, 'CREATE', { title, description, completed: false });
       }
-    } catch (e) {
-      console.error('Failed to add subtask', e);
     }
 
     setTask(t => ({
       ...t,
-      subtasks: [...t.subtasks, subData],
+      subtasks: newSubtasks,
       activities: [{ text: `New subtask added: "${title}"`, timestamp: fmtNow() }, ...(t.activities || [])],
     }));
+    await syncTaskSubtasksToCache(newSubtasks);
     setNewSubInput('');
     setNewSubDesc('');
     if (onUpdate) onUpdate();
@@ -464,27 +555,39 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
     const targetSub = task.subtasks[i];
     const newTitle = editSubtaskDraft.title.trim() || targetSub.title;
     const newDesc = editSubtaskDraft.description.trim();
+    const rawTaskId = task._id || task.id;
+    const realTaskId = resolveId(rawTaskId) || rawTaskId;
+    const targetProjectId = project?.id || project?._id || task.projectId;
+    const subId = targetSub.id || targetSub._id;
 
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const token = localStorage.getItem('token');
-      await fetch(`${apiUrl}/subtasks/${targetSub.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ title: newTitle, description: newDesc })
-      });
-    } catch (e) {
-      console.error('Failed to edit subtask', e);
+    const updatedSubs = task.subtasks.map((s, idx) => idx === i ? { ...s, title: newTitle, description: newDesc } : s);
+
+    if (!navigator.onLine) {
+      await handleOfflineSubtaskOperation(subId, realTaskId, targetProjectId, 'UPDATE', { title: newTitle, description: newDesc });
+    } else {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${apiUrl}/subtasks/${subId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ title: newTitle, description: newDesc })
+        });
+        if (!res.ok) {
+          await handleOfflineSubtaskOperation(subId, realTaskId, targetProjectId, 'UPDATE', { title: newTitle, description: newDesc });
+        }
+      } catch (e) {
+        console.warn('Failed to edit subtask online, falling back to offline:', e);
+        await handleOfflineSubtaskOperation(subId, realTaskId, targetProjectId, 'UPDATE', { title: newTitle, description: newDesc });
+      }
     }
 
-    setTask(t => {
-      const subs = t.subtasks.map((s, idx) => idx === i ? { ...s, title: newTitle, description: newDesc } : s);
-      return {
-        ...t,
-        subtasks: subs,
-        activities: [{ text: `Subtask "${targetSub.title}" updated`, timestamp: fmtNow() }, ...(t.activities || [])],
-      };
-    });
+    setTask(t => ({
+      ...t,
+      subtasks: updatedSubs,
+      activities: [{ text: `Subtask "${targetSub.title}" updated`, timestamp: fmtNow() }, ...(t.activities || [])],
+    }));
+    await syncTaskSubtasksToCache(updatedSubs);
     setEditingSubtaskId(null);
     if (onUpdate) onUpdate();
   };
