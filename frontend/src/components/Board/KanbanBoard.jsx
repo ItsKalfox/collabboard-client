@@ -99,9 +99,11 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
 
         const newCols = COLUMNS_DEF.map(col => ({ ...col, tasks: [] }));
         tasks.forEach(task => {
+          const taskId = task.id || task._id;
+
           // Find assignee details
           const assigneeObjId = typeof task.assigneeId === 'object' ? (task.assigneeId?._id || task.assigneeId?.id) : task.assigneeId;
-          const assignee = assigneeObjId ? members.find(m => String(m.userId) === String(assigneeObjId) || String(m.id) === String(assigneeObjId)) : null;
+          const assignee = assigneeObjId ? members.find(m => String(m.userId) === String(assigneeObjId) || String(m.id) === String(assigneeObjId) || String(m._id) === String(assigneeObjId)) : null;
           const assigneeName = typeof task.assigneeId === 'object' && task.assigneeId.name ? task.assigneeId.name : (assignee ? assignee.name : 'Team Member');
           const assigneeAvatar = typeof task.assigneeId === 'object' && task.assigneeId.avatar ? task.assigneeId.avatar : assignee?.avatar;
           const assigneeInitial = assigneeName.charAt(0).toUpperCase();
@@ -109,6 +111,8 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
           // Map backend task to frontend TaskCard format
           const uiTask = {
             ...task,
+            id: taskId,
+            _id: task._id || taskId,
             tag: task.priority === 'high' ? 'High Priority' : task.priority === 'medium' ? 'Medium Priority' : task.priority === 'low' ? 'Low Priority' : task.category || 'Task',
             tagColor: task.priority === 'high' ? 'red' : task.priority === 'medium' ? 'amber' : task.priority === 'low' ? 'green' : 'cyan',
             date: new Date(task.dueDate || task.createdAt || Date.now()).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' }),
