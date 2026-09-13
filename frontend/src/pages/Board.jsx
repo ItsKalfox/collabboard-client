@@ -119,27 +119,31 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
             setProjects(prev => {
               const map = new Map();
               // Add API projects
-              apiProjects.forEach(p => map.set(p.id, p));
-              // Fallback removed to ensure true empty state when no projects exist
+              apiProjects.forEach(p => {
+                const pid = p.id || p._id;
+                if (pid) map.set(pid, p);
+              });
               // Add any dynamically selected project
               prev.forEach(p => {
-                if (!map.has(p.id)) map.set(p.id, p);
+                const pid = p.id || p._id;
+                if (pid && !map.has(pid)) map.set(pid, p);
               });
               const target = selectedProject || initialProjectId;
-              if (typeof target === 'object' && target !== null) {
-                map.set(target.id, { ...map.get(target.id), ...target });
+              const tid = typeof target === 'object' ? (target?.id || target?._id) : target;
+              if (tid) {
+                map.set(tid, { ...map.get(tid), ...(typeof target === 'object' ? target : {}) });
               }
               return Array.from(map.values());
             });
 
             const target = selectedProject || initialProjectId;
-            const targetId = typeof target === 'object' ? target?.id : target;
+            const targetId = typeof target === 'object' ? (target?.id || target?._id) : target;
             if (targetId) {
               setSelectedProjectId(targetId);
             } else if (apiProjects.length > 0) {
               setSelectedProjectId(prev => {
-                if (!prev || !apiProjects.some(p => p.id === prev)) {
-                  return apiProjects[0].id;
+                if (!prev || !apiProjects.some(p => (p.id || p._id) === prev)) {
+                  return apiProjects[0].id || apiProjects[0]._id;
                 }
                 return prev;
               });

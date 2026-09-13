@@ -35,16 +35,23 @@ export default function DeleteConfirmModal({
   const handleDelete = async () => {
     if (isDeleting) return;
 
+    const targetProjectId = project?.id || project?._id;
+    if (!targetProjectId) {
+      console.warn('Cannot delete project without valid ID:', project);
+      onClose();
+      return;
+    }
+
     setIsDeleting(true);
     setError('');
 
     try {
       // Send DELETE /projects/:id
-      await deleteProject(project.id);
+      await deleteProject(targetProjectId);
 
       // On backend success: update UI and close modal
       if (onDeleteConfirm) {
-        onDeleteConfirm(project.id);
+        onDeleteConfirm(targetProjectId);
       }
       onClose();
     } catch (err) {
@@ -53,7 +60,7 @@ export default function DeleteConfirmModal({
       // still allow the owner to remove it from the UI & mock list as requested
       if (err.message && err.message.toLowerCase().includes('not found')) {
         if (onDeleteConfirm) {
-          onDeleteConfirm(project.id);
+          onDeleteConfirm(targetProjectId);
         }
         onClose();
         return;

@@ -96,6 +96,7 @@ export const handleOfflineCreateProject = async (projectData) => {
   }
 
   const localProject = {
+    id: tempId,
     _id: tempId,
     name: projectData.name,
     description: projectData.description || '',

@@ -320,10 +320,12 @@ export default function CreateProjectModal({
 
       const createdToday = new Date(createdProject?.createdAt || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
+      const resolvedProjectId = createdProject?.id || createdProject?._id || `proj-${Date.now()}`;
       // Assemble final project with backend response as the base
       const projectForUI = {
         ...createdProject,
-        id: createdProject?.id || `proj-${Date.now()}`,
+        id: resolvedProjectId,
+        _id: createdProject?._id || resolvedProjectId,
         name: createdProject?.name || name.trim(),
         description: createdProject?.description || description.trim(),
         owner: ownerName,

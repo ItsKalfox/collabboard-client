@@ -96,8 +96,9 @@ export default function ProjectsPage({ theme = 'dark', currentUser, onOpenBoard 
   };
 
   const handleDeleteConfirm = (projectId) => {
-    setProjects(prev => prev.filter((p) => p.id !== projectId));
-    if (selectedDetailsProject && selectedDetailsProject.id === projectId) {
+    const targetStr = String(projectId);
+    setProjects(prev => prev.filter((p) => String(p.id || p._id) !== targetStr));
+    if (selectedDetailsProject && String(selectedDetailsProject.id || selectedDetailsProject._id) === targetStr) {
       setSelectedDetailsProject(null);
     }
   };

@@ -517,7 +517,7 @@ function App() {
             <Dashboard />
           ) : activeTab === 'Board' ? (
             <Board 
-              initialProjectId={typeof selectedProject === 'object' ? selectedProject?.id : selectedProject} 
+              initialProjectId={typeof selectedProject === 'object' ? (selectedProject?.id || selectedProject?._id) : selectedProject} 
               selectedProject={typeof selectedProject === 'object' ? selectedProject : null}
               onSelectProject={(id) => setSelectedProject(id)} 
               currentUser={currentUser}
