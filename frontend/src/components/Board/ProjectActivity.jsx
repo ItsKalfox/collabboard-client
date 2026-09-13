@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { fetchWithCache } from '../../services/cacheService';
 import { formatActivityText } from '../../utils/projectUtils';
 import './ProjectActivity.css';
 
@@ -42,7 +43,7 @@ export default function ProjectActivity({ projectId }) {
       try {
         const token = localStorage.getItem('token');
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-        const res = await fetch(`${apiUrl}/projects/${projectId}/tasks`, {
+        const res = await fetchWithCache(`${apiUrl}/projects/${projectId}/tasks`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

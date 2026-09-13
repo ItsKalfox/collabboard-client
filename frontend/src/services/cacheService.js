@@ -1,20 +1,65 @@
 import PouchDB from 'pouchdb-browser';
+import { parseJwt } from '../utils/jwtUtils';
 
 const db = new PouchDB('collabboard_cache');
 
 /**
- * Saves data into the local PouchDB instance.
- * @param {string} key - The unique identifier for the data.
- * @param {any} data - The data payload to cache.
+ * Gets the current authenticated user identifier to isolate cache records.
+ * @returns {string} User ID, email, or fallback identifier.
+ */
+const getCurrentUserId = () => {
+  try {
+    const rawUser = localStorage.getItem('user');
+    if (rawUser) {
+      const user = JSON.parse(rawUser);
+      if (user && (user.id || user._id || user.email)) {
+        return String(user.id || user._id || user.email);
+      }
+    }
+
+    const token = localStorage.getItem('token');
+    if (token) {
+      const payload = parseJwt(token);
+      if (payload && (payload.id || payload._id || payload.sub || payload.email)) {
+        return String(payload.id || payload._id || payload.sub || payload.email);
+      }
+    }
+  } catch (err) {
+    // Ignore parsing errors
+  }
+  return 'anonymous';
+};
+
+/**
+ * Generates a user-scoped cache key.
+ * @param {string} url - The API URL.
+ * @returns {string} Scoped cache key.
+ */
+export const getScopedCacheKey = (url) => {
+  const userId = getCurrentUserId();
+  return `${userId}:${url}`;
+};
+
+/**
+ * Saves data into local PouchDB instance with user scoping and metadata.
+ * @param {string} key - Raw URL or scoped key.
+ * @param {any} data - Data payload to cache.
  */
 export const cacheData = async (key, data) => {
   try {
-    const existing = await db.get(key).catch(() => null);
+    const userId = getCurrentUserId();
+    const scopedKey = key.includes(':') ? key : `${userId}:${key}`;
+    const existing = await db.get(scopedKey).catch(() => null);
+    
     const doc = {
-      _id: key,
+      _id: scopedKey,
+      userId,
+      url: key,
       data,
-      timestamp: Date.now()
+      cachedAt: Date.now(),
+      source: 'cache'
     };
+    
     if (existing) {
       doc._rev = existing._rev;
     }
@@ -25,52 +70,72 @@ export const cacheData = async (key, data) => {
 };
 
 /**
- * Retrieves data from the local PouchDB instance.
- * @param {string} key - The unique identifier for the data.
- * @returns {Promise<any|null>} The cached data or null if not found.
+ * Retrieves cached data from PouchDB for the currently authenticated user.
+ * @param {string} key - Raw URL or scoped key.
+ * @returns {Promise<Object|null>} Document record containing data and metadata, or null.
  */
-export const getCachedData = async (key) => {
+export const getCachedDataRecord = async (key) => {
   try {
-    const doc = await db.get(key);
-    return doc.data;
+    const userId = getCurrentUserId();
+    const scopedKey = key.includes(':') ? key : `${userId}:${key}`;
+    const doc = await db.get(scopedKey);
+    return doc;
   } catch (err) {
     if (err.name === 'not_found') {
       return null;
     }
-    console.error('Failed to get cached data:', err);
+    console.error('Failed to get cached data record:', err);
     return null;
   }
 };
 
 /**
- * Performs a network-first fetch. If the network request fails,
- * it attempts to retrieve the response from the local PouchDB cache.
+ * Legacy compatibility helper returning raw cached data.
+ * @param {string} key - Raw URL or scoped key.
+ * @returns {Promise<any|null>} The cached data payload or null.
+ */
+export const getCachedData = async (key) => {
+  const record = await getCachedDataRecord(key);
+  return record ? record.data : null;
+};
+
+/**
+ * Performs a network-first fetch. On success, updates local user-scoped cache.
+ * On network failure, retrieves user-scoped cached version from PouchDB.
  * @param {string} url - The URL to fetch.
  * @param {Object} options - Standard fetch options.
  * @returns {Promise<Response>} The fetch Response object.
  */
 export const fetchWithCache = async (url, options = {}) => {
-  const cacheKey = url;
+  const scopedKey = getScopedCacheKey(url);
+  
   try {
     const response = await fetch(url, options);
     if (!response.ok) {
       throw new Error(`HTTP Error: ${response.status}`);
     }
     
-    // We clone the response because reading JSON consumes the stream
+    // Clone response stream before reading JSON
     const data = await response.clone().json();
-    await cacheData(cacheKey, data);
+    await cacheData(scopedKey, data);
     return response;
   } catch (err) {
     console.warn(`Network request failed for ${url}, attempting cache fallback.`, err);
-    const cached = await getCachedData(cacheKey);
-    if (cached) {
-      // Return a simulated fetch Response object
-      return new Response(JSON.stringify(cached), {
+    const cachedRecord = await getCachedDataRecord(scopedKey);
+    if (cachedRecord && cachedRecord.data) {
+      const cachedAtHeader = cachedRecord.cachedAt 
+        ? new Date(cachedRecord.cachedAt).toISOString() 
+        : new Date().toISOString();
+
+      return new Response(JSON.stringify(cachedRecord.data), {
         status: 200,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Data-Source': 'cache',
+          'X-Cached-At': cachedAtHeader
+        }
       });
     }
-    throw err; // If neither network nor cache succeeded
+    throw err; // Re-throw network error if no user-scoped cache entry exists
   }
 };

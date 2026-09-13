@@ -9,13 +9,12 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { fetchWithCache } from '../../services/cacheService';
 import KanbanColumn from './KanbanColumn';
 import TaskCard from './TaskCard';
 import TaskPopup from '../TaskPopup/TaskPopup';
 import { formatDate } from '../../utils/dateUtils';
 import './KanbanBoard.css';
-
-
 
 const COLUMNS_DEF = [
   { id: 'todo', title: 'To Do' },
@@ -73,14 +72,14 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
         const token = localStorage.getItem('token');
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
         
-        // Fetch tasks and members in parallel
+        // Fetch tasks and members in parallel using cacheService
         let members = [];
         let tasks = [];
 
         try {
           const [tasksRes, membersRes] = await Promise.all([
-            fetch(`${apiUrl}/projects/${projectId}/tasks`, { headers: { 'Authorization': `Bearer ${token}` } }),
-            fetch(`${apiUrl}/projects/${projectId}/members`, { headers: { 'Authorization': `Bearer ${token}` } })
+            fetchWithCache(`${apiUrl}/projects/${projectId}/tasks`, { headers: { 'Authorization': `Bearer ${token}` } }),
+            fetchWithCache(`${apiUrl}/projects/${projectId}/members`, { headers: { 'Authorization': `Bearer ${token}` } })
           ]);
           
           if (membersRes.ok) {

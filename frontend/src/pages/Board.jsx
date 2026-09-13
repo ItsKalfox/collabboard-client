@@ -8,7 +8,8 @@ import ActionModal from '../components/Board/ActionModal';
 import ProjectDetailsModal from '../components/projects/ProjectDetailsModal';
 
 import { Search, X } from 'lucide-react';
-import { searchUsers } from '../services/projectService';
+import { searchUsers, getProjects } from '../services/projectService';
+import { fetchWithCache } from '../services/cacheService';
 import { normalizeMember } from '../utils/memberUtils';
 import './Board.css';
 
@@ -103,7 +104,7 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
         const token = localStorage.getItem('token');
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
         
-        const response = await fetch(`${apiUrl}/projects`, {
+        const response = await fetchWithCache(`${apiUrl}/projects`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

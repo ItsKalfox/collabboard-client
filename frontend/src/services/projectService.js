@@ -173,7 +173,7 @@ export const deleteProject = async (projectId) => {
  * @returns {Promise<Array>} List of attachments
  */
 export const getAttachments = async (projectId) => {
-  const response = await fetch(`${API_URL}/projects/${projectId}/attachments`, {
+  const response = await fetchWithCache(`${API_URL}/projects/${projectId}/attachments`, {
     method: 'GET',
     headers: getAuthHeaders(true)
   });
@@ -313,7 +313,7 @@ export const getProjectTasks = async (projectId) => {
  */
 export const getProjectTimeline = async (projectId, limit) => {
   const query = limit ? `?limit=${limit}` : '';
-  const response = await fetch(`${API_URL}/projects/${projectId}/timeline${query}`, {
+  const response = await fetchWithCache(`${API_URL}/projects/${projectId}/timeline${query}`, {
     method: 'GET',
     headers: getAuthHeaders(true)
   });
