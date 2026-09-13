@@ -385,6 +385,14 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
           currentUser={currentUser}
           onClose={() => setActiveTask(null)}
           onUpdate={() => setLocalRefresh(r => r + 1)}
+          onDeleteTask={(deletedTaskId) => {
+            const targetIdStr = String(deletedTaskId);
+            setColumns(prevCols => prevCols.map(col => ({
+              ...col,
+              tasks: col.tasks.filter(t => String(t.id || t._id) !== targetIdStr)
+            })));
+            setActiveTask(null);
+          }}
         />
       )}
     </>

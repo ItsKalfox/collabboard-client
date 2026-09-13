@@ -58,7 +58,7 @@ const getFileIcon = (ext) => {
 };
 
 /* ─── Main component ────────────────────────────────────────── */
-export default function TaskPopup({ task: prop, project, currentUser, onClose, onUpdate }) {
+export default function TaskPopup({ task: prop, project, currentUser, onClose, onUpdate, onDeleteTask }) {
   const currentUserId = typeof currentUser === 'object' ? (currentUser?.id || currentUser?._id) : null;
   
   const assigneeId = typeof prop.assigneeId === 'object' ? (prop.assigneeId?.id || prop.assigneeId?._id) : prop.assigneeId;
@@ -270,11 +270,13 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
           throw new Error(`HTTP ${res.status}: Failed to delete task online`);
         }
       }
+      if (onDeleteTask) onDeleteTask(taskId);
       if (onUpdate) onUpdate();
       onClose(); // Close modal
     } catch (e) {
       console.warn('Failed to delete task online, falling back to offline delete:', e);
       await handleOfflineDeleteTask(taskId, targetProjectId);
+      if (onDeleteTask) onDeleteTask(taskId);
       if (onUpdate) onUpdate();
       onClose();
     }
