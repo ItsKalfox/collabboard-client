@@ -1,5 +1,5 @@
 import { enqueueMutation } from './mutationStore';
-import { generateTempId } from './tempIdMap';
+import { generateTempId, resolveId } from './tempIdMap';
 import { cacheData, getCachedData, getScopedCacheKey } from './cacheService';
 import { processMutationQueue } from './syncEngine';
 
@@ -54,6 +54,7 @@ export const handleOfflineCreateProject = async (projectData) => {
     for (const t of projectData.tasks) {
       const tempTaskId = generateTempId('task');
       const localTask = {
+        id: tempTaskId,
         _id: tempTaskId,
         projectId: tempId,
         title: t.title || 'Untitled Task',
@@ -201,6 +202,7 @@ export const handleOfflineCreateTask = async (projectId, taskData) => {
   }
 
   const localTask = {
+    id: tempId,
     _id: tempId,
     projectId,
     title: taskData.title,
@@ -291,6 +293,8 @@ export const handleOfflineUpdateTask = async (taskId, projectId, updateData, isS
         updatedTask = {
           ...task,
           ...updateData,
+          id: task.id || task._id || targetIdStr,
+          _id: task._id || task.id || targetIdStr,
           updatedAt: new Date().toISOString(),
           _isPending: true
         };
@@ -300,6 +304,33 @@ export const handleOfflineUpdateTask = async (taskId, projectId, updateData, isS
     });
 
     await cacheData(scopedKey, createUpdatedCachePayload(cached, updatedTasks));
+  }
+
+  // Also update local project cache if project contains embedded tasks
+  const projectsUrl = `${API_URL}/projects`;
+  const projectsScopedKey = getScopedCacheKey(projectsUrl);
+  const cachedProjects = await getCachedData(projectsUrl);
+  if (cachedProjects) {
+    const currentProjects = getProjectsArrayFromCache(cachedProjects);
+    const updatedProjects = currentProjects.map(p => {
+      if (String(p.id || p._id) === String(projectId) && Array.isArray(p.tasks)) {
+        const updatedProjTasks = p.tasks.map(t => {
+          if (String(t.id || t._id) === String(taskId)) {
+            return {
+              ...t,
+              ...updateData,
+              id: t.id || t._id || taskId,
+              _id: t._id || t.id || taskId,
+              _isPending: true
+            };
+          }
+          return t;
+        });
+        return { ...p, tasks: updatedProjTasks };
+      }
+      return p;
+    });
+    await cacheData(projectsScopedKey, createUpdatedProjectsCachePayload(cachedProjects, updatedProjects));
   }
 
   const endpoint = isStatusOnly
@@ -339,6 +370,22 @@ export const handleOfflineDeleteTask = async (taskId, projectId) => {
     });
 
     await cacheData(scopedKey, createUpdatedCachePayload(cached, updatedTasks));
+  }
+
+  // Also update local project cache if project contains embedded tasks
+  const projectsUrl = `${API_URL}/projects`;
+  const projectsScopedKey = getScopedCacheKey(projectsUrl);
+  const cachedProjects = await getCachedData(projectsUrl);
+  if (cachedProjects) {
+    const currentProjects = getProjectsArrayFromCache(cachedProjects);
+    const updatedProjects = currentProjects.map(p => {
+      if (String(p.id || p._id) === String(projectId) && Array.isArray(p.tasks)) {
+        const updatedProjTasks = p.tasks.filter(t => String(t.id || t._id) !== String(taskId));
+        return { ...p, tasks: updatedProjTasks };
+      }
+      return p;
+    });
+    await cacheData(projectsScopedKey, createUpdatedProjectsCachePayload(cachedProjects, updatedProjects));
   }
 
   await enqueueMutation({

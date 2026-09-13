@@ -156,7 +156,7 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
     const taskId = task.id || task._id;
     const targetProjectId = project?.id || project?._id || task.projectId;
 
-    if (!navigator.onLine) {
+    if (!navigator.onLine || (typeof taskId === 'string' && taskId.startsWith('temp-'))) {
       await handleOfflineUpdateTask(taskId, targetProjectId, draft);
       setTask(t => ({ ...t, ...draft, _isPending: true }));
       if (onUpdate) onUpdate();
@@ -257,7 +257,7 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
     const taskId = task.id || task._id;
     const targetProjectId = project?.id || project?._id || task.projectId;
     try {
-      if (!navigator.onLine) {
+      if (!navigator.onLine || (typeof taskId === 'string' && taskId.startsWith('temp-'))) {
         await handleOfflineDeleteTask(taskId, targetProjectId);
       } else {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
