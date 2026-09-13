@@ -10,6 +10,7 @@ import ProjectDetailsModal from '../components/projects/ProjectDetailsModal';
 import { Search, X } from 'lucide-react';
 import { searchUsers, getProjects } from '../services/projectService';
 import { fetchWithCache } from '../services/cacheService';
+import { handleOfflineCreateTask } from '../services/offlineMutationHelper';
 import { normalizeMember } from '../utils/memberUtils';
 import './Board.css';
 
@@ -226,6 +227,39 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
     if (!selectedProjectId || !newTaskTitle.trim()) return;
     
     setIsSubmitting(true);
+    const taskData = { 
+      title: newTaskTitle.trim(), 
+      status: 'todo',
+      description: newTaskDescription.trim(),
+      dueDate: newTaskDueDate || null,
+      assigneeId: newTaskAssignee || undefined,
+      subtasks: newSubtasks
+    };
+
+    const resetAddTaskForm = () => {
+      setRefreshKey(k => k + 1); // trigger task refetch
+      setIsAddTaskModalOpen(false);
+      setNewTaskTitle('');
+      setNewTaskDescription('');
+      setNewTaskDueDate('');
+      setNewTaskAssignee('');
+      setNewSubtasks([]);
+      setNewTaskAttachments([]);
+      setActiveTaskTab('main');
+    };
+
+    if (!navigator.onLine) {
+      try {
+        await handleOfflineCreateTask(selectedProjectId, taskData);
+        resetAddTaskForm();
+      } catch (err) {
+        console.error('Failed to create task offline:', err);
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -235,22 +269,14 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-
-        body: JSON.stringify({ 
-          title: newTaskTitle, 
-          status: 'todo',
-          description: newTaskDescription,
-          dueDate: newTaskDueDate || null,
-          assigneeId: newTaskAssignee || undefined,
-          subtasks: newSubtasks
-        })
-
+        body: JSON.stringify(taskData)
       });
+
       if (res.ok) {
         const data = await res.json();
-        const newTaskId = data.data.task.id;
+        const newTaskId = data.data?.task?._id || data.data?.task?.id;
 
-        if (newTaskAttachments.length > 0) {
+        if (newTaskAttachments.length > 0 && newTaskId) {
           const uploadPromises = newTaskAttachments.map(async (f) => {
             const formData = new FormData();
             formData.append('file', f);
@@ -263,23 +289,18 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
           await Promise.all(uploadPromises);
         }
 
-        setRefreshKey(k => k + 1); // trigger task refetch
-        setIsAddTaskModalOpen(false);
-        setNewTaskTitle('');
-        setNewTaskDescription('');
-        setNewTaskDueDate('');
-        setNewTaskAssignee('');
-        setNewSubtasks([]);
-        setNewTaskAttachments([]);
-        setActiveTaskTab('main');
-
+        resetAddTaskForm();
+      } else if (res.status === 401 || res.status === 403) {
+        const errData = await res.json().catch(() => ({}));
+        alert(errData.message || 'Invalid or expired token');
       } else {
-        const errData = await res.json();
+        const errData = await res.json().catch(() => ({}));
         alert(errData.message || 'Failed to add task');
       }
     } catch (err) {
-      console.error(err);
-      alert('Error adding task');
+      console.warn('Network error creating task, falling back to offline outbox:', err);
+      await handleOfflineCreateTask(selectedProjectId, taskData);
+      resetAddTaskForm();
     } finally {
       setIsSubmitting(false);
     }
