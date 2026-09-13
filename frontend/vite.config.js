@@ -28,9 +28,14 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,woff,woff2}'],
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api/]
+      },
+      devOptions: {
+        enabled: true,
+        type: 'module',
+        navigateFallback: '/index.html'
       }
     })
   ],
