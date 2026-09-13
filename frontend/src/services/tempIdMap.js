@@ -65,8 +65,6 @@ export const resolveId = (id) => {
   return map[id] || id;
 };
 
-export const getRealId = resolveId;
-
 /**
  * Replaces any temporary IDs in a string (e.g. endpoint URL) with their mapped real IDs.
  * @param {string} str 

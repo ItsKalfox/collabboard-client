@@ -51,6 +51,15 @@ function normalizeTaskForPopup(task, columnTitle) {
   };
 }
 
+const extractTasks = (resData) => {
+  if (!resData) return [];
+  if (Array.isArray(resData)) return resData;
+  if (Array.isArray(resData.tasks)) return resData.tasks;
+  if (resData.data && Array.isArray(resData.data.tasks)) return resData.data.tasks;
+  if (resData.data && Array.isArray(resData.data)) return resData.data;
+  return [];
+};
+
 export default function KanbanBoard({ projectId, refreshKey, currentProject, currentUser }) {
   const [columns, setColumns] = useState(() => COLUMNS_DEF.map(col => ({ ...col, tasks: [] })));
   const [activeTask, setActiveTask] = useState(null);
@@ -85,7 +94,7 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
           const tasksRes = await fetchWithCache(`${apiUrl}/projects/${projectId}/tasks`, { headers: { 'Authorization': `Bearer ${token}` } });
           if (tasksRes.ok) {
             const data = await tasksRes.json();
-            tasks = data.data?.tasks || [];
+            tasks = extractTasks(data);
           }
         } catch (tasksErr) {
           console.warn('Network request failed for tasks, attempting cache fallback.', tasksErr);
@@ -102,10 +111,10 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
           console.warn('Members fetch failed offline (falling back to empty members array):', membersErr);
         }
 
+
         const newCols = COLUMNS_DEF.map(col => ({ ...col, tasks: [] }));
         tasks.forEach(task => {
-          const rawId = task.id || task._id;
-          const taskId = resolveId(rawId) || rawId;
+          const taskId = task.id || task._id;
 
           // Find assignee details
           const assigneeObjId = typeof task.assigneeId === 'object' ? (task.assigneeId?._id || task.assigneeId?.id) : task.assigneeId;
