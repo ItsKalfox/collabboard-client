@@ -10,7 +10,7 @@ import Board from './pages/Board';
 import Settings from './pages/Settings';
 import AuthModule from './components/auth/AuthModule';
 import ConfirmModal from './components/Board/ConfirmModal';
-import { isTokenExpired } from './utils/jwtUtils';
+import { isTokenExpired, parseJwt } from './utils/jwtUtils';
 import { initSyncEngine } from './services/syncEngine';
 import './App.css';
 
@@ -45,7 +45,29 @@ function App() {
 
   const isAuthRoute = authRoutes.includes(activeTab);
 
-  const [currentUser, setCurrentUser] = useState(null);
+  // Helper to safely parse locally stored user snapshot
+  const getValidLocalUser = () => {
+    try {
+      const raw = localStorage.getItem('user');
+      if (!raw) return null;
+      const user = JSON.parse(raw);
+      if (user && typeof user === 'object') {
+        return user;
+      }
+      return null;
+    } catch (err) {
+      return null;
+    }
+  };
+
+  const [currentUser, setCurrentUser] = useState(() => {
+    const token = localStorage.getItem('token');
+    if (token && !isTokenExpired(token)) {
+      return getValidLocalUser() || parseJwt(token);
+    }
+    return null;
+  });
+
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
 
   const handleLogout = () => {
@@ -60,21 +82,6 @@ function App() {
     document.documentElement.setAttribute('data-theme', theme);
     initSyncEngine();
   }, [theme]);
-
-  // Helper to safely parse locally stored user snapshot
-  const getValidLocalUser = () => {
-    try {
-      const raw = localStorage.getItem('user');
-      if (!raw) return null;
-      const user = JSON.parse(raw);
-      if (user && typeof user === 'object' && (user.id || user._id || user.email)) {
-        return user;
-      }
-      return null;
-    } catch (err) {
-      return null;
-    }
-  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -92,13 +99,26 @@ function App() {
     if (isTokenExpired(token)) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      setCurrentUser(null);
       if (!isAuthRoute) {
         setSessionExpired(true);
       }
       return;
     }
 
-    // 3. Token is locally valid; attempt server verification
+    // 3. Token is locally valid; restore local session immediately
+    const localUser = getValidLocalUser() || parseJwt(token);
+    if (localUser) {
+      setCurrentUser(localUser);
+    }
+
+    // 4. If offline (navigator.onLine === false), DO NOT issue server auth check
+    if (!navigator.onLine) {
+      console.log('[AUTH] Offline startup: Preserving local authenticated session.');
+      return;
+    }
+
+    // 5. If online, issue background verification against /api/auth/me
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
     fetch(`${apiUrl}/auth/me`, {
       headers: { 'Authorization': `Bearer ${token}` }
@@ -106,51 +126,34 @@ function App() {
     .then(async (res) => {
       // Server explicitly rejected token (401 Unauthorized or 403 Forbidden)
       if (res.status === 401 || res.status === 403) {
+        console.warn('[AUTH] Server explicitly rejected token (401/403). Clearing local session.');
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        setCurrentUser(null);
         if (!isAuthRoute) {
           setSessionExpired(true);
         }
         return;
       }
 
-      // Server error 5xx: DO NOT log user out, restore valid local session
-      if (res.status >= 500) {
-        console.warn(`Server returned HTTP ${res.status} on /auth/me, retaining local session.`);
-        const localUser = getValidLocalUser();
-        if (localUser) {
-          setCurrentUser(localUser);
+      // Check if response is JSON (prevents SW navigation fallback HTML from parsing as corrupt JSON)
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
+        try {
+          const data = await res.json();
+          if (data.status === 'success' && data.data && data.data.user) {
+            setCurrentUser(data.data.user);
+            localStorage.setItem('user', JSON.stringify(data.data.user));
+          }
+        } catch (jsonErr) {
+          console.warn('[AUTH] Non-JSON or corrupt response from /auth/me, retaining local session:', jsonErr);
         }
-        return;
-      }
-
-      const data = await res.json();
-      if (data.status === 'success' && data.data && data.data.user) {
-        setCurrentUser(data.data.user);
-        localStorage.setItem('user', JSON.stringify(data.data.user));
       } else {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        if (!isAuthRoute) {
-          setSessionExpired(true);
-        }
+        console.warn(`[AUTH] Server response status ${res.status} on /auth/me, retaining local session.`);
       }
     })
     .catch((err) => {
-      // Network connectivity failure (offline / fetch failed / server unreachable)
-      // DO NOT clear token or trigger sessionExpired!
-      console.warn('Network connectivity error during auth check, restoring local session:', err);
-      const localUser = getValidLocalUser();
-      if (localUser) {
-        setCurrentUser(localUser);
-      } else {
-        // Safe fallback if local user snapshot is missing or corrupted
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        if (!isAuthRoute) {
-          setSessionExpired(true);
-        }
-      }
+      console.warn('[AUTH] Network connectivity error during auth check, retaining local session:', err);
     });
   }, []);
 
