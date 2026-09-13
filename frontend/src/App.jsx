@@ -10,6 +10,7 @@ import Board from './pages/Board';
 import Settings from './pages/Settings';
 import AuthModule from './components/auth/AuthModule';
 import ConfirmModal from './components/Board/ConfirmModal';
+import { isTokenExpired } from './utils/jwtUtils';
 import './App.css';
 
 function App() {
@@ -48,6 +49,7 @@ function App() {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setCurrentUser(null);
     handleTabClick('login');
     setIsLogoutConfirmOpen(false);
@@ -57,33 +59,97 @@ function App() {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
+  // Helper to safely parse locally stored user snapshot
+  const getValidLocalUser = () => {
+    try {
+      const raw = localStorage.getItem('user');
+      if (!raw) return null;
+      const user = JSON.parse(raw);
+      if (user && typeof user === 'object' && (user.id || user._id || user.email)) {
+        return user;
+      }
+      return null;
+    } catch (err) {
+      return null;
+    }
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (token) {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      fetch(`${apiUrl}/auth/me`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === 'success' && data.data && data.data.user) {
-          setCurrentUser(data.data.user);
-          localStorage.setItem('user', JSON.stringify(data.data.user));
-        } else {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          if (!authRoutes.includes(activeTab)) setSessionExpired(true);
-        }
-      })
-      .catch(err => {
-        console.error('Failed to fetch user:', err);
-        if (!authRoutes.includes(activeTab)) setSessionExpired(true);
-      });
-    } else {
-      if (!authRoutes.includes(activeTab)) {
+    const isAuthRoute = authRoutes.includes(activeTab);
+
+    // 1. No token in local storage
+    if (!token) {
+      if (!isAuthRoute) {
         setSessionExpired(true);
       }
+      return;
     }
+
+    // 2. Token is locally expired or structurally invalid
+    if (isTokenExpired(token)) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      if (!isAuthRoute) {
+        setSessionExpired(true);
+      }
+      return;
+    }
+
+    // 3. Token is locally valid; attempt server verification
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    fetch(`${apiUrl}/auth/me`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    .then(async (res) => {
+      // Server explicitly rejected token (401 Unauthorized or 403 Forbidden)
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        if (!isAuthRoute) {
+          setSessionExpired(true);
+        }
+        return;
+      }
+
+      // Server error 5xx: DO NOT log user out, restore valid local session
+      if (res.status >= 500) {
+        console.warn(`Server returned HTTP ${res.status} on /auth/me, retaining local session.`);
+        const localUser = getValidLocalUser();
+        if (localUser) {
+          setCurrentUser(localUser);
+        }
+        return;
+      }
+
+      const data = await res.json();
+      if (data.status === 'success' && data.data && data.data.user) {
+        setCurrentUser(data.data.user);
+        localStorage.setItem('user', JSON.stringify(data.data.user));
+      } else {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        if (!isAuthRoute) {
+          setSessionExpired(true);
+        }
+      }
+    })
+    .catch((err) => {
+      // Network connectivity failure (offline / fetch failed / server unreachable)
+      // DO NOT clear token or trigger sessionExpired!
+      console.warn('Network connectivity error during auth check, restoring local session:', err);
+      const localUser = getValidLocalUser();
+      if (localUser) {
+        setCurrentUser(localUser);
+      } else {
+        // Safe fallback if local user snapshot is missing or corrupted
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        if (!isAuthRoute) {
+          setSessionExpired(true);
+        }
+      }
+    });
   }, []);
 
 
