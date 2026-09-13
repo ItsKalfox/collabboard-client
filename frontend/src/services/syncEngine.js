@@ -1,6 +1,7 @@
 import { getPendingMutations, updateMutationStatus, removeMutation } from './mutationStore';
 import { registerIdMapping, resolveId, replaceTempIdsInString, replaceTempIdsInObject } from './tempIdMap';
 import { cacheData, getCachedData, getScopedCacheKey } from './cacheService';
+import { getProjectsArrayFromCache, createUpdatedProjectsCachePayload } from './offlineMutationHelper';
 
 let isSyncing = false;
 const listeners = new Set();
@@ -54,11 +55,10 @@ const reconcileLocalReadCache = async (mutation, responseData) => {
         // Update projects list cache
         const projectsUrl = `${apiUrl}/projects`;
         const cached = await getCachedData(projectsUrl);
-        if (cached && cached.data && Array.isArray(cached.data.projects)) {
-          const updatedProjects = cached.data.projects.filter(p => p._id !== tempId);
-          updatedProjects.unshift(realProject);
-          await cacheData(getScopedCacheKey(projectsUrl), { ...cached, data: { ...cached.data, projects: updatedProjects } });
-        }
+        const currentProjects = getProjectsArrayFromCache(cached);
+        const updatedProjects = currentProjects.filter(p => p._id !== tempId && p.id !== tempId);
+        updatedProjects.unshift(realProject);
+        await cacheData(getScopedCacheKey(projectsUrl), createUpdatedProjectsCachePayload(cached, updatedProjects));
 
         // Migrate tasks cache from tempId to realProject._id
         if (tempId && realProject._id) {
@@ -90,18 +90,16 @@ const reconcileLocalReadCache = async (mutation, responseData) => {
       if (updatedProject) {
         const projectsUrl = `${apiUrl}/projects`;
         const cached = await getCachedData(projectsUrl);
-        if (cached && cached.data && Array.isArray(cached.data.projects)) {
-          const updatedProjects = cached.data.projects.map(p => p._id === updatedProject._id ? { ...p, ...updatedProject } : p);
-          await cacheData(getScopedCacheKey(projectsUrl), { ...cached, data: { ...cached.data, projects: updatedProjects } });
-        }
+        const currentProjects = getProjectsArrayFromCache(cached);
+        const updatedProjects = currentProjects.map(p => (p._id === updatedProject._id || p.id === updatedProject._id) ? { ...p, ...updatedProject } : p);
+        await cacheData(getScopedCacheKey(projectsUrl), createUpdatedProjectsCachePayload(cached, updatedProjects));
       }
     } else if (type === 'DELETE_PROJECT') {
       const projectsUrl = `${apiUrl}/projects`;
       const cached = await getCachedData(projectsUrl);
-      if (cached && cached.data && Array.isArray(cached.data.projects)) {
-        const updatedProjects = cached.data.projects.filter(p => p._id !== projectId);
-        await cacheData(getScopedCacheKey(projectsUrl), { ...cached, data: { ...cached.data, projects: updatedProjects } });
-      }
+      const currentProjects = getProjectsArrayFromCache(cached);
+      const updatedProjects = currentProjects.filter(p => p._id !== projectId && p.id !== projectId);
+      await cacheData(getScopedCacheKey(projectsUrl), createUpdatedProjectsCachePayload(cached, updatedProjects));
     } else if (type === 'CREATE_TASK' || type === 'UPDATE_TASK' || type === 'UPDATE_TASK_STATUS' || type === 'DELETE_TASK') {
       const realTask = responseData.data?.task || responseData.task;
       const targetProjectId = projectId || (realTask && realTask.projectId);

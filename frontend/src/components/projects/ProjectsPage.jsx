@@ -13,8 +13,24 @@ export default function ProjectsPage({ theme = 'dark', currentUser, onOpenBoard 
   const isDark = theme !== 'light';
   const lightCls = isDark ? '' : ' light';
 
-  // Active user object or fallback
-  const activeUser = currentUser || { name: 'Alex Johnson', email: 'alex.dev@collabboard.com' };
+  // Active user object or fallback to authenticated snapshot from localStorage
+  const getActiveUser = () => {
+    if (currentUser && (currentUser.id || currentUser._id || currentUser.email)) {
+      return currentUser;
+    }
+    const userRaw = localStorage.getItem('user');
+    if (userRaw) {
+      try {
+        const u = JSON.parse(userRaw);
+        if (u && (u.id || u._id || u.email)) {
+          return u;
+        }
+      } catch { }
+    }
+    return currentUser || { name: 'Alex Johnson', email: 'alex.dev@collabboard.com' };
+  };
+
+  const activeUser = getActiveUser();
 
   const [projects, setProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);

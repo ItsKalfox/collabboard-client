@@ -6,6 +6,30 @@ import { processMutationQueue } from './syncEngine';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 /**
+ * Helper to extract projects array from various cached response shapes.
+ */
+export const getProjectsArrayFromCache = (cached) => {
+  if (!cached) return [];
+  if (Array.isArray(cached)) return cached;
+  if (Array.isArray(cached.projects)) return cached.projects;
+  if (cached.data && Array.isArray(cached.data.projects)) return cached.data.projects;
+  if (cached.data && Array.isArray(cached.data)) return cached.data;
+  return [];
+};
+
+/**
+ * Helper to wrap updated projects array back into the original cached structure.
+ */
+export const createUpdatedProjectsCachePayload = (cached, updatedProjects) => {
+  if (!cached) return { status: 'success', data: { projects: updatedProjects } };
+  if (Array.isArray(cached)) return updatedProjects;
+  if (Array.isArray(cached.projects)) return { ...cached, projects: updatedProjects };
+  if (cached.data && Array.isArray(cached.data.projects)) return { ...cached, data: { ...cached.data, projects: updatedProjects } };
+  if (cached.data && Array.isArray(cached.data)) return { ...cached, data: updatedProjects };
+  return { status: 'success', data: { projects: updatedProjects } };
+};
+
+/**
  * Handles offline creation of a project.
  */
 export const handleOfflineCreateProject = async (projectData) => {
@@ -92,10 +116,11 @@ export const handleOfflineCreateProject = async (projectData) => {
   const projectsUrl = `${API_URL}/projects`;
   const scopedKey = getScopedCacheKey(projectsUrl);
   const cached = await getCachedData(projectsUrl);
-  const currentList = (cached && cached.data && Array.isArray(cached.data.projects)) ? cached.data.projects : [];
-  const updatedList = [localProject, ...currentList];
+  const currentList = getProjectsArrayFromCache(cached);
+  const updatedList = [localProject, ...currentList.filter(p => String(p.id || p._id) !== String(localProject._id))];
+  const updatedProjectsPayload = createUpdatedProjectsCachePayload(cached, updatedList);
 
-  await cacheData(scopedKey, { status: 'success', data: { projects: updatedList } });
+  await cacheData(scopedKey, updatedProjectsPayload);
 
   // Update local GET /api/projects/:tempId/tasks read cache for initial tasks
   const projectTasksUrl = `${API_URL}/projects/${tempId}/tasks`;
@@ -126,9 +151,11 @@ export const handleOfflineDeleteProject = async (projectId) => {
   const scopedKey = getScopedCacheKey(projectsUrl);
   const cached = await getCachedData(projectsUrl);
 
-  if (cached && cached.data && Array.isArray(cached.data.projects)) {
-    const updatedProjects = cached.data.projects.filter(p => String(p.id || p._id) !== targetIdStr);
-    await cacheData(scopedKey, { ...cached, data: { ...cached.data, projects: updatedProjects } });
+  if (cached) {
+    const currentProjects = getProjectsArrayFromCache(cached);
+    const updatedProjects = currentProjects.filter(p => String(p.id || p._id) !== targetIdStr);
+    const updatedPayload = createUpdatedProjectsCachePayload(cached, updatedProjects);
+    await cacheData(scopedKey, updatedPayload);
   }
 
   // 2. Clear tasks cache for target project
