@@ -145,6 +145,7 @@ export const handleOfflineCreateProject = async (projectData) => {
  */
 export const handleOfflineDeleteProject = async (projectId) => {
   const targetIdStr = String(projectId);
+  const targetResolvedId = resolveId(projectId);
 
   // 1. Remove project from GET /api/projects read cache
   const projectsUrl = `${API_URL}/projects`;
@@ -153,7 +154,15 @@ export const handleOfflineDeleteProject = async (projectId) => {
 
   if (cached) {
     const currentProjects = getProjectsArrayFromCache(cached);
-    const updatedProjects = currentProjects.filter(p => String(p.id || p._id) !== targetIdStr);
+    const updatedProjects = currentProjects.filter(p => {
+      const pId = String(p.id || p._id || '');
+      const pId2 = String(p._id || p.id || '');
+      const pResolved = resolveId(pId) || resolveId(pId2);
+
+      if (pId === targetIdStr || pId2 === targetIdStr) return false;
+      if (targetResolvedId && (pId === targetResolvedId || pId2 === targetResolvedId || pResolved === targetResolvedId)) return false;
+      return true;
+    });
     const updatedPayload = createUpdatedProjectsCachePayload(cached, updatedProjects);
     await cacheData(scopedKey, updatedPayload);
   }
@@ -219,10 +228,10 @@ export const handleOfflineCreateTask = async (projectId, taskData) => {
   const tasksUrl = `${API_URL}/projects/${projectId}/tasks`;
   const scopedKey = getScopedCacheKey(tasksUrl);
   const cached = await getCachedData(tasksUrl);
-  const currentTasks = (cached && cached.data && Array.isArray(cached.data.tasks)) ? cached.data.tasks : [];
+  const currentTasks = getTasksArrayFromCache(cached);
   const updatedTasks = [...currentTasks, localTask];
 
-  await cacheData(scopedKey, { status: 'success', data: { tasks: updatedTasks } });
+  await cacheData(scopedKey, createUpdatedCachePayload(cached, updatedTasks));
 
   // Enqueue outbox mutation
   await enqueueMutation({

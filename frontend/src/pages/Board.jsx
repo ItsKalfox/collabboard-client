@@ -26,7 +26,7 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
   const [selectedProjectId, setSelectedProjectId] = useState(() => {
     // If we're coming from the projects page and a project was selected
     if (selectedProject && typeof selectedProject === 'object') {
-      return selectedProject.id;
+      return selectedProject.id || selectedProject._id;
     }
     // If an ID was explicitly passed
     if (initialProjectId) {
@@ -43,15 +43,15 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
 
   useEffect(() => {
     const target = selectedProject || initialProjectId;
-    const targetId = typeof target === 'object' ? target?.id : target;
+    const targetId = typeof target === 'object' ? (target?.id || target?._id) : target;
     if (targetId) {
       setSelectedProjectId(targetId);
       if (typeof target === 'object' && target !== null) {
         setProjects(prev => {
-          if (!prev.some(p => p.id === targetId)) {
+          if (!prev.some(p => (p.id || p._id) === targetId)) {
             return [target, ...prev];
           }
-          return prev.map(p => p.id === targetId ? { ...p, ...target } : p);
+          return prev.map(p => (p.id || p._id) === targetId ? { ...p, ...target } : p);
         });
       }
     }
@@ -217,7 +217,7 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
     setNewSubtasks(prev => prev.filter(s => s.id !== id));
   };
 
-  const activeProjectData = projects.find(p => p.id === selectedProjectId);
+  const activeProjectData = projects.find(p => (p.id || p._id) === selectedProjectId);
   const minDate = new Date().toISOString().split('T')[0];
   const maxDate = activeProjectData?.dueDate ? new Date(activeProjectData.dueDate).toISOString().split('T')[0] : '';
 

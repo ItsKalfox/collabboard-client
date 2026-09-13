@@ -1,5 +1,5 @@
 import { fetchWithCache } from './cacheService';
-import { handleOfflineCreateProject, handleOfflineDeleteProject } from './offlineMutationHelper';
+import { handleOfflineCreateProject, handleOfflineDeleteProject, getProjectsArrayFromCache } from './offlineMutationHelper';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -115,7 +115,7 @@ export const getProjects = async (searchQuery = '') => {
     throw new Error(data.message || 'Failed to fetch projects');
   }
 
-  return data.data?.projects || [];
+  return getProjectsArrayFromCache(data);
 };
 
 /**
