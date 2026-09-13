@@ -1,5 +1,5 @@
 import { getPendingMutations, updateMutationStatus, removeMutation } from './mutationStore';
-import { registerIdMapping, replaceTempIdsInString, replaceTempIdsInObject } from './tempIdMap';
+import { registerIdMapping, resolveId, replaceTempIdsInString, replaceTempIdsInObject } from './tempIdMap';
 import { cacheData, getCachedData, getScopedCacheKey } from './cacheService';
 
 let isSyncing = false;
@@ -58,6 +58,31 @@ const reconcileLocalReadCache = async (mutation, responseData) => {
           const updatedProjects = cached.data.projects.filter(p => p._id !== tempId);
           updatedProjects.unshift(realProject);
           await cacheData(getScopedCacheKey(projectsUrl), { ...cached, data: { ...cached.data, projects: updatedProjects } });
+        }
+
+        // Migrate tasks cache from tempId to realProject._id
+        if (tempId && realProject._id) {
+          const realId = realProject._id;
+          const tempTasksUrl = `${apiUrl}/projects/${tempId}/tasks`;
+          const realTasksUrl = `${apiUrl}/projects/${realId}/tasks`;
+          const tempCached = await getCachedData(tempTasksUrl);
+
+          if (tempCached) {
+            const rawTasks = (tempCached.data && Array.isArray(tempCached.data.tasks))
+              ? tempCached.data.tasks
+              : (tempCached.data && Array.isArray(tempCached.data))
+                ? tempCached.data
+                : (Array.isArray(tempCached.tasks) ? tempCached.tasks : (Array.isArray(tempCached) ? tempCached : []));
+
+            const migratedTasks = rawTasks.map(t => ({
+              ...t,
+              projectId: realId,
+              _id: resolveId(t._id || t.id) || t._id || t.id,
+              id: resolveId(t.id || t._id) || t.id || t._id
+            }));
+
+            await cacheData(getScopedCacheKey(realTasksUrl), { status: 'success', data: { tasks: migratedTasks } });
+          }
         }
       }
     } else if (type === 'UPDATE_PROJECT') {

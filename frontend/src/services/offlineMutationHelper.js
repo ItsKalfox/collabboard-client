@@ -24,6 +24,53 @@ export const handleOfflineCreateProject = async (projectData) => {
     } catch { }
   }
 
+  const initialTasks = [];
+
+  if (Array.isArray(projectData.tasks) && projectData.tasks.length > 0) {
+    for (const t of projectData.tasks) {
+      const tempTaskId = generateTempId('task');
+      const localTask = {
+        _id: tempTaskId,
+        projectId: tempId,
+        title: t.title || 'Untitled Task',
+        description: t.description || '',
+        status: t.status || 'todo',
+        priority: t.priority || 'medium',
+        assigneeId: t.assigneeId || ownerId,
+        dueDate: t.dueDate || null,
+        subtasks: (t.subtasks || []).map(s => ({
+          _id: generateTempId('subtask'),
+          title: s.title || s.label || '',
+          completed: Boolean(s.completed || s.done)
+        })),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        _isPending: true
+      };
+
+      initialTasks.push(localTask);
+
+      // Queue CREATE_TASK outbox mutation for initial task
+      await enqueueMutation({
+        type: 'CREATE_TASK',
+        method: 'POST',
+        endpoint: `${API_URL}/projects/${tempId}/tasks`,
+        payload: {
+          title: localTask.title,
+          description: localTask.description,
+          status: localTask.status,
+          priority: localTask.priority,
+          assigneeId: localTask.assigneeId,
+          dueDate: localTask.dueDate,
+          subtasks: localTask.subtasks
+        },
+        tempId: tempTaskId,
+        projectId: tempId,
+        taskId: tempTaskId
+      });
+    }
+  }
+
   const localProject = {
     _id: tempId,
     name: projectData.name,
@@ -37,7 +84,7 @@ export const handleOfflineCreateProject = async (projectData) => {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     members: [{ userId: ownerId, name: ownerName, email: ownerEmail, role: 'owner' }],
-    tasks: [],
+    tasks: initialTasks,
     _isPending: true
   };
 
@@ -50,7 +97,12 @@ export const handleOfflineCreateProject = async (projectData) => {
 
   await cacheData(scopedKey, { status: 'success', data: { projects: updatedList } });
 
-  // Enqueue outbox mutation
+  // Update local GET /api/projects/:tempId/tasks read cache for initial tasks
+  const projectTasksUrl = `${API_URL}/projects/${tempId}/tasks`;
+  const projectTasksScopedKey = getScopedCacheKey(projectTasksUrl);
+  await cacheData(projectTasksScopedKey, { status: 'success', data: { tasks: initialTasks } });
+
+  // Enqueue outbox mutation for project
   await enqueueMutation({
     type: 'CREATE_PROJECT',
     method: 'POST',
@@ -61,6 +113,40 @@ export const handleOfflineCreateProject = async (projectData) => {
   });
 
   return localProject;
+};
+
+/**
+ * Handles offline deletion of a project.
+ */
+export const handleOfflineDeleteProject = async (projectId) => {
+  const targetIdStr = String(projectId);
+
+  // 1. Remove project from GET /api/projects read cache
+  const projectsUrl = `${API_URL}/projects`;
+  const scopedKey = getScopedCacheKey(projectsUrl);
+  const cached = await getCachedData(projectsUrl);
+
+  if (cached && cached.data && Array.isArray(cached.data.projects)) {
+    const updatedProjects = cached.data.projects.filter(p => String(p.id || p._id) !== targetIdStr);
+    await cacheData(scopedKey, { ...cached, data: { ...cached.data, projects: updatedProjects } });
+  }
+
+  // 2. Clear tasks cache for target project
+  const projectTasksUrl = `${API_URL}/projects/${projectId}/tasks`;
+  const projectTasksScopedKey = getScopedCacheKey(projectTasksUrl);
+  await cacheData(projectTasksScopedKey, { status: 'success', data: { tasks: [] } });
+
+  // 3. Enqueue DELETE_PROJECT mutation (handles coalescing if pending CREATE_PROJECT exists)
+  await enqueueMutation({
+    type: 'DELETE_PROJECT',
+    method: 'DELETE',
+    endpoint: `${API_URL}/projects/${projectId}`,
+    payload: null,
+    tempId: targetIdStr.startsWith('temp-') ? targetIdStr : null,
+    projectId: targetIdStr
+  });
+
+  return { status: 'success', message: 'Project deleted offline' };
 };
 
 /**

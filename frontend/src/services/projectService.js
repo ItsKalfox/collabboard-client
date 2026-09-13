@@ -1,5 +1,5 @@
 import { fetchWithCache } from './cacheService';
-import { handleOfflineCreateProject } from './offlineMutationHelper';
+import { handleOfflineCreateProject, handleOfflineDeleteProject } from './offlineMutationHelper';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -164,17 +164,26 @@ export const getProjectById = async (projectId) => {
  * @returns {Promise<Object>} Success response
  */
 export const deleteProject = async (projectId) => {
-  const response = await fetch(`${API_URL}/projects/${projectId}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders(true)
-  });
-
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || 'Failed to delete project');
+  if (!navigator.onLine) {
+    return await handleOfflineDeleteProject(projectId);
   }
 
-  return data;
+  try {
+    const response = await fetch(`${API_URL}/projects/${projectId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(true)
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to delete project');
+    }
+
+    return data;
+  } catch (err) {
+    console.warn('Network error deleting project, falling back to offline outbox:', err);
+    return await handleOfflineDeleteProject(projectId);
+  }
 };
 
 /**
@@ -242,17 +251,53 @@ export const getProjectMembers = async (projectId) => {
  */
 export const searchUsers = async (query) => {
   if (!query || !query.trim()) return [];
-  const response = await fetch(`${API_URL}/users/search?q=${encodeURIComponent(query.trim())}`, {
-    method: 'GET',
-    headers: getAuthHeaders(true)
-  });
+  const searchTerm = query.trim().toLowerCase();
 
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || 'Failed to search users');
+  if (!navigator.onLine) {
+    // Offline fallback: Search local user stored in localStorage
+    const localUserRaw = localStorage.getItem('user');
+    if (localUserRaw) {
+      try {
+        const u = JSON.parse(localUserRaw);
+        if (
+          (u.name && u.name.toLowerCase().includes(searchTerm)) ||
+          (u.email && u.email.toLowerCase().includes(searchTerm))
+        ) {
+          return [{ id: u.id || u._id, _id: u._id || u.id, name: u.name, email: u.email, avatar: u.avatar }];
+        }
+      } catch { }
+    }
+    return [];
   }
 
-  return data.data?.users || [];
+  try {
+    const response = await fetch(`${API_URL}/users/search?q=${encodeURIComponent(query.trim())}`, {
+      method: 'GET',
+      headers: getAuthHeaders(true)
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to search users');
+    }
+
+    return data.data?.users || [];
+  } catch (err) {
+    console.warn('Network error searching users, falling back to local user:', err);
+    const localUserRaw = localStorage.getItem('user');
+    if (localUserRaw) {
+      try {
+        const u = JSON.parse(localUserRaw);
+        if (
+          (u.name && u.name.toLowerCase().includes(searchTerm)) ||
+          (u.email && u.email.toLowerCase().includes(searchTerm))
+        ) {
+          return [{ id: u.id || u._id, _id: u._id || u.id, name: u.name, email: u.email, avatar: u.avatar }];
+        }
+      } catch { }
+    }
+    return [];
+  }
 };
 
 /**
