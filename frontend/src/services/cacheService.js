@@ -48,7 +48,7 @@ export const getScopedCacheKey = (url) => {
 export const cacheData = async (key, data) => {
   try {
     const userId = getCurrentUserId();
-    const scopedKey = key.includes(':') ? key : `${userId}:${key}`;
+    const scopedKey = key.startsWith(`${userId}:`) ? key : `${userId}:${key}`;
     const existing = await db.get(scopedKey).catch(() => null);
     
     const doc = {
@@ -77,7 +77,7 @@ export const cacheData = async (key, data) => {
 export const getCachedDataRecord = async (key) => {
   try {
     const userId = getCurrentUserId();
-    const scopedKey = key.includes(':') ? key : `${userId}:${key}`;
+    const scopedKey = key.startsWith(`${userId}:`) ? key : `${userId}:${key}`;
     const doc = await db.get(scopedKey);
     return doc;
   } catch (err) {

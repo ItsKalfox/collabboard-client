@@ -328,7 +328,7 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
       if (res.ok) {
         setProjects(prev => {
           const newProjects = [...prev];
-          const projIndex = newProjects.findIndex(p => p.id === selectedProjectId);
+          const projIndex = newProjects.findIndex(p => (p.id || p._id) === selectedProjectId);
           if (projIndex !== -1) {
             newProjects[projIndex] = {
               ...newProjects[projIndex],
@@ -354,7 +354,7 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
 
   const handleAddTagSubmit = async (e) => {
     e.preventDefault();
-    const currentProject = projects.find((p) => p.id === selectedProjectId) || null;
+    const currentProject = projects.find((p) => (p.id || p._id) === selectedProjectId) || null;
     if (!currentProject || !newTag.trim()) return;
     
     setIsSubmitting(true);
@@ -376,7 +376,7 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
       
       if (res.ok) {
         const data = await res.json();
-        setProjects(projects.map(p => p.id === selectedProjectId ? data.data.project : p));
+        setProjects(projects.map(p => (p.id || p._id) === selectedProjectId ? data.data.project : p));
         setIsAddTagModalOpen(false);
         setNewTag('');
       } else {
@@ -391,7 +391,7 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
     }
   };
 
-  const currentProject = projects.find((p) => p.id === selectedProjectId) || null;
+  const currentProject = projects.find((p) => (p.id || p._id) === selectedProjectId) || null;
 
   return (
     <div className="board-page-container">
