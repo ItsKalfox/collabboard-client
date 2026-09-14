@@ -129,6 +129,87 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
           tasks: c.tasks.filter(t => t.id !== taskId)
         })));
       };
+
+      const handleSubtaskCreated = ({ taskId, subtask }) => {
+        if (!taskId || !subtask) return;
+        const subtaskId = subtask.id || subtask._id;
+        setColumns(prev => prev.map(c => ({
+          ...c,
+          tasks: c.tasks.map(t => {
+            if (String(t.id || t._id) !== String(taskId)) return t;
+            const existingSubtasks = t.subtasks || [];
+            if (existingSubtasks.some(s => String(s.id || s._id) === String(subtaskId))) {
+              return t;
+            }
+            return {
+              ...t,
+              subtasks: [...existingSubtasks, subtask]
+            };
+          })
+        })));
+
+        setActiveTask(prev => {
+          if (!prev || String(prev.id || prev._id) !== String(taskId)) return prev;
+          const existingSubtasks = prev.subtasks || [];
+          if (existingSubtasks.some(s => String(s.id || s._id) === String(subtaskId))) {
+            return prev;
+          }
+          return {
+            ...prev,
+            subtasks: [...existingSubtasks, subtask]
+          };
+        });
+      };
+
+      const handleSubtaskUpdated = ({ taskId, subtask }) => {
+        if (!taskId || !subtask) return;
+        const targetSubId = String(subtask.id || subtask._id);
+        setColumns(prev => prev.map(c => ({
+          ...c,
+          tasks: c.tasks.map(t => {
+            if (String(t.id || t._id) !== String(taskId)) return t;
+            return {
+              ...t,
+              subtasks: (t.subtasks || []).map(s =>
+                String(s.id || s._id) === targetSubId ? { ...s, ...subtask } : s
+              )
+            };
+          })
+        })));
+
+        setActiveTask(prev => {
+          if (!prev || String(prev.id || prev._id) !== String(taskId)) return prev;
+          return {
+            ...prev,
+            subtasks: (prev.subtasks || []).map(s =>
+              String(s.id || s._id) === targetSubId ? { ...s, ...subtask } : s
+            )
+          };
+        });
+      };
+
+      const handleSubtaskDeleted = ({ taskId, subtaskId }) => {
+        if (!taskId || !subtaskId) return;
+        const targetSubId = String(subtaskId);
+        setColumns(prev => prev.map(c => ({
+          ...c,
+          tasks: c.tasks.map(t => {
+            if (String(t.id || t._id) !== String(taskId)) return t;
+            return {
+              ...t,
+              subtasks: (t.subtasks || []).filter(s => String(s.id || s._id) !== targetSubId)
+            };
+          })
+        })));
+
+        setActiveTask(prev => {
+          if (!prev || String(prev.id || prev._id) !== String(taskId)) return prev;
+          return {
+            ...prev,
+            subtasks: (prev.subtasks || []).filter(s => String(s.id || s._id) !== targetSubId)
+          };
+        });
+      };
       
       const handleReconnect = () => {
         setLocalRefresh(r => r + 1);
@@ -138,6 +219,9 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
       socket.on('task_updated', handleTaskUpdated);
       socket.on('task_moved', handleTaskMoved);
       socket.on('task_deleted', handleTaskDeleted);
+      socket.on('subtask_created', handleSubtaskCreated);
+      socket.on('subtask_updated', handleSubtaskUpdated);
+      socket.on('subtask_deleted', handleSubtaskDeleted);
       socket.on('connect', handleReconnect);
       
       return () => {
@@ -145,6 +229,9 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
         socket.off('task_updated', handleTaskUpdated);
         socket.off('task_moved', handleTaskMoved);
         socket.off('task_deleted', handleTaskDeleted);
+        socket.off('subtask_created', handleSubtaskCreated);
+        socket.off('subtask_updated', handleSubtaskUpdated);
+        socket.off('subtask_deleted', handleSubtaskDeleted);
         socket.off('connect', handleReconnect);
         socket.emit('leave_board', projectId);
       };
