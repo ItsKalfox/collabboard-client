@@ -87,7 +87,7 @@ export const getTasksByProject = async (req, res) => {
 
 export const createTask = async (req, res) => {
     try {
-        const { title, description, status, priority, assigneeId, dueDate } = req.body;
+        const { title, description, status, priority, assigneeId, dueDate, subtasks } = req.body;
         const projectId = req.params.projectId || req.body.projectId;
         if (!projectId || !title) return res.status(400).json({ status: 'error', message: 'Project ID and title are required' });
 
@@ -99,6 +99,7 @@ export const createTask = async (req, res) => {
             priority: priority || 'medium',
             assigneeId: assigneeId || req.user.id,
             dueDate,
+            subtasks: Array.isArray(subtasks) ? subtasks : [],
             activities: [{
                 type: 'created',
                 text: `Task "${title}" created`,

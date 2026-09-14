@@ -3,7 +3,8 @@ import { X, Calendar, CheckSquare, Clock, AlignLeft, Users, CornerDownRight, Tag
 import { formatDate } from '../../utils/dateUtils';
 import { isProjectOwner, formatActivityText } from '../../utils/projectUtils';
 import ConfirmModal from '../Board/ConfirmModal';
-import { handleOfflineUpdateTask, handleOfflineDeleteTask, handleOfflineSubtaskOperation } from '../../services/offlineMutationHelper';
+import { handleOfflineUpdateTask, handleOfflineDeleteTask, handleOfflineSubtaskOperation, getTasksArrayFromCache, createUpdatedCachePayload } from '../../services/offlineMutationHelper';
+import { cacheData, getCachedData, getScopedCacheKey } from '../../services/cacheService';
 import './TaskPopup.css';
 
 /* ─── Dummy employee pool ───────────────────────────────────── */
@@ -418,12 +419,28 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
     const description = newSubDesc.trim();
     if (!title) return;
 
-    let subData = { title, description, completed: false, comments: [] };
+    const taskId = task.id || task._id;
+    const targetProjectId = project?.id || project?._id || task.projectId;
 
+    // Offline path: queue the mutation and add a local placeholder
+    if (!navigator.onLine || (typeof taskId === 'string' && taskId.startsWith('temp-'))) {
+      await handleOfflineSubtaskOperation(null, taskId, targetProjectId, 'CREATE', { title, description, completed: false, comments: [] });
+      setTask(t => ({
+        ...t,
+        subtasks: [...t.subtasks, { title, description, completed: false, comments: [] }],
+        activities: [{ text: `New subtask added: "${title}"`, timestamp: fmtNow() }, ...(t.activities || [])],
+      }));
+      setNewSubInput('');
+      setNewSubDesc('');
+      if (onUpdate) onUpdate();
+      return;
+    }
+
+    // Online path
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       const token = localStorage.getItem('token');
-      const res = await fetch(`${apiUrl}/tasks/${task.id}/subtasks`, {
+      const res = await fetch(`${apiUrl}/tasks/${taskId}/subtasks`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -431,23 +448,75 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
         },
         body: JSON.stringify({ title, description, completed: false })
       });
-      const data = await res.json();
-      if (data.status === 'success') {
-        const newApiSubtask = data.data.subtask;
-        subData = { ...subData, id: newApiSubtask.id };
-      }
-    } catch (e) {
-      console.error('Failed to add subtask', e);
-    }
 
-    setTask(t => ({
-      ...t,
-      subtasks: [...t.subtasks, subData],
-      activities: [{ text: `New subtask added: "${title}"`, timestamp: fmtNow() }, ...(t.activities || [])],
-    }));
-    setNewSubInput('');
-    setNewSubDesc('');
-    if (onUpdate) onUpdate();
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        console.error(`Failed to add subtask (HTTP ${res.status}):`, errData.message || 'Unknown error');
+        return; // Do NOT add a local subtask on error
+      }
+
+      const data = await res.json();
+      // Backend returns { status, data: { subtasks: [...] } } — the full updated array
+      const serverSubtasks = data.data?.subtasks || [];
+
+      // Identify the newly created subtask by finding IDs in the server response
+      // that don't exist in our current local state
+      const existingIds = new Set(
+        (task.subtasks || []).map(s => String(s.id || s._id)).filter(id => id && id !== 'undefined')
+      );
+      const newServerSub = serverSubtasks.find(
+        s => !existingIds.has(String(s.id || s._id))
+      );
+
+      // Use the full server subtasks array as the source of truth
+      const finalSubtasks = serverSubtasks.map(s => ({
+        ...s,
+        comments: s.comments || [],
+      }));
+
+      // Update React state with the server's subtask array
+      setTask(t => ({
+        ...t,
+        subtasks: finalSubtasks,
+        activities: [{ text: `New subtask added: "${title}"`, timestamp: fmtNow() }, ...(t.activities || [])],
+      }));
+
+      // Update PouchDB cache so navigation away + back reads the correct data
+      try {
+        const tasksUrl = `${apiUrl}/projects/${targetProjectId}/tasks`;
+        const cached = await getCachedData(tasksUrl);
+        if (cached) {
+          const scopedKey = getScopedCacheKey(tasksUrl);
+          const currentTasks = getTasksArrayFromCache(cached);
+          const taskIdStr = String(taskId);
+          const updatedTasks = currentTasks.map(t => {
+            if (String(t.id || t._id) === taskIdStr) {
+              return { ...t, subtasks: finalSubtasks };
+            }
+            return t;
+          });
+          await cacheData(scopedKey, createUpdatedCachePayload(cached, updatedTasks));
+        }
+      } catch (cacheErr) {
+        console.warn('Failed to update PouchDB cache after subtask creation:', cacheErr);
+      }
+
+      setNewSubInput('');
+      setNewSubDesc('');
+      if (onUpdate) onUpdate();
+    } catch (networkErr) {
+      // Network failure — fall back to offline queue
+      console.warn('Network error adding subtask, falling back to offline queue:', networkErr);
+      await handleOfflineSubtaskOperation(null, taskId, targetProjectId, 'CREATE', { title, description, completed: false, comments: [] });
+      setTask(t => ({
+        ...t,
+        subtasks: [...t.subtasks, { title, description, completed: false, comments: [] }],
+        activities: [{ text: `New subtask added: "${title}"`, timestamp: fmtNow() }, ...(t.activities || [])],
+      }));
+      setNewSubInput('');
+      setNewSubDesc('');
+      if (onUpdate) onUpdate();
+    }
   };
 
   /* ── Edit subtask ── */

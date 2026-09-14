@@ -253,7 +253,7 @@ export const handleOfflineCreateTask = async (projectId, taskData) => {
 /**
  * Helper to extract tasks array from various cached response shapes.
  */
-const getTasksArrayFromCache = (cached) => {
+export const getTasksArrayFromCache = (cached) => {
   if (!cached) return [];
   if (Array.isArray(cached)) return cached;
   if (Array.isArray(cached.tasks)) return cached.tasks;
@@ -265,7 +265,7 @@ const getTasksArrayFromCache = (cached) => {
 /**
  * Helper to wrap updated tasks array back into the original cached structure.
  */
-const createUpdatedCachePayload = (cached, updatedTasks) => {
+export const createUpdatedCachePayload = (cached, updatedTasks) => {
   if (!cached) return { status: 'success', data: { tasks: updatedTasks } };
   if (Array.isArray(cached)) return updatedTasks;
   if (Array.isArray(cached.tasks)) return { ...cached, tasks: updatedTasks };
@@ -438,7 +438,7 @@ export const handleOfflineSubtaskOperation = async (subtaskId, taskId, projectId
 
   if (action === 'UPDATE') {
     endpoint = `${API_URL}/subtasks/${subtaskId}`;
-    method = 'PUT';
+    method = 'PATCH';
     type = 'UPDATE_SUBTASK';
   } else if (action === 'DELETE') {
     endpoint = `${API_URL}/subtasks/${subtaskId}`;
