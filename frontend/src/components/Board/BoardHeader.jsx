@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { normalizeMember, getInitials } from '../../utils/memberUtils';
 import { getAttachments } from '../../services/projectService';
+import { useSocket } from '../../context/SocketContext';
 import './BoardHeader.css';
 
 const COLOR_HEX = {
@@ -21,8 +22,10 @@ export default function BoardHeader({
   activeSubTab = 'Board',
   onSubTabChange
 }) {
+  const { isConnected, connectionState, socket } = useSocket() || { isConnected: false, connectionState: 'disconnected' };
   const [projectMembers, setProjectMembers] = useState([]);
   const [projectAttachments, setProjectAttachments] = useState([]);
+  const [activeUsers, setActiveUsers] = useState([]);
 
   const subTabs = ['Board', 'Timeline', 'Activity'];
 
@@ -77,6 +80,19 @@ export default function BoardHeader({
     fetchAttachmentsData();
   }, [projectId, project]);
 
+  useEffect(() => {
+    if (socket) {
+      const handleActiveUsers = (users) => {
+        setActiveUsers(users);
+      };
+      
+      socket.on('active_users', handleActiveUsers);
+      return () => {
+        socket.off('active_users', handleActiveUsers);
+      };
+    }
+  }, [socket]);
+
   const displayTags = [category, status === 'active' ? 'Active' : 'Archived', ...(tags || [])];
   
   let displayDeadline = 'Ongoing';
@@ -95,8 +111,24 @@ export default function BoardHeader({
       <div className="board-title-row" style={{ alignItems: 'flex-start', margin: 0 }}>
         
         {/* LEFT: Title */}
-        <div className="board-title-group" style={{ alignItems: 'center', display: 'flex' }}>
+        <div className="board-title-group" style={{ alignItems: 'center', display: 'flex', gap: '12px' }}>
           <h1 className="board-main-title">{name}</h1>
+          <div 
+            title={
+              connectionState === 'connected' ? "Connected to live sync" : 
+              connectionState === 'reconnecting' ? "Reconnecting..." : "Disconnected"
+            }
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: connectionState === 'connected' ? '#10b981' : 
+                               connectionState === 'reconnecting' ? '#f59e0b' : '#f43f5e',
+              boxShadow: connectionState === 'connected' ? '0 0 8px #10b981' : 
+                         connectionState === 'reconnecting' ? '0 0 8px #f59e0b' : 'none',
+              transition: 'background-color 0.3s, box-shadow 0.3s'
+            }}
+          />
         </div>
 
         {/* RIGHT: Deadline, Avatars, Add Task */}
@@ -114,30 +146,51 @@ export default function BoardHeader({
           {/* Avatars */}
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <div className="pc-list-members" style={{ marginRight: '16px', display: 'flex', flexDirection: 'row-reverse' }}>
-              {projectMembers.map(normalizeMember).slice(0, 4).map((member, idx, arr) => (
-                <div
-                  key={idx}
-                  className="pc-list-avatar"
-                  style={{ backgroundColor: member.avatar ? 'transparent' : (member.bg || COLOR_HEX.blue), zIndex: idx, marginLeft: idx !== arr.length - 1 ? '-10px' : '0' }}
-                >
-                  <div className="avatar-inner">
-                    {member.avatar ? (
-                      <img src={member.avatar} alt={member.name} />
-                    ) : (
-                      member.initials || getInitials(member.name)
+              {projectMembers.map(normalizeMember).slice(0, 4).map((member, idx, arr) => {
+                const isActive = activeUsers.some(u => {
+                  const uId = typeof u === 'object' ? (u.userId || u.id || u._id) : u;
+                  const mId = member.userId || member.id || member._id;
+                  return uId && mId && String(uId) === String(mId);
+                });
+                
+                return (
+                  <div
+                    key={idx}
+                    className="pc-list-avatar"
+                    style={{ backgroundColor: member.avatar ? 'transparent' : (member.bg || COLOR_HEX.blue), zIndex: idx, marginLeft: idx !== arr.length - 1 ? '-10px' : '0', position: 'relative' }}
+                  >
+                    <div className="avatar-inner">
+                      {member.avatar ? (
+                        <img src={member.avatar} alt={member.name} />
+                      ) : (
+                        member.initials || getInitials(member.name)
+                      )}
+                    </div>
+                    {isActive && (
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '0',
+                        right: '0',
+                        width: '8px',
+                        height: '8px',
+                        backgroundColor: '#10b981',
+                        border: '2px solid white',
+                        borderRadius: '50%',
+                        zIndex: 2
+                      }} title="Active now" />
                     )}
-                  </div>
-                  <div className="custom-avatar-tooltip">
-                    <div className="tooltip-avatar" style={{ backgroundColor: member.bg || COLOR_HEX.blue }}>
-                      {member.avatar ? <img src={member.avatar} alt="" /> : (member.initials || getInitials(member.name))}
+                    <div className="custom-avatar-tooltip">
+                      <div className="tooltip-avatar" style={{ backgroundColor: member.bg || COLOR_HEX.blue }}>
+                        {member.avatar ? <img src={member.avatar} alt="" /> : (member.initials || getInitials(member.name))}
+                      </div>
+                      <div className="tooltip-info">
+                        <span className="name">{member.name} {isActive && '(Active)'}</span>
+                        <span className="email">{member.email || member.role || 'Member'}</span>
+                      </div>
                     </div>
-                    <div className="tooltip-info">
-                      <span className="name">{member.name}</span>
-                      <span className="email">{member.email || member.role || 'Member'}</span>
-                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {projectMembers.length > 4 && (
                 <div className="pc-list-avatar-more" style={{ zIndex: 10 }}>
                   +{projectMembers.length - 4}

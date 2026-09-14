@@ -30,8 +30,8 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
     if (initialProjectId) {
       return initialProjectId;
     }
-    // Default fallback
-    return null;
+    // Default fallback to localStorage
+    return localStorage.getItem('board_active_project') || null;
   });
 
   const [loading, setLoading] = useState(true);
@@ -136,6 +136,10 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
               setSelectedProjectId(targetId);
             } else if (apiProjects.length > 0) {
               setSelectedProjectId(prev => {
+                const storedId = localStorage.getItem('board_active_project');
+                if (storedId && apiProjects.some(p => p.id === storedId)) {
+                  return storedId;
+                }
                 if (!prev || !apiProjects.some(p => p.id === prev)) {
                   return apiProjects[0].id;
                 }
@@ -161,6 +165,9 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
 
   const handleSelectProject = (projectId) => {
     setSelectedProjectId(projectId);
+    if (projectId) {
+      localStorage.setItem('board_active_project', projectId);
+    }
     if (onSelectProject) {
       onSelectProject(projectId);
     }
