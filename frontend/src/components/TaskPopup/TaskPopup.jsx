@@ -271,7 +271,8 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       const token = localStorage.getItem('token');
-      await fetch(`${apiUrl}/subtasks/${targetSub.id}`, {
+      const subId = targetSub.id || targetSub._id;
+      await fetch(`${apiUrl}/subtasks/${subId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ completed: newCompleted })
@@ -320,7 +321,8 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       const token = localStorage.getItem('token');
-      await fetch(`${apiUrl}/subtasks/${targetSub.id}`, {
+      const subId = targetSub.id || targetSub._id;
+      await fetch(`${apiUrl}/subtasks/${subId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -445,7 +447,8 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       const token = localStorage.getItem('token');
-      await fetch(`${apiUrl}/subtasks/${targetSub.id}`, {
+      const subId = targetSub.id || targetSub._id;
+      await fetch(`${apiUrl}/subtasks/${subId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ title: newTitle, description: newDesc })
