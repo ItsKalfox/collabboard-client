@@ -3,7 +3,7 @@ import { X, Calendar, CheckSquare, Clock, AlignLeft, Users, CornerDownRight, Tag
 import { formatDate } from '../../utils/dateUtils';
 import { isProjectOwner, formatActivityText } from '../../utils/projectUtils';
 import ConfirmModal from '../Board/ConfirmModal';
-import { handleOfflineUpdateTask, handleOfflineDeleteTask, handleOfflineSubtaskOperation, getTasksArrayFromCache, createUpdatedCachePayload } from '../../services/offlineMutationHelper';
+import { handleOfflineUpdateTask, handleOfflineDeleteTask, handleOfflineSubtaskOperation, handleOfflineTaskReview, getTasksArrayFromCache, createUpdatedCachePayload } from '../../services/offlineMutationHelper';
 import { cacheData, getCachedData, getScopedCacheKey } from '../../services/cacheService';
 import './TaskPopup.css';
 
@@ -363,50 +363,184 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
   const [reviewComment, setReviewComment] = useState('');
 
   const handleApprove = async () => {
+    if (!canApprove) return;
     if (!reviewComment.trim()) return;
+    const taskId = task.id || task._id;
+    const targetProjectId = project?.id || project?._id || task.projectId;
+    const currentVersion = task.version !== undefined ? task.version : task.__v;
+    const commentText = reviewComment.trim();
+
+    if (!navigator.onLine || (typeof taskId === 'string' && taskId.startsWith('temp-'))) {
+      await handleOfflineTaskReview(taskId, targetProjectId, 'approve', commentText, currentVersion);
+      setTask(t => ({
+        ...t,
+        status: 'completed',
+        isApproved: true,
+        _isPending: true,
+        activities: [
+          { text: `Task is approved by ${currentUser?.name || 'You'} with this comment: ${commentText}`, timestamp: fmtNow() },
+          ...(t.activities || [])
+        ]
+      }));
+      setReviewComment('');
+      if (onUpdate) onUpdate();
+      return;
+    }
+
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       const token = localStorage.getItem('token');
-      
-      await fetch(`${apiUrl}/tasks/${task.id}/review`, {
+      const res = await fetch(`${apiUrl}/tasks/${taskId}/review`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ comment: reviewComment })
+        body: JSON.stringify({ comment: commentText, version: currentVersion, __v: currentVersion })
       });
-      
-      setTask(t => ({ 
-        ...t, 
-        status: 'completed', 
+
+      if (res.status === 409) {
+        setConflictError(true);
+        return;
+      }
+
+      if (!res.ok) {
+        const errPayload = await res.json().catch(() => ({}));
+        alert(errPayload.message || `Failed to approve task (HTTP ${res.status})`);
+        return;
+      }
+
+      const payload = await res.json();
+      const serverTask = payload.data?.task || payload.task;
+
+      // Reconcile PouchDB cache with authoritative server task
+      if (serverTask && targetProjectId) {
+        const tasksUrl = `${apiUrl}/projects/${targetProjectId}/tasks`;
+        const cached = await getCachedData(tasksUrl);
+        if (cached && cached.data && Array.isArray(cached.data.tasks)) {
+          const updatedTasks = cached.data.tasks.map(t =>
+            (t.id === taskId || t._id === taskId) ? { ...t, ...serverTask, _isPending: false } : t
+          );
+          await cacheData(getScopedCacheKey(tasksUrl), { ...cached, data: { ...cached.data, tasks: updatedTasks } });
+        }
+      }
+
+      setTask(t => ({
+        ...t,
+        ...(serverTask || {}),
+        status: 'completed',
         isApproved: true,
-        activities: [{ text: `Task is approved by ${currentUser?.name || 'You'} with this comment: ${reviewComment}`, timestamp: fmtNow() }, ...(t.activities || [])]
+        _isPending: false,
+        activities: [
+          { text: `Task is approved by ${currentUser?.name || 'You'} with this comment: ${commentText}`, timestamp: fmtNow() },
+          ...(t.activities || [])
+        ]
       }));
+      setReviewComment('');
       if (onUpdate) onUpdate();
     } catch (e) {
-      console.error('Failed to approve task', e);
+      console.warn('Network error approving task online, falling back to offline outbox:', e);
+      await handleOfflineTaskReview(taskId, targetProjectId, 'approve', commentText, currentVersion);
+      setTask(t => ({
+        ...t,
+        status: 'completed',
+        isApproved: true,
+        _isPending: true,
+        activities: [
+          { text: `Task is approved by ${currentUser?.name || 'You'} with this comment: ${commentText}`, timestamp: fmtNow() },
+          ...(t.activities || [])
+        ]
+      }));
+      setReviewComment('');
+      if (onUpdate) onUpdate();
     }
   };
 
   const handleReject = async () => {
+    if (!canApprove) return;
     if (!reviewComment.trim()) return;
+    const taskId = task.id || task._id;
+    const targetProjectId = project?.id || project?._id || task.projectId;
+    const currentVersion = task.version !== undefined ? task.version : task.__v;
+    const commentText = reviewComment.trim();
+
+    if (!navigator.onLine || (typeof taskId === 'string' && taskId.startsWith('temp-'))) {
+      await handleOfflineTaskReview(taskId, targetProjectId, 'reject', commentText, currentVersion);
+      setTask(t => ({
+        ...t,
+        status: 'in_progress',
+        isApproved: false,
+        _isPending: true,
+        activities: [
+          { text: `Task is rejected by ${currentUser?.name || 'You'} with this comment: ${commentText}`, timestamp: fmtNow() },
+          ...(t.activities || [])
+        ]
+      }));
+      setReviewComment('');
+      if (onUpdate) onUpdate();
+      return;
+    }
+
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       const token = localStorage.getItem('token');
-      
-      await fetch(`${apiUrl}/tasks/${task.id}/reject`, {
+      const res = await fetch(`${apiUrl}/tasks/${taskId}/reject`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ comment: reviewComment })
+        body: JSON.stringify({ comment: commentText, version: currentVersion, __v: currentVersion })
       });
-      
-      setTask(t => ({ 
-        ...t, 
-        status: 'in_progress', 
+
+      if (res.status === 409) {
+        setConflictError(true);
+        return;
+      }
+
+      if (!res.ok) {
+        const errPayload = await res.json().catch(() => ({}));
+        alert(errPayload.message || `Failed to reject task (HTTP ${res.status})`);
+        return;
+      }
+
+      const payload = await res.json();
+      const serverTask = payload.data?.task || payload.task;
+
+      // Reconcile PouchDB cache with authoritative server task
+      if (serverTask && targetProjectId) {
+        const tasksUrl = `${apiUrl}/projects/${targetProjectId}/tasks`;
+        const cached = await getCachedData(tasksUrl);
+        if (cached && cached.data && Array.isArray(cached.data.tasks)) {
+          const updatedTasks = cached.data.tasks.map(t =>
+            (t.id === taskId || t._id === taskId) ? { ...t, ...serverTask, _isPending: false } : t
+          );
+          await cacheData(getScopedCacheKey(tasksUrl), { ...cached, data: { ...cached.data, tasks: updatedTasks } });
+        }
+      }
+
+      setTask(t => ({
+        ...t,
+        ...(serverTask || {}),
+        status: 'in_progress',
         isApproved: false,
-        activities: [{ text: `Task is rejected by ${currentUser?.name || 'You'} with this comment: ${reviewComment}`, timestamp: fmtNow() }, ...(t.activities || [])]
+        _isPending: false,
+        activities: [
+          { text: `Task is rejected by ${currentUser?.name || 'You'} with this comment: ${commentText}`, timestamp: fmtNow() },
+          ...(t.activities || [])
+        ]
       }));
+      setReviewComment('');
       if (onUpdate) onUpdate();
     } catch (e) {
-      console.error('Failed to reject task', e);
+      console.warn('Network error rejecting task online, falling back to offline outbox:', e);
+      await handleOfflineTaskReview(taskId, targetProjectId, 'reject', commentText, currentVersion);
+      setTask(t => ({
+        ...t,
+        status: 'in_progress',
+        isApproved: false,
+        _isPending: true,
+        activities: [
+          { text: `Task is rejected by ${currentUser?.name || 'You'} with this comment: ${commentText}`, timestamp: fmtNow() },
+          ...(t.activities || [])
+        ]
+      }));
+      setReviewComment('');
+      if (onUpdate) onUpdate();
     }
   };
 
@@ -940,7 +1074,14 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
             <div className="popup-meta-val popup-meta-text" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {formatStatus(task.status)}
               {task.isApproved && (
-                <span style={{ marginLeft: 'auto', fontSize: '13px', color: '#10b981', fontWeight: 600 }}>✓ Approved</span>
+                <span style={{ marginLeft: 'auto', fontSize: '13px', color: task._isPending ? '#f59e0b' : '#10b981', fontWeight: 600 }}>
+                  {task._isPending ? '✓ Approved (Pending Sync)' : '✓ Approved'}
+                </span>
+              )}
+              {!task.isApproved && task._isPending && (
+                <span style={{ marginLeft: 'auto', fontSize: '12px', color: '#f59e0b', fontWeight: 600 }}>
+                  (Pending Sync)
+                </span>
               )}
             </div>
           </div>

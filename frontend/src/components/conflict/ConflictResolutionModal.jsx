@@ -42,6 +42,8 @@ export default function ConflictResolutionModal({
   const formatEntityTitle = (mutation) => {
     if (mutation.payload?.name) return mutation.payload.name;
     if (mutation.payload?.title) return mutation.payload.title;
+    if (mutation.type === 'APPROVE_TASK') return `Approve Task ${mutation.taskId || ''}`;
+    if (mutation.type === 'REJECT_TASK') return `Reject Task ${mutation.taskId || ''}`;
     if (mutation.type === 'UPDATE_PROJECT') return `Project ${mutation.projectId || ''}`;
     if (mutation.type === 'UPDATE_TASK' || mutation.type === 'UPDATE_TASK_STATUS') return `Task ${mutation.taskId || ''}`;
     return mutation.type || 'Item';

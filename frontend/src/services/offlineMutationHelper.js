@@ -449,7 +449,7 @@ export const handleOfflineUpdateTask = async (taskId, projectId, updateData, isS
     ? `${API_URL}/tasks/${taskId}/status`
     : `${API_URL}/tasks/${taskId}`;
 
-  const method = isStatusOnly ? 'PATCH' : 'PUT';
+  const method = 'PATCH';
   const type = isStatusOnly ? 'UPDATE_TASK_STATUS' : 'UPDATE_TASK';
 
   await enqueueMutation({
@@ -569,3 +569,131 @@ export const handleOfflineSubtaskOperation = async (subtaskId, taskId, projectId
 
   return { status: 'success' };
 };
+
+/**
+ * Handles offline task review (Approve or Reject).
+ */
+export const handleOfflineTaskReview = async (taskId, projectId, action, comment, version) => {
+  const userRaw = localStorage.getItem('user');
+  let currentUserId = 'me';
+  let currentUserName = 'You';
+  if (userRaw) {
+    try {
+      const u = JSON.parse(userRaw);
+      currentUserId = u.id || u._id || currentUserId;
+      currentUserName = u.name || currentUserName;
+    } catch { }
+  }
+
+  const isApprove = String(action).toLowerCase().startsWith('app');
+  const newStatus = isApprove ? 'completed' : 'in_progress';
+  const isApproved = isApprove;
+  const reviewStatus = isApprove ? 'approved' : 'rejected';
+  const activityType = isApprove ? 'approved' : 'rejected';
+  const activityText = isApprove
+    ? `Task is approved by ${currentUserName} with this comment: ${comment}`
+    : `Task is rejected by ${currentUserName} with this comment: ${comment}`;
+
+  const targetIdStr = String(taskId);
+
+  // 1. Update local GET /api/projects/:projectId/tasks cache
+  const tasksUrl = `${API_URL}/projects/${projectId}/tasks`;
+  const scopedKey = getScopedCacheKey(tasksUrl);
+  const cached = await getCachedData(tasksUrl);
+  let updatedTask = null;
+
+  if (cached) {
+    const currentTasks = getTasksArrayFromCache(cached);
+
+    const updatedTasks = currentTasks.map(task => {
+      const tId = String(task.id || task._id);
+      if (tId === targetIdStr) {
+        const existingReviews = Array.isArray(task.reviews) ? task.reviews : [];
+        const existingActivities = Array.isArray(task.activities) ? task.activities : [];
+
+        updatedTask = {
+          ...task,
+          status: newStatus,
+          isApproved,
+          reviews: [
+            ...existingReviews,
+            { reviewerId: currentUserId, status: reviewStatus, comment, createdAt: new Date().toISOString() }
+          ],
+          activities: [
+            { type: activityType, text: activityText, fromStatus: task.status, toStatus: newStatus, userId: currentUserId, timestamp: new Date().toISOString() },
+            ...existingActivities
+          ],
+          id: task.id || task._id || targetIdStr,
+          _id: task._id || task.id || targetIdStr,
+          updatedAt: new Date().toISOString(),
+          _isPending: true
+        };
+
+        if (version !== undefined) {
+          updatedTask.version = version;
+          updatedTask.__v = version;
+        }
+
+        return updatedTask;
+      }
+      return task;
+    });
+
+    await cacheData(scopedKey, createUpdatedCachePayload(cached, updatedTasks));
+  }
+
+  // 2. Also update local project cache if project contains embedded tasks
+  const projectsUrl = `${API_URL}/projects`;
+  const projectsScopedKey = getScopedCacheKey(projectsUrl);
+  const cachedProjects = await getCachedData(projectsUrl);
+  if (cachedProjects) {
+    const currentProjects = getProjectsArrayFromCache(cachedProjects);
+    const updatedProjects = currentProjects.map(p => {
+      if (String(p.id || p._id) === String(projectId) && Array.isArray(p.tasks)) {
+        const updatedProjTasks = p.tasks.map(t => {
+          if (String(t.id || t._id) === targetIdStr) {
+            return {
+              ...t,
+              status: newStatus,
+              isApproved,
+              id: t.id || t._id || targetIdStr,
+              _id: t._id || t.id || targetIdStr,
+              _isPending: true
+            };
+          }
+          return t;
+        });
+        return { ...p, tasks: updatedProjTasks };
+      }
+      return p;
+    });
+    await cacheData(projectsScopedKey, createUpdatedProjectsCachePayload(cachedProjects, updatedProjects));
+  }
+
+  // 3. Enqueue outbox mutation
+  const type = isApprove ? 'APPROVE_TASK' : 'REJECT_TASK';
+  const endpoint = isApprove ? `${API_URL}/tasks/${taskId}/review` : `${API_URL}/tasks/${taskId}/reject`;
+  const payload = { comment };
+  if (version !== undefined) {
+    payload.__v = version;
+    payload.version = version;
+  }
+
+  await enqueueMutation({
+    type,
+    method: 'POST',
+    endpoint,
+    payload,
+    taskId,
+    projectId
+  });
+
+  return updatedTask || {
+    id: taskId,
+    _id: taskId,
+    status: newStatus,
+    isApproved,
+    _isPending: true
+  };
+};
+

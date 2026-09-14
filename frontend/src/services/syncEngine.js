@@ -124,7 +124,7 @@ const reconcileLocalReadCache = async (mutation, responseData) => {
       const currentProjects = getProjectsArrayFromCache(cached);
       const updatedProjects = currentProjects.filter(p => p._id !== projectId && p.id !== projectId);
       await cacheData(getScopedCacheKey(projectsUrl), createUpdatedProjectsCachePayload(cached, updatedProjects));
-    } else if (type === 'CREATE_TASK' || type === 'UPDATE_TASK' || type === 'UPDATE_TASK_STATUS' || type === 'DELETE_TASK') {
+    } else if (type === 'CREATE_TASK' || type === 'UPDATE_TASK' || type === 'UPDATE_TASK_STATUS' || type === 'DELETE_TASK' || type === 'APPROVE_TASK' || type === 'REJECT_TASK') {
       const realTask = responseData.data?.task || responseData.task;
       const targetProjectId = projectId || (realTask && realTask.projectId);
 
@@ -134,14 +134,55 @@ const reconcileLocalReadCache = async (mutation, responseData) => {
         if (cached && cached.data && Array.isArray(cached.data.tasks)) {
           let updatedTasks = [...cached.data.tasks];
           if (type === 'CREATE_TASK' && realTask) {
-            updatedTasks = updatedTasks.filter(t => t._id !== tempId);
+            updatedTasks = updatedTasks.filter(t => t._id !== tempId && t.id !== tempId);
             updatedTasks.push(realTask);
-          } else if ((type === 'UPDATE_TASK' || type === 'UPDATE_TASK_STATUS') && realTask) {
-            updatedTasks = updatedTasks.map(t => (t._id === realTask._id || t._id === tempId) ? realTask : t);
+          } else if ((type === 'UPDATE_TASK' || type === 'UPDATE_TASK_STATUS' || type === 'APPROVE_TASK' || type === 'REJECT_TASK') && realTask) {
+            const realTaskId = String(realTask.id || realTask._id);
+            updatedTasks = updatedTasks.map(t => {
+              const tId = String(t.id || t._id);
+              if (tId === realTaskId || (taskId && tId === String(taskId)) || (tempId && tId === String(tempId))) {
+                return {
+                  ...t,
+                  ...realTask,
+                  id: realTask.id || realTask._id || t.id,
+                  _id: realTask._id || realTask.id || t._id,
+                  _isPending: false
+                };
+              }
+              return t;
+            });
           } else if (type === 'DELETE_TASK') {
-            updatedTasks = updatedTasks.filter(t => t._id !== taskId && t._id !== tempId);
+            updatedTasks = updatedTasks.filter(t => t._id !== taskId && t.id !== taskId && t._id !== tempId);
           }
           await cacheData(getScopedCacheKey(tasksUrl), { ...cached, data: { ...cached.data, tasks: updatedTasks } });
+        }
+      }
+
+      // Also reconcile embedded tasks in projects list cache if present
+      if (realTask) {
+        const projectsUrl = `${apiUrl}/projects`;
+        const cachedProjects = await getCachedData(projectsUrl);
+        if (cachedProjects) {
+          const currentProjects = getProjectsArrayFromCache(cachedProjects);
+          const realTaskId = String(realTask.id || realTask._id);
+          let modified = false;
+          const updatedProjects = currentProjects.map(p => {
+            if (String(p.id || p._id) === String(targetProjectId) && Array.isArray(p.tasks)) {
+              modified = true;
+              const updatedProjTasks = p.tasks.map(t => {
+                const tId = String(t.id || t._id);
+                if (tId === realTaskId || (taskId && tId === String(taskId))) {
+                  return { ...t, ...realTask, id: realTask.id || realTask._id || t.id, _id: realTask._id || realTask.id || t._id, _isPending: false };
+                }
+                return t;
+              });
+              return { ...p, tasks: updatedProjTasks };
+            }
+            return p;
+          });
+          if (modified) {
+            await cacheData(getScopedCacheKey(projectsUrl), createUpdatedProjectsCachePayload(cachedProjects, updatedProjects));
+          }
         }
       }
     }

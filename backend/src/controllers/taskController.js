@@ -30,6 +30,21 @@ const checkTaskAuth = async (taskId, userId) => {
     return { task };
 };
 
+const checkReviewAuth = async (taskId, userId) => {
+    const task = await taskRepository.findByIdWithProject(taskId);
+    if (!task) return { error: 'Task not found', status: 404 };
+
+    const isOwner = task.projectId?.ownerId?.toString() === userId;
+    const member = task.projectId?.members?.find(m => m.userId?.toString() === userId);
+    const hasReviewAccess = member ? Boolean(member.reviewAccess) : false;
+
+    if (!isOwner && !hasReviewAccess) {
+        return { error: 'Not authorized to review this task', status: 403 };
+    }
+
+    return { task };
+};
+
 const handleErrorResponse = (error, res) => {
     if (error.name === 'VersionError') return res.status(409).json({ status: 'error', message: 'Conflict: This task was modified by another user. Please reload the task to see the latest changes.' });
     if (error.name === 'CastError' && error.kind === 'ObjectId') return res.status(404).json({ status: 'error', message: 'Resource not found' });
@@ -240,8 +255,10 @@ export const updateTaskStatus = async (req, res) => {
 export const reviewTask = async (req, res) => {
     try {
         const { comment } = req.body;
-        const task = await taskRepository.findById(req.params.taskId);
-        if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
+        if (!comment) return res.status(400).json({ status: 'error', message: 'Comment is required for approval' });
+
+        const { task, error, status } = await checkReviewAuth(req.params.taskId, req.user.id);
+        if (error) return res.status(status).json({ status: 'error', message: error });
 
         task.reviews.push({ reviewerId: req.user.id, status: 'approved', comment });
 
@@ -256,18 +273,19 @@ export const reviewTask = async (req, res) => {
             userId: req.user.id
         });
 
+        // For Optimistic Concurrency Control
+        if (req.body.force) {
+            // Force overwrite: don't apply frontend's stale version
+        } else {
+            if (req.body.__v !== undefined) task.__v = req.body.__v;
+            else if (req.body.version !== undefined) task.__v = req.body.version;
+        }
+
         await taskRepository.save(task);
 
         res.status(200).json({ status: 'success', message: 'Task approved', data: { task } });
     } catch (error) {
-        if (error.name === 'CastError' && error.kind === 'ObjectId') {
-            return res.status(404).json({ status: 'error', message: 'Resource not found' });
-        }
-        if (error.name === 'ValidationError') {
-            const messages = Object.values(error.errors).map(val => val.message);
-            return res.status(400).json({ status: 'error', message: messages.join(', ') });
-        }
-        res.status(500).json({ status: 'error', message: 'Server error' });
+        return handleErrorResponse(error, res);
     }
 };
 
@@ -276,8 +294,8 @@ export const rejectTask = async (req, res) => {
         const { comment } = req.body;
         if (!comment) return res.status(400).json({ status: 'error', message: 'Comment is required for rejection' });
 
-        const task = await taskRepository.findById(req.params.taskId);
-        if (!task) return res.status(404).json({ status: 'error', message: 'Task not found' });
+        const { task, error, status } = await checkReviewAuth(req.params.taskId, req.user.id);
+        if (error) return res.status(status).json({ status: 'error', message: error });
 
         task.reviews.push({ reviewerId: req.user.id, status: 'rejected', comment });
 
@@ -292,18 +310,19 @@ export const rejectTask = async (req, res) => {
             userId: req.user.id
         });
 
+        // For Optimistic Concurrency Control
+        if (req.body.force) {
+            // Force overwrite: don't apply frontend's stale version
+        } else {
+            if (req.body.__v !== undefined) task.__v = req.body.__v;
+            else if (req.body.version !== undefined) task.__v = req.body.version;
+        }
+
         await taskRepository.save(task);
 
         res.status(200).json({ status: 'success', message: 'Task rejected', data: { task } });
     } catch (error) {
-        if (error.name === 'CastError' && error.kind === 'ObjectId') {
-            return res.status(404).json({ status: 'error', message: 'Resource not found' });
-        }
-        if (error.name === 'ValidationError') {
-            const messages = Object.values(error.errors).map(val => val.message);
-            return res.status(400).json({ status: 'error', message: messages.join(', ') });
-        }
-        res.status(500).json({ status: 'error', message: 'Server error' });
+        return handleErrorResponse(error, res);
     }
 };
 

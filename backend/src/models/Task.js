@@ -46,6 +46,11 @@ taskSchema.virtual('id').get(function() {
 taskSchema.virtual('version').get(function() {
     return this.__v;
 });
+taskSchema.virtual('isApproved').get(function() {
+    if (!this.reviews || this.reviews.length === 0) return false;
+    const latest = this.reviews[this.reviews.length - 1];
+    return latest?.status === 'approved';
+});
 taskSchema.set('toJSON', {
     virtuals: true,
     transform: (doc, ret) => {

@@ -28,6 +28,7 @@ function normalizeTaskForPopup(task, columnTitle) {
   return {
     ...task,
     status: task.status || columnTitle || 'todo',
+    isApproved: task.isApproved !== undefined ? task.isApproved : Boolean(task.reviews && task.reviews.length > 0 && task.reviews[task.reviews.length - 1]?.status === 'approved'),
     priority: task.priority || 7,
     createdDate: task.createdAt || task.date || 'Mon, 20 Nov 2023',
     dueDate: task.dueDate || 'Fri, 01 Dec 2023',

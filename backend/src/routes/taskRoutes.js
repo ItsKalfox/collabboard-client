@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.get('/:taskId', protect, getTaskById);
 router.patch('/:taskId', protect, updateTask);
+router.put('/:taskId', protect, updateTask);
 router.delete('/:taskId', protect, deleteTask);
 router.patch('/:taskId/status', protect, updateTaskStatus);
 router.post('/:taskId/review', protect, reviewTask);
