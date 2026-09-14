@@ -1,4 +1,4 @@
-import { getPendingMutations, updateMutationStatus, removeMutation } from './mutationStore';
+import { getPendingMutations, updateMutationStatus, removeMutation, resetMutationToPending, getConflictedMutations } from './mutationStore';
 import { registerIdMapping, resolveId, replaceTempIdsInString, replaceTempIdsInObject } from './tempIdMap';
 import { cacheData, getCachedData, getScopedCacheKey } from './cacheService';
 import { getProjectsArrayFromCache, createUpdatedProjectsCachePayload } from './offlineMutationHelper';
@@ -88,11 +88,35 @@ const reconcileLocalReadCache = async (mutation, responseData) => {
     } else if (type === 'UPDATE_PROJECT') {
       const updatedProject = responseData.data?.project || responseData.project;
       if (updatedProject) {
+        const targetId = String(updatedProject.id || updatedProject._id || projectId);
         const projectsUrl = `${apiUrl}/projects`;
         const cached = await getCachedData(projectsUrl);
         const currentProjects = getProjectsArrayFromCache(cached);
-        const updatedProjects = currentProjects.map(p => (p._id === updatedProject._id || p.id === updatedProject._id) ? { ...p, ...updatedProject } : p);
+        const updatedProjects = currentProjects.map(p => {
+          const pId = String(p.id || p._id || '');
+          const pId2 = String(p._id || p.id || '');
+          const isMatch = (
+            pId === targetId ||
+            pId2 === targetId ||
+            (projectId && (pId === String(projectId) || pId2 === String(projectId)))
+          );
+          return isMatch ? { ...p, ...updatedProject, id: p.id || updatedProject.id || targetId, _id: p._id || updatedProject.id || targetId, _isPending: false } : p;
+        });
         await cacheData(getScopedCacheKey(projectsUrl), createUpdatedProjectsCachePayload(cached, updatedProjects));
+
+        // Also reconcile single project cache if present
+        const singleUrl = `${apiUrl}/projects/${targetId}`;
+        const singleCached = await getCachedData(singleUrl);
+        if (singleCached) {
+          const existing = singleCached.data?.project || singleCached.project || singleCached;
+          const merged = { ...existing, ...updatedProject, id: existing.id || updatedProject.id || targetId, _id: existing._id || updatedProject.id || targetId, _isPending: false };
+          const newPayload = (singleCached.data && singleCached.data.project)
+            ? { ...singleCached, data: { ...singleCached.data, project: merged } }
+            : (singleCached.project)
+              ? { ...singleCached, project: merged }
+              : merged;
+          await cacheData(getScopedCacheKey(singleUrl), newPayload);
+        }
       }
     } else if (type === 'DELETE_PROJECT') {
       const projectsUrl = `${apiUrl}/projects`;
@@ -177,7 +201,7 @@ export const processMutationQueue = async () => {
 
           // Register temporary ID mapping if a real ID is returned
           if (mutation.tempId) {
-            const realId = resData.data?.project?._id || resData.data?.task?._id || resData.project?._id || resData.task?._id;
+            const realId = resData.data?.project?.id || resData.data?.project?._id || resData.data?.task?.id || resData.data?.task?._id || resData.project?.id || resData.project?._id || resData.task?.id || resData.task?._id;
             if (realId) {
               registerIdMapping(mutation.tempId, realId);
             }
@@ -197,6 +221,7 @@ export const processMutationQueue = async () => {
         } else if (response.status === 409) {
           console.warn(`Conflict error (409) for mutation ${mutation.mutationId}`);
           await updateMutationStatus(mutation.mutationId, 'CONFLICT', { lastError: '409 Version Conflict' });
+          notifyListeners('mutation_conflict', { mutationId: mutation.mutationId, mutation, error: '409 Version Conflict' });
         } else {
           // HTTP 4xx / 5xx
           const errorText = `HTTP ${response.status}`;
@@ -224,6 +249,51 @@ export const processMutationQueue = async () => {
 };
 
 /**
+ * Retries a conflicted mutation by returning it to PENDING and triggering the sync engine.
+ * @param {string} mutationId 
+ * @returns {Promise<boolean>}
+ */
+export const retryConflictedMutation = async (mutationId) => {
+  if (!navigator.onLine) {
+    throw new Error('Cannot retry while offline. Please connect to the internet.');
+  }
+
+  await resetMutationToPending(mutationId);
+  notifyListeners('mutation_retry', { mutationId });
+  await processMutationQueue();
+  return true;
+};
+
+/**
+ * Retries all conflicted mutations for current user.
+ * @returns {Promise<boolean>}
+ */
+export const retryAllConflictedMutations = async () => {
+  if (!navigator.onLine) {
+    throw new Error('Cannot retry while offline. Please connect to the internet.');
+  }
+
+  const conflicts = await getConflictedMutations();
+  for (const c of conflicts) {
+    await resetMutationToPending(c.mutationId);
+  }
+  notifyListeners('mutation_retry_all', { count: conflicts.length });
+  await processMutationQueue();
+  return true;
+};
+
+/**
+ * Explicitly discards a conflicted mutation from PouchDB.
+ * @param {string} mutationId 
+ * @returns {Promise<boolean>}
+ */
+export const discardConflictedMutation = async (mutationId) => {
+  await removeMutation(mutationId);
+  notifyListeners('mutation_discarded', { mutationId });
+  return true;
+};
+
+/**
  * Initializes listeners for online events and auto-sync triggers.
  */
 export const initSyncEngine = () => {
@@ -239,3 +309,4 @@ export const initSyncEngine = () => {
     }, 1000);
   }
 };
+

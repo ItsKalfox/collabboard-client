@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon, AlertTriangle } from 'lucide-react';
 import backgroundBL from './assets/background-BL.jpg';
 import backgroundWH from './assets/background-WH.jpg';
 import logoWH from './assets/logo-WH.png';
@@ -10,8 +10,17 @@ import Board from './pages/Board';
 import Settings from './pages/Settings';
 import AuthModule from './components/auth/AuthModule';
 import ConfirmModal from './components/Board/ConfirmModal';
+import ConflictBanner from './components/conflict/ConflictBanner';
+import ConflictResolutionModal from './components/conflict/ConflictResolutionModal';
 import { isTokenExpired, parseJwt } from './utils/jwtUtils';
-import { initSyncEngine } from './services/syncEngine';
+import { getConflictedMutations } from './services/mutationStore';
+import { 
+  initSyncEngine, 
+  subscribeSyncStatus, 
+  retryConflictedMutation, 
+  retryAllConflictedMutations, 
+  discardConflictedMutation 
+} from './services/syncEngine';
 import './App.css';
 
 function App() {
@@ -69,6 +78,79 @@ function App() {
   });
 
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
+  const [conflicts, setConflicts] = useState([]);
+  const [isConflictModalOpen, setIsConflictModalOpen] = useState(false);
+  const [isSyncingConflicts, setIsSyncingConflicts] = useState(false);
+
+  const refreshConflicts = async () => {
+    try {
+      const list = await getConflictedMutations();
+      setConflicts(list || []);
+    } catch (err) {
+      console.error('Failed to load conflicts:', err);
+    }
+  };
+
+  useEffect(() => {
+    refreshConflicts();
+
+    const unsubscribe = subscribeSyncStatus((event) => {
+      if (['mutation_conflict', 'mutation_synced', 'mutation_discarded', 'sync_complete', 'mutation_retry', 'mutation_retry_all'].includes(event)) {
+        refreshConflicts();
+      }
+      if (event === 'sync_start') {
+        setIsSyncingConflicts(true);
+      }
+      if (event === 'sync_complete' || event === 'sync_error') {
+        setIsSyncingConflicts(false);
+      }
+    });
+
+    const handleOnline = () => {
+      refreshConflicts();
+    };
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [currentUser]);
+
+  const handleRetryConflict = async (mutationId) => {
+    setIsSyncingConflicts(true);
+    try {
+      await retryConflictedMutation(mutationId);
+      await refreshConflicts();
+    } catch (err) {
+      console.error('Failed to retry conflict:', err);
+      alert(err.message || 'Failed to retry synchronization');
+    } finally {
+      setIsSyncingConflicts(false);
+    }
+  };
+
+  const handleRetryAllConflicts = async () => {
+    setIsSyncingConflicts(true);
+    try {
+      await retryAllConflictedMutations();
+      await refreshConflicts();
+    } catch (err) {
+      console.error('Failed to retry all conflicts:', err);
+      alert(err.message || 'Failed to retry all conflicts');
+    } finally {
+      setIsSyncingConflicts(false);
+    }
+  };
+
+  const handleDiscardConflict = async (mutationId) => {
+    try {
+      await discardConflictedMutation(mutationId);
+      await refreshConflicts();
+    } catch (err) {
+      console.error('Failed to discard conflict:', err);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -276,6 +358,15 @@ function App() {
         message="Are you sure you want to log out?"
         onConfirm={handleLogout}
         confirmText="Logout"
+      />
+      <ConflictResolutionModal
+        isOpen={isConflictModalOpen}
+        onClose={() => setIsConflictModalOpen(false)}
+        conflicts={conflicts}
+        onRetry={handleRetryConflict}
+        onRetryAll={handleRetryAllConflicts}
+        onDiscard={handleDiscardConflict}
+        isSyncing={isSyncingConflicts}
       />
       {sessionExpired && (
         <div style={{
@@ -497,6 +588,43 @@ function App() {
             {/* Actions: Theme Toggle and Email */}
             <div className="top-bar-actions">
 
+              {/* Conflict Indicator Button */}
+              {conflicts.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsConflictModalOpen(true)}
+                  className="icon-btn cursor-pointer"
+                  title={`${conflicts.length} unresolved sync conflict(s)`}
+                  style={{
+                    position: 'relative',
+                    borderColor: '#ef4444',
+                    color: '#ef4444',
+                    backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.1)'
+                  }}
+                >
+                  <AlertTriangle size={18} />
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '-4px',
+                      right: '-4px',
+                      backgroundColor: '#ef4444',
+                      color: '#ffffff',
+                      fontSize: '10px',
+                      fontWeight: '700',
+                      width: '18px',
+                      height: '18px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    {conflicts.length}
+                  </span>
+                </button>
+              )}
+
               {/* Theme Toggle Button */}
               <button type="button" onClick={toggleTheme} className="theme-toggle-btn cursor-pointer icon-btn">
                 {isDark ? <Sun size={18} /> : <Moon size={18} />}
@@ -511,6 +639,14 @@ function App() {
               </div>
             </div>
           </div>
+
+          {/* Conflict Banner */}
+          <ConflictBanner
+            conflicts={conflicts}
+            onOpenModal={() => setIsConflictModalOpen(true)}
+            onRetryAll={handleRetryAllConflicts}
+            isSyncing={isSyncingConflicts}
+          />
 
           {/* Page Content */}
           {activeTab === 'Dashboard' ? (

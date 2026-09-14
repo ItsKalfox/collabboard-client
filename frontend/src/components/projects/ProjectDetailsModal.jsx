@@ -372,12 +372,16 @@ export default function ProjectDetailsModal({
     };
 
     try {
-      if (project.id) {
-        await updateProject(project.id, {
+      const pId = project.id || project._id;
+      if (pId) {
+        const savedProject = await updateProject(pId, {
           name: updated.name,
           description: updated.description,
           dueDate: updated.dueDate
         });
+        if (savedProject) {
+          Object.assign(updated, savedProject);
+        }
       }
       // Revert dueDate back to formatted for the UI
       updated.dueDate = formattedDue;

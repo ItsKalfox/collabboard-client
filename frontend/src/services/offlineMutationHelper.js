@@ -188,6 +188,118 @@ export const handleOfflineDeleteProject = async (projectId) => {
 };
 
 /**
+ * Handles offline updating of a project.
+ * @param {string} projectId - Target project ID (real or temp).
+ * @param {Object} updateData - Updated project fields (name, description, dueDate, etc.).
+ * @returns {Promise<Object>} Updated project object.
+ */
+export const handleOfflineUpdateProject = async (projectId, updateData) => {
+  const targetIdStr = String(projectId);
+  const targetResolvedId = resolveId(projectId);
+
+  // 1. Update GET /api/projects read cache
+  const projectsUrl = `${API_URL}/projects`;
+  const scopedKey = getScopedCacheKey(projectsUrl);
+  const cached = await getCachedData(projectsUrl);
+  let updatedProject = null;
+
+  if (cached) {
+    const currentProjects = getProjectsArrayFromCache(cached);
+    const updatedProjects = currentProjects.map(p => {
+      const pId = String(p.id || p._id || '');
+      const pId2 = String(p._id || p.id || '');
+      const isMatch = (
+        pId === targetIdStr ||
+        pId2 === targetIdStr ||
+        (targetResolvedId && (pId === targetResolvedId || pId2 === targetResolvedId))
+      );
+
+      if (isMatch) {
+        updatedProject = {
+          ...p,
+          ...updateData,
+          id: p.id || p._id || targetIdStr,
+          _id: p._id || p.id || targetIdStr,
+          updatedAt: new Date().toISOString(),
+          _isPending: true
+        };
+        return updatedProject;
+      }
+      return p;
+    });
+
+    await cacheData(scopedKey, createUpdatedProjectsCachePayload(cached, updatedProjects));
+  }
+
+  // 2. Update GET /api/projects/:id single project cache if it exists
+  const singleProjectUrl = `${API_URL}/projects/${targetIdStr}`;
+  const singleScopedKey = getScopedCacheKey(singleProjectUrl);
+  const cachedSingle = await getCachedData(singleProjectUrl);
+
+  if (cachedSingle) {
+    const existingSingle = cachedSingle.data?.project || cachedSingle.project || cachedSingle;
+    const updatedSingle = {
+      ...existingSingle,
+      ...updateData,
+      id: existingSingle.id || existingSingle._id || targetIdStr,
+      _id: existingSingle._id || existingSingle.id || targetIdStr,
+      updatedAt: new Date().toISOString(),
+      _isPending: true
+    };
+
+    const newSinglePayload = (cachedSingle.data && cachedSingle.data.project)
+      ? { ...cachedSingle, data: { ...cachedSingle.data, project: updatedSingle } }
+      : (cachedSingle.project)
+        ? { ...cachedSingle, project: updatedSingle }
+        : updatedSingle;
+
+    await cacheData(singleScopedKey, newSinglePayload);
+  }
+
+  // If resolvedId exists and differs from targetIdStr, also update that single cache key
+  if (targetResolvedId && targetResolvedId !== targetIdStr) {
+    const resolvedSingleUrl = `${API_URL}/projects/${targetResolvedId}`;
+    const resolvedSingleScopedKey = getScopedCacheKey(resolvedSingleUrl);
+    const cachedResolvedSingle = await getCachedData(resolvedSingleUrl);
+    if (cachedResolvedSingle) {
+      const existingSingle = cachedResolvedSingle.data?.project || cachedResolvedSingle.project || cachedResolvedSingle;
+      const updatedSingle = {
+        ...existingSingle,
+        ...updateData,
+        id: existingSingle.id || existingSingle._id || targetResolvedId,
+        _id: existingSingle._id || existingSingle.id || targetResolvedId,
+        updatedAt: new Date().toISOString(),
+        _isPending: true
+      };
+      const newPayload = (cachedResolvedSingle.data && cachedResolvedSingle.data.project)
+        ? { ...cachedResolvedSingle, data: { ...cachedResolvedSingle.data, project: updatedSingle } }
+        : (cachedResolvedSingle.project)
+          ? { ...cachedResolvedSingle, project: updatedSingle }
+          : updatedSingle;
+      await cacheData(resolvedSingleScopedKey, newPayload);
+    }
+  }
+
+  // 3. Enqueue outbox mutation
+  await enqueueMutation({
+    type: 'UPDATE_PROJECT',
+    method: 'PUT',
+    endpoint: `${API_URL}/projects/${projectId}`,
+    payload: updateData,
+    projectId: targetIdStr,
+    tempId: targetIdStr.startsWith('temp-') ? targetIdStr : null
+  });
+
+  return updatedProject || {
+    id: targetIdStr,
+    _id: targetIdStr,
+    ...updateData,
+    updatedAt: new Date().toISOString(),
+    _isPending: true
+  };
+};
+
+/**
  * Handles offline creation of a task.
  */
 export const handleOfflineCreateTask = async (projectId, taskData) => {

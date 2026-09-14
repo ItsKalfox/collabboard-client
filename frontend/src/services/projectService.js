@@ -1,5 +1,5 @@
-import { fetchWithCache } from './cacheService';
-import { handleOfflineCreateProject, handleOfflineDeleteProject, getProjectsArrayFromCache } from './offlineMutationHelper';
+import { fetchWithCache, cacheData, getCachedData, getScopedCacheKey } from './cacheService';
+import { handleOfflineCreateProject, handleOfflineDeleteProject, handleOfflineUpdateProject, getProjectsArrayFromCache, createUpdatedProjectsCachePayload } from './offlineMutationHelper';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -125,18 +125,87 @@ export const getProjects = async (searchQuery = '') => {
  * @returns {Promise<Object>} Updated project object from backend
  */
 export const updateProject = async (projectId, updateData) => {
-  const response = await fetch(`${API_URL}/projects/${projectId}`, {
-    method: 'PUT',
-    headers: getAuthHeaders(true),
-    body: JSON.stringify(updateData)
-  });
+  const targetIdStr = String(projectId);
 
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || 'Failed to update project');
+  // Offline condition: offline network OR temporary project ID
+  if (!navigator.onLine || targetIdStr.startsWith('temp-')) {
+    return await handleOfflineUpdateProject(projectId, updateData);
   }
 
-  return data.data?.project || data.project;
+  // Online path
+  try {
+    const response = await fetch(`${API_URL}/projects/${projectId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(updateData)
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.message || 'Failed to update project');
+    }
+
+    const data = await response.json();
+    const serverProject = data.data?.project || data.project;
+
+    // Update PouchDB cache after successful online update
+    try {
+      // 1. Projects list cache
+      const projectsUrl = `${API_URL}/projects`;
+      const scopedKey = getScopedCacheKey(projectsUrl);
+      const cached = await getCachedData(projectsUrl);
+      if (cached) {
+        const currentProjects = getProjectsArrayFromCache(cached);
+        const updatedProjects = currentProjects.map(p => {
+          const pId = String(p.id || p._id || '');
+          const pId2 = String(p._id || p.id || '');
+          if (pId === targetIdStr || pId2 === targetIdStr) {
+            return { ...p, ...serverProject, _isPending: false };
+          }
+          return p;
+        });
+        await cacheData(scopedKey, createUpdatedProjectsCachePayload(cached, updatedProjects));
+      }
+
+      // 2. Single project cache
+      const singleProjectUrl = `${API_URL}/projects/${targetIdStr}`;
+      const singleScopedKey = getScopedCacheKey(singleProjectUrl);
+      const cachedSingle = await getCachedData(singleProjectUrl);
+      if (cachedSingle) {
+        const existingSingle = cachedSingle.data?.project || cachedSingle.project || cachedSingle;
+        const mergedSingle = { ...existingSingle, ...serverProject, _isPending: false };
+        const newPayload = (cachedSingle.data && cachedSingle.data.project)
+          ? { ...cachedSingle, data: { ...cachedSingle.data, project: mergedSingle } }
+          : (cachedSingle.project)
+            ? { ...cachedSingle, project: mergedSingle }
+            : mergedSingle;
+        await cacheData(singleScopedKey, newPayload);
+      }
+    } catch (cacheErr) {
+      console.warn('Failed to update PouchDB cache after online project update:', cacheErr);
+    }
+
+    return serverProject;
+  } catch (err) {
+    // If it is a real server error (non-network failure), do not treat as offline
+    if (err.message && (
+      err.message.includes('Failed to update project') ||
+      err.message.includes('authorized') ||
+      err.message.includes('not found') ||
+      err.message.includes('validation') ||
+      err.message.includes('Due date')
+    )) {
+      throw err;
+    }
+
+    // Network failure: fall back to offline update
+    if (!navigator.onLine || err instanceof TypeError || err.name === 'TypeError') {
+      console.warn('Network error updating project, falling back to offline outbox:', err);
+      return await handleOfflineUpdateProject(projectId, updateData);
+    }
+
+    throw err;
+  }
 };
 
 /**

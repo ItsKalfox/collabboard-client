@@ -193,7 +193,8 @@ export default function EditProjectModal({
     };
 
     try {
-      const updatedBackend = await updateProject(project.id, updatePayload);
+      const pId = project.id || project._id;
+      const updatedBackend = await updateProject(pId, updatePayload);
       
       const updatedProject = {
         ...project,

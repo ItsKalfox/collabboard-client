@@ -152,6 +152,7 @@ export const updateMutationStatus = async (mutationId, status, extra = {}) => {
     if (extra.lastError !== undefined) doc.lastError = extra.lastError;
     if (extra.retryCount !== undefined) doc.retryCount = extra.retryCount;
     if (extra.realId !== undefined) doc.realId = extra.realId;
+    if (extra.payload !== undefined) doc.payload = { ...doc.payload, ...extra.payload };
     await db.put(doc);
     return doc;
   } catch (err) {
@@ -173,3 +174,41 @@ export const removeMutation = async (mutationId) => {
     }
   }
 };
+
+/**
+ * Retrieves all conflicted mutations for the current user.
+ * @returns {Promise<Array<Object>>}
+ */
+export const getConflictedMutations = async () => {
+  try {
+    const userId = getCurrentUserId();
+    const result = await db.allDocs({ include_docs: true });
+    return result.rows
+      .map(r => r.doc)
+      .filter(doc => doc && doc.userId === userId && doc.status === 'CONFLICT')
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  } catch (err) {
+    console.error('Failed to retrieve conflicted mutations:', err);
+    return [];
+  }
+};
+
+/**
+ * Resets a conflicted mutation back to PENDING without duplicating the document.
+ * @param {string} mutationId 
+ * @returns {Promise<Object|null>}
+ */
+export const resetMutationToPending = async (mutationId) => {
+  try {
+    const doc = await db.get(mutationId);
+    doc.status = 'PENDING';
+    doc.lastError = null;
+    doc.retryCount = 0;
+    await db.put(doc);
+    return doc;
+  } catch (err) {
+    console.error(`Failed to reset mutation ${mutationId} to PENDING:`, err);
+    throw err;
+  }
+};
+
