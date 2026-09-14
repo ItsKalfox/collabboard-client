@@ -5,6 +5,7 @@ import Attachment from '../models/Attachment.js';
 import { parsePaginationAndSort, buildPaginationMeta } from '../utils/pagination.js';
 import taskRepository from '../repositories/taskRepository.js';
 import attachmentRepository from '../repositories/attachmentRepository.js';
+import { getIO } from '../config/socket.js';
 
 const uploadToCloudinary = (buffer, options) => {
     return new Promise((resolve, reject) => {
@@ -106,6 +107,12 @@ export const createTask = async (req, res) => {
             }]
         });
 
+        try {
+            getIO().to(`board-${projectId}`).emit('task_created', task);
+        } catch (e) {
+            console.error('Socket emit error:', e);
+        }
+
         res.status(201).json({ status: 'success', message: 'Task created successfully', data: { task } });
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
@@ -160,6 +167,13 @@ export const updateTask = async (req, res) => {
 
         const updatedTask = await taskRepository.save(task);
 
+        try {
+            const roomId = task.projectId._id ? task.projectId._id.toString() : task.projectId.toString();
+            getIO().to(`board-${roomId}`).emit('task_updated', updatedTask);
+        } catch (e) {
+            console.error('Socket emit error:', e);
+        }
+
         res.status(200).json({ status: 'success', message: 'Task updated', data: { task: updatedTask } });
     } catch (error) {
         if (error.name === 'VersionError') {
@@ -186,6 +200,13 @@ export const deleteTask = async (req, res) => {
         }
         await taskRepository.findByIdAndDelete(req.params.taskId);
         await attachmentRepository.deleteMany({ taskId: req.params.taskId });
+
+        try {
+            const roomId = task.projectId._id ? task.projectId._id.toString() : task.projectId.toString();
+            getIO().to(`board-${roomId}`).emit('task_deleted', req.params.taskId);
+        } catch (e) {
+            console.error('Socket emit error:', e);
+        }
 
         res.status(200).json({ status: 'success', message: 'Task deleted successfully' });
     } catch (error) {
@@ -222,6 +243,13 @@ export const updateTaskStatus = async (req, res) => {
         }
 
         await taskRepository.save(task);
+
+        try {
+            const roomId = task.projectId._id ? task.projectId._id.toString() : task.projectId.toString();
+            getIO().to(`board-${roomId}`).emit('task_moved', task);
+        } catch (e) {
+            console.error('Socket emit error:', e);
+        }
 
         res.status(200).json({ status: 'success', message: 'Status updated', data: { task } });
     } catch (error) {

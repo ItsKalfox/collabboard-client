@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "coverage": "jest --coverage --passWithNoTests"
+    "test": "cross-env NODE_OPTIONS=\"--experimental-vm-modules\" jest --runInBand",
+    "coverage": "cross-env NODE_OPTIONS=\"--experimental-vm-modules\" jest --coverage --runInBand"
   },
   "keywords": [],
   "author": "",
@@ -21,9 +22,13 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.9.3",
     "multer": "^2.2.0",
-    "nodemailer": "^9.0.5"
+    "nodemailer": "^9.0.5",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
-    "jest": "^30.5.1"
+    "cross-env": "^10.1.0",
+    "jest": "^30.5.1",
+    "mongodb-memory-server": "^11.2.0",
+    "supertest": "^7.2.2"
   }
 }
