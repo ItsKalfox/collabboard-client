@@ -51,6 +51,16 @@ export const deleteSubtask = async (req, res) => {
         task.subtasks.pull(subtaskId);
         await taskRepository.save(task);
 
+        try {
+            const projectId = task.projectId?._id ? task.projectId._id.toString() : task.projectId.toString();
+            getIO().to(`board-${projectId}`).emit('subtask_deleted', {
+                taskId: task._id.toString(),
+                subtaskId
+            });
+        } catch (socketError) {
+            console.error('Socket emit error (subtask_deleted):', socketError);
+        }
+
         res.status(200).json({ status: 'success', message: 'Subtask deleted successfully' });
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
