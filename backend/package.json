@@ -7,6 +7,8 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "test": "cross-env NODE_OPTIONS=\"--experimental-vm-modules\" jest --runInBand",
+    "test:watch": "cross-env NODE_OPTIONS=\"--experimental-vm-modules\" jest --watch",
+    "test:coverage": "cross-env NODE_OPTIONS=\"--experimental-vm-modules\" jest --coverage --runInBand",
     "coverage": "cross-env NODE_OPTIONS=\"--experimental-vm-modules\" jest --coverage --runInBand"
   },
   "keywords": [],
