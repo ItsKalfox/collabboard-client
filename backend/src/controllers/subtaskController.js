@@ -1,4 +1,5 @@
 import taskRepository from '../repositories/taskRepository.js';
+import { getIO } from '../config/socket.js';
 
 export const updateSubtask = async (req, res) => {
     try {
@@ -15,6 +16,16 @@ export const updateSubtask = async (req, res) => {
         if (comments !== undefined) subtask.comments = comments; // Assuming comments might be added to subtasks schema later if needed
 
         await taskRepository.save(task);
+
+        try {
+            const projectId = task.projectId?._id ? task.projectId._id.toString() : task.projectId.toString();
+            getIO().to(`board-${projectId}`).emit('subtask_updated', {
+                taskId: task._id.toString(),
+                subtask: subtask
+            });
+        } catch (socketError) {
+            console.error('Socket emit error (subtask_updated):', socketError);
+        }
 
         res.status(200).json({ status: 'success', data: { subtask } });
     } catch (error) {
