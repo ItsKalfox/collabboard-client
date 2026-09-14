@@ -141,9 +141,16 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
             if (existingSubtasks.some(s => String(s.id || s._id) === String(subtaskId))) {
               return t;
             }
+            const updatedSubtasks = [...existingSubtasks, subtask];
+            const progressCurrent = updatedSubtasks.filter(st => st.completed).length;
+            const progressTotal = updatedSubtasks.length;
+            const progress = progressTotal > 0 ? Math.round((progressCurrent / progressTotal) * 100) : 0;
             return {
               ...t,
-              subtasks: [...existingSubtasks, subtask]
+              subtasks: updatedSubtasks,
+              progressCurrent,
+              progressTotal,
+              progress
             };
           })
         })));
@@ -154,9 +161,16 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
           if (existingSubtasks.some(s => String(s.id || s._id) === String(subtaskId))) {
             return prev;
           }
+          const updatedSubtasks = [...existingSubtasks, subtask];
+          const progressCurrent = updatedSubtasks.filter(st => st.completed).length;
+          const progressTotal = updatedSubtasks.length;
+          const progress = progressTotal > 0 ? Math.round((progressCurrent / progressTotal) * 100) : 0;
           return {
             ...prev,
-            subtasks: [...existingSubtasks, subtask]
+            subtasks: updatedSubtasks,
+            progressCurrent,
+            progressTotal,
+            progress
           };
         });
       };
@@ -168,22 +182,36 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
           ...c,
           tasks: c.tasks.map(t => {
             if (String(t.id || t._id) !== String(taskId)) return t;
+            const updatedSubtasks = (t.subtasks || []).map(s =>
+              String(s.id || s._id) === targetSubId ? { ...s, ...subtask } : s
+            );
+            const progressCurrent = updatedSubtasks.filter(st => st.completed).length;
+            const progressTotal = updatedSubtasks.length;
+            const progress = progressTotal > 0 ? Math.round((progressCurrent / progressTotal) * 100) : 0;
             return {
               ...t,
-              subtasks: (t.subtasks || []).map(s =>
-                String(s.id || s._id) === targetSubId ? { ...s, ...subtask } : s
-              )
+              subtasks: updatedSubtasks,
+              progressCurrent,
+              progressTotal,
+              progress
             };
           })
         })));
 
         setActiveTask(prev => {
           if (!prev || String(prev.id || prev._id) !== String(taskId)) return prev;
+          const updatedSubtasks = (prev.subtasks || []).map(s =>
+            String(s.id || s._id) === targetSubId ? { ...s, ...subtask } : s
+          );
+          const progressCurrent = updatedSubtasks.filter(st => st.completed).length;
+          const progressTotal = updatedSubtasks.length;
+          const progress = progressTotal > 0 ? Math.round((progressCurrent / progressTotal) * 100) : 0;
           return {
             ...prev,
-            subtasks: (prev.subtasks || []).map(s =>
-              String(s.id || s._id) === targetSubId ? { ...s, ...subtask } : s
-            )
+            subtasks: updatedSubtasks,
+            progressCurrent,
+            progressTotal,
+            progress
           };
         });
       };
@@ -195,18 +223,32 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
           ...c,
           tasks: c.tasks.map(t => {
             if (String(t.id || t._id) !== String(taskId)) return t;
+            const updatedSubtasks = (t.subtasks || []).filter(s => String(s.id || s._id) !== targetSubId);
+            const progressCurrent = updatedSubtasks.filter(st => st.completed).length;
+            const progressTotal = updatedSubtasks.length;
+            const progress = progressTotal > 0 ? Math.round((progressCurrent / progressTotal) * 100) : 0;
             return {
               ...t,
-              subtasks: (t.subtasks || []).filter(s => String(s.id || s._id) !== targetSubId)
+              subtasks: updatedSubtasks,
+              progressCurrent,
+              progressTotal,
+              progress
             };
           })
         })));
 
         setActiveTask(prev => {
           if (!prev || String(prev.id || prev._id) !== String(taskId)) return prev;
+          const updatedSubtasks = (prev.subtasks || []).filter(s => String(s.id || s._id) !== targetSubId);
+          const progressCurrent = updatedSubtasks.filter(st => st.completed).length;
+          const progressTotal = updatedSubtasks.length;
+          const progress = progressTotal > 0 ? Math.round((progressCurrent / progressTotal) * 100) : 0;
           return {
             ...prev,
-            subtasks: (prev.subtasks || []).filter(s => String(s.id || s._id) !== targetSubId)
+            subtasks: updatedSubtasks,
+            progressCurrent,
+            progressTotal,
+            progress
           };
         });
       };
