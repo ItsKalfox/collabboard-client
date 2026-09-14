@@ -3,6 +3,28 @@ import { parseJwt } from '../utils/jwtUtils';
 
 const db = new PouchDB('collabboard_mutations');
 
+const mutationListeners = new Set();
+
+/**
+ * Subscribes a listener to mutation store lifecycle events (enqueued, updated, removed).
+ * @param {Function} callback - (event: 'enqueued'|'updated'|'removed', data: Object) => void
+ * @returns {Function} Unsubscribe function
+ */
+export const subscribeMutationStore = (callback) => {
+  mutationListeners.add(callback);
+  return () => mutationListeners.delete(callback);
+};
+
+const notifyMutationListeners = (event, data = {}) => {
+  mutationListeners.forEach(fn => {
+    try {
+      fn(event, data);
+    } catch (e) {
+      console.error('Error in mutation store listener:', e);
+    }
+  });
+};
+
 /**
  * Gets current authenticated user ID for mutation isolation.
  * @returns {string}
@@ -60,6 +82,7 @@ export const enqueueMutation = async ({
     if (pendingCreates.length > 0) {
       for (const createDoc of pendingCreates) {
         await db.remove(createDoc);
+        notifyMutationListeners('removed', { mutationId: createDoc._id || createDoc.mutationId, mutation: createDoc });
       }
       // Both CREATE and DELETE cancel out (no-op)
       return null;
@@ -75,6 +98,7 @@ export const enqueueMutation = async ({
     if (pendingCreates.length > 0) {
       for (const createDoc of pendingCreates) {
         await db.remove(createDoc);
+        notifyMutationListeners('removed', { mutationId: createDoc._id || createDoc.mutationId, mutation: createDoc });
       }
       return null;
     }
@@ -99,6 +123,7 @@ export const enqueueMutation = async ({
   };
 
   await db.put(doc);
+  notifyMutationListeners('enqueued', { mutationId, mutation: doc });
   return doc;
 };
 
@@ -119,6 +144,19 @@ export const getPendingMutations = async () => {
   } catch (err) {
     console.error('Failed to retrieve pending mutations:', err);
     return [];
+  }
+};
+
+/**
+ * Returns the count of pending mutations for the current user.
+ * @returns {Promise<number>}
+ */
+export const getPendingMutationsCount = async () => {
+  try {
+    const list = await getPendingMutations();
+    return list.length;
+  } catch {
+    return 0;
   }
 };
 
@@ -154,6 +192,7 @@ export const updateMutationStatus = async (mutationId, status, extra = {}) => {
     if (extra.realId !== undefined) doc.realId = extra.realId;
     if (extra.payload !== undefined) doc.payload = { ...doc.payload, ...extra.payload };
     await db.put(doc);
+    notifyMutationListeners('updated', { mutationId, status, mutation: doc });
     return doc;
   } catch (err) {
     console.error(`Failed to update mutation ${mutationId} status:`, err);
@@ -168,6 +207,7 @@ export const removeMutation = async (mutationId) => {
   try {
     const doc = await db.get(mutationId);
     await db.remove(doc);
+    notifyMutationListeners('removed', { mutationId, mutation: doc });
   } catch (err) {
     if (err.name !== 'not_found') {
       console.error(`Failed to remove mutation ${mutationId}:`, err);
@@ -205,6 +245,7 @@ export const resetMutationToPending = async (mutationId) => {
     doc.lastError = null;
     doc.retryCount = 0;
     await db.put(doc);
+    notifyMutationListeners('updated', { mutationId, status: 'PENDING', mutation: doc });
     return doc;
   } catch (err) {
     console.error(`Failed to reset mutation ${mutationId} to PENDING:`, err);

@@ -280,7 +280,9 @@ export const processMutationQueue = async () => {
           notifyListeners('mutation_synced', { mutationId: mutation.mutationId, type: mutation.type });
         } else if (response.status === 401 || response.status === 403) {
           console.warn(`Sync authentication error (${response.status}) for mutation ${mutation.mutationId}`);
-          await updateMutationStatus(mutation.mutationId, 'PENDING', { lastError: `HTTP ${response.status} Auth Error` });
+          const authErrorMsg = `HTTP ${response.status} Auth Error`;
+          await updateMutationStatus(mutation.mutationId, 'PENDING', { lastError: authErrorMsg });
+          notifyListeners('sync_auth_error', { status: response.status, mutationId: mutation.mutationId, error: authErrorMsg });
           break; // Stop sync loop on auth failure
         } else if (response.status === 409) {
           console.warn(`Conflict error (409) for mutation ${mutation.mutationId}`);
@@ -357,10 +359,15 @@ export const discardConflictedMutation = async (mutationId) => {
   return true;
 };
 
+let isSyncEngineInitialized = false;
+
 /**
  * Initializes listeners for online events and auto-sync triggers.
  */
 export const initSyncEngine = () => {
+  if (isSyncEngineInitialized) return;
+  isSyncEngineInitialized = true;
+
   window.addEventListener('online', () => {
     console.log('Network online event detected. Starting sync engine...');
     processMutationQueue();

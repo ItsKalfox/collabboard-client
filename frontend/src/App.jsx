@@ -12,14 +12,17 @@ import AuthModule from './components/auth/AuthModule';
 import ConfirmModal from './components/Board/ConfirmModal';
 import ConflictBanner from './components/conflict/ConflictBanner';
 import ConflictResolutionModal from './components/conflict/ConflictResolutionModal';
+import SyncStatusBadge from './components/common/SyncStatusBadge';
+import OfflineBanner from './components/common/OfflineBanner';
 import { isTokenExpired, parseJwt } from './utils/jwtUtils';
-import { getConflictedMutations } from './services/mutationStore';
+import { getConflictedMutations, getPendingMutationsCount, subscribeMutationStore } from './services/mutationStore';
 import { 
   initSyncEngine, 
   subscribeSyncStatus, 
   retryConflictedMutation, 
   retryAllConflictedMutations, 
-  discardConflictedMutation 
+  discardConflictedMutation,
+  processMutationQueue
 } from './services/syncEngine';
 import './App.css';
 
@@ -77,6 +80,11 @@ function App() {
     return null;
   });
 
+  const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
+  const [pendingCount, setPendingCount] = useState(0);
+  const [syncStatus, setSyncStatus] = useState('idle'); // 'idle' | 'syncing' | 'synced' | 'error' | 'auth_error'
+  const [lastSyncError, setLastSyncError] = useState(null);
+
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
   const [conflicts, setConflicts] = useState([]);
   const [isConflictModalOpen, setIsConflictModalOpen] = useState(false);
@@ -91,29 +99,81 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    refreshConflicts();
+  const refreshPendingCount = async () => {
+    try {
+      const count = await getPendingMutationsCount();
+      setPendingCount(count);
+    } catch (err) {
+      console.error('Failed to load pending mutations count:', err);
+    }
+  };
 
-    const unsubscribe = subscribeSyncStatus((event) => {
+  const refreshSyncData = async () => {
+    await Promise.all([refreshConflicts(), refreshPendingCount()]);
+  };
+
+  useEffect(() => {
+    refreshSyncData();
+
+    // 1. Subscribe to mutationStore changes (enqueued, updated, removed)
+    const unsubMutationStore = subscribeMutationStore(() => {
+      refreshSyncData();
+    });
+
+    // 2. Subscribe to syncEngine lifecycle events
+    let syncedTimer = null;
+    const unsubSyncEngine = subscribeSyncStatus((event, data) => {
       if (['mutation_conflict', 'mutation_synced', 'mutation_discarded', 'sync_complete', 'mutation_retry', 'mutation_retry_all'].includes(event)) {
-        refreshConflicts();
+        refreshSyncData();
       }
       if (event === 'sync_start') {
         setIsSyncingConflicts(true);
-      }
-      if (event === 'sync_complete' || event === 'sync_error') {
+        setSyncStatus('syncing');
+        setLastSyncError(null);
+        if (syncedTimer) clearTimeout(syncedTimer);
+      } else if (event === 'sync_complete') {
         setIsSyncingConflicts(false);
+        if (data?.processedCount > 0) {
+          setSyncStatus('synced');
+          syncedTimer = setTimeout(() => {
+            setSyncStatus('idle');
+          }, 3500);
+        } else {
+          setSyncStatus('idle');
+        }
+      } else if (event === 'sync_error') {
+        setIsSyncingConflicts(false);
+        setSyncStatus('error');
+        setLastSyncError(data?.error?.message || 'Sync failed');
+      } else if (event === 'sync_auth_error') {
+        setIsSyncingConflicts(false);
+        setSyncStatus('auth_error');
+        setLastSyncError(data?.error || 'Authentication required');
       }
     });
 
+    // 3. Online/offline window events
     const handleOnline = () => {
-      refreshConflicts();
+      setIsOnline(true);
+      setSyncStatus('idle');
+      refreshSyncData();
     };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      setSyncStatus('idle');
+      refreshSyncData();
+    };
+
     window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
 
     return () => {
-      unsubscribe();
+      unsubMutationStore();
+      unsubSyncEngine();
+      if (syncedTimer) clearTimeout(syncedTimer);
       window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, [currentUser]);
 
@@ -162,8 +222,11 @@ function App() {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    initSyncEngine();
   }, [theme]);
+
+  useEffect(() => {
+    initSyncEngine();
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -585,8 +648,16 @@ function App() {
               {currentDateTime}
             </div>
 
-            {/* Actions: Theme Toggle and Email */}
+            {/* Actions: Sync Status, Theme Toggle and Email */}
             <div className="top-bar-actions">
+              {/* Global Sync Status Badge */}
+              <SyncStatusBadge
+                isOnline={isOnline}
+                pendingCount={pendingCount}
+                syncStatus={syncStatus}
+                lastSyncError={lastSyncError}
+                onTriggerSync={() => processMutationQueue()}
+              />
 
               {/* Conflict Indicator Button */}
               {conflicts.length > 0 && (
@@ -639,6 +710,13 @@ function App() {
               </div>
             </div>
           </div>
+
+          {/* Offline Banner */}
+          <OfflineBanner
+            isOnline={isOnline}
+            pendingCount={pendingCount}
+            onTriggerSync={() => processMutationQueue()}
+          />
 
           {/* Conflict Banner */}
           <ConflictBanner
