@@ -8,6 +8,7 @@ const projectSchema = new mongoose.Schema({
     ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     coverImage: { type: String, default: null },
     dueDate: { type: Date, default: null },
+    tags: [{ type: String, trim: true }],
     members: [{
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         role: { type: String, default: 'member' },

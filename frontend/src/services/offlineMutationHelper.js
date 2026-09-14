@@ -697,3 +697,62 @@ export const handleOfflineTaskReview = async (taskId, projectId, action, comment
   };
 };
 
+/**
+ * Handles offline addition of a tag to a project.
+ * @param {string} projectId - Target project ID (real or temp).
+ * @param {string} newTag - Tag string to append.
+ * @returns {Promise<Object>} Updated project object.
+ */
+export const handleOfflineAddProjectTag = async (projectId, newTag) => {
+  const tagTrimmed = String(newTag || '').trim();
+  if (!tagTrimmed) {
+    return null;
+  }
+
+  const targetIdStr = String(projectId);
+  const targetResolvedId = resolveId(projectId);
+
+  // 1. Read existing project from PouchDB cache
+  const projectsUrl = `${API_URL}/projects`;
+  const cached = await getCachedData(projectsUrl);
+  let existingTags = [];
+  let currentProject = null;
+
+  if (cached) {
+    const currentProjects = getProjectsArrayFromCache(cached);
+    currentProject = currentProjects.find(p => {
+      const pId = String(p.id || p._id || '');
+      const pId2 = String(p._id || p.id || '');
+      return (
+        pId === targetIdStr ||
+        pId2 === targetIdStr ||
+        (targetResolvedId && (pId === targetResolvedId || pId2 === targetResolvedId))
+      );
+    });
+    if (currentProject && Array.isArray(currentProject.tags)) {
+      existingTags = [...currentProject.tags];
+    }
+  }
+
+  // Fallback to single project cache if needed
+  if (!currentProject) {
+    const singleProjectUrl = `${API_URL}/projects/${targetIdStr}`;
+    const cachedSingle = await getCachedData(singleProjectUrl);
+    if (cachedSingle) {
+      currentProject = cachedSingle.data?.project || cachedSingle.project || cachedSingle;
+      if (currentProject && Array.isArray(currentProject.tags)) {
+        existingTags = [...currentProject.tags];
+      }
+    }
+  }
+
+  // 2. Avoid duplicate tags
+  if (existingTags.includes(tagTrimmed)) {
+    return currentProject || { id: projectId, _id: projectId, tags: existingTags };
+  }
+
+  // 3. Append new tag and update project via handleOfflineUpdateProject
+  const updatedTags = [...existingTags, tagTrimmed];
+  return await handleOfflineUpdateProject(projectId, { tags: updatedTags });
+};
+

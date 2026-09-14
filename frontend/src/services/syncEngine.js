@@ -100,7 +100,20 @@ const reconcileLocalReadCache = async (mutation, responseData) => {
             pId2 === targetId ||
             (projectId && (pId === String(projectId) || pId2 === String(projectId)))
           );
-          return isMatch ? { ...p, ...updatedProject, id: p.id || updatedProject.id || targetId, _id: p._id || updatedProject.id || targetId, _isPending: false } : p;
+          if (isMatch) {
+            const serverTags = Array.isArray(updatedProject.tags)
+              ? updatedProject.tags
+              : (mutation.payload?.tags || p.tags || []);
+            return {
+              ...p,
+              ...updatedProject,
+              tags: serverTags,
+              id: p.id || updatedProject.id || targetId,
+              _id: p._id || updatedProject.id || targetId,
+              _isPending: false
+            };
+          }
+          return p;
         });
         await cacheData(getScopedCacheKey(projectsUrl), createUpdatedProjectsCachePayload(cached, updatedProjects));
 
@@ -109,7 +122,17 @@ const reconcileLocalReadCache = async (mutation, responseData) => {
         const singleCached = await getCachedData(singleUrl);
         if (singleCached) {
           const existing = singleCached.data?.project || singleCached.project || singleCached;
-          const merged = { ...existing, ...updatedProject, id: existing.id || updatedProject.id || targetId, _id: existing._id || updatedProject.id || targetId, _isPending: false };
+          const serverTags = Array.isArray(updatedProject.tags)
+            ? updatedProject.tags
+            : (mutation.payload?.tags || existing.tags || []);
+          const merged = {
+            ...existing,
+            ...updatedProject,
+            tags: serverTags,
+            id: existing.id || updatedProject.id || targetId,
+            _id: existing._id || updatedProject.id || targetId,
+            _isPending: false
+          };
           const newPayload = (singleCached.data && singleCached.data.project)
             ? { ...singleCached, data: { ...singleCached.data, project: merged } }
             : (singleCached.project)

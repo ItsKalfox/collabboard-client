@@ -202,6 +202,45 @@ export default function BoardHeader({
                 return <span>{docCount} {docCount === 1 ? 'Document' : 'Documents'}</span>;
               })()}
             </div>
+
+            {/* Tags list */}
+            <div className="tags-list" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+              {displayTags.map((tag, idx) => (
+                <span key={idx} className={`tag-pill tag-${idx % 2 === 0 ? 'blue' : 'purple'}`}>
+                  {tag}
+                </span>
+              ))}
+              <button 
+                className="add-tag-btn" 
+                onClick={onAddTag}
+                title="Add Tag"
+                style={{ cursor: 'pointer' }}
+              >
+                + Add tag
+              </button>
+            </div>
+
+            {/* Pending Sync Indicator */}
+            {Boolean(project._isPending || (typeof projectId === 'string' && projectId.startsWith('temp-'))) && (
+              <span 
+                className="project-pending-badge"
+                style={{ 
+                  fontSize: '11px', 
+                  fontWeight: 600, 
+                  color: '#d97706', 
+                  background: 'rgba(245, 158, 11, 0.15)', 
+                  border: '1px solid rgba(245, 158, 11, 0.3)',
+                  padding: '2px 8px', 
+                  borderRadius: '12px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+                title="This project has changes queued for synchronization"
+              >
+                ● Pending Sync
+              </span>
+            )}
           </div>
         </div>
         

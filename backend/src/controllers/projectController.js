@@ -143,7 +143,7 @@ export const getProjectById = async (req, res) => {
 // POST /api/projects
 export const createProject = async (req, res) => {
     try {
-        const { name, description, status, category, color, dueDate, coverImage, tasks } = req.body;
+        const { name, description, status, category, color, dueDate, coverImage, tasks, tags } = req.body;
         if (!name) return res.status(400).json({ status: 'error', message: 'Project name is required' });
 
         if (dueDate) {
@@ -164,6 +164,7 @@ export const createProject = async (req, res) => {
             ownerId: req.user.id,
             coverImage: coverImage || null,
             dueDate: dueDate || null,
+            tags: Array.isArray(tags) ? tags : [],
             members: [{ userId: req.user.id, role: 'owner' }]
         });
 

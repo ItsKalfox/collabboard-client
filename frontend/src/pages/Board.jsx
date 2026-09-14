@@ -9,8 +9,9 @@ import ProjectDetailsModal from '../components/projects/ProjectDetailsModal';
 
 import { Search, X } from 'lucide-react';
 import { searchUsers, getProjects } from '../services/projectService';
-import { fetchWithCache } from '../services/cacheService';
-import { handleOfflineCreateTask } from '../services/offlineMutationHelper';
+import { fetchWithCache, cacheData, getCachedData, getScopedCacheKey } from '../services/cacheService';
+import { handleOfflineCreateTask, handleOfflineAddProjectTag, getProjectsArrayFromCache, createUpdatedProjectsCachePayload } from '../services/offlineMutationHelper';
+import { subscribeSyncStatus } from '../services/syncEngine';
 import { normalizeMember } from '../utils/memberUtils';
 import './Board.css';
 
@@ -163,6 +164,32 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
     fetchProjects();
 
   }, [initialProjectId, selectedProject]);
+
+  // Synchronize projects state when syncEngine completes offline mutations
+  useEffect(() => {
+    const unsubscribe = subscribeSyncStatus(async (event) => {
+      if (event === 'mutation_synced' || event === 'sync_complete') {
+        try {
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+          const cached = await getCachedData(`${apiUrl}/projects`);
+          if (cached) {
+            const list = getProjectsArrayFromCache(cached);
+            if (Array.isArray(list) && list.length > 0) {
+              setProjects(prev => {
+                const map = new Map(prev.map(p => [p.id || p._id, p]));
+                list.forEach(p => {
+                  const pid = p.id || p._id;
+                  if (pid) map.set(pid, { ...map.get(pid), ...p });
+                });
+                return Array.from(map.values());
+              });
+            }
+          }
+        } catch { }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
 
   const handleSelectProject = (projectId) => {
@@ -355,16 +382,39 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
   const handleAddTagSubmit = async (e) => {
     e.preventDefault();
     const currentProject = projects.find((p) => (p.id || p._id) === selectedProjectId) || null;
-    if (!currentProject || !newTag.trim()) return;
-    
+    const trimmedTag = newTag.trim();
+    if (!currentProject || !trimmedTag) return;
+
+    const existingTags = currentProject.tags || [];
+    const updatedTags = existingTags.includes(trimmedTag) ? existingTags : [...existingTags, trimmedTag];
+
     setIsSubmitting(true);
+
+    const isOffline = !navigator.onLine || String(selectedProjectId).startsWith('temp-');
+
+    if (isOffline) {
+      try {
+        await handleOfflineAddProjectTag(selectedProjectId, trimmedTag);
+        setProjects(prev => prev.map(p => 
+          (p.id || p._id) === selectedProjectId 
+            ? { ...p, tags: updatedTags, _isPending: true } 
+            : p
+        ));
+        setIsAddTagModalOpen(false);
+        setNewTag('');
+      } catch (err) {
+        console.error('Failed to save tag offline:', err);
+        alert('Error adding tag locally');
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      
-      const existingTags = currentProject.tags || [];
-      const updatedTags = [...existingTags, newTag.trim()];
-      
+
       const res = await fetch(`${apiUrl}/projects/${selectedProjectId}`, {
         method: 'PUT',
         headers: {
@@ -373,19 +423,67 @@ export default function Board({ initialProjectId, selectedProject, onSelectProje
         },
         body: JSON.stringify({ tags: updatedTags })
       });
-      
+
       if (res.ok) {
         const data = await res.json();
-        setProjects(projects.map(p => (p.id || p._id) === selectedProjectId ? data.data.project : p));
+        const serverProject = data.data?.project || data.project;
+        const finalProject = {
+          ...currentProject,
+          ...serverProject,
+          tags: serverProject?.tags || updatedTags,
+          _isPending: false
+        };
+
+        setProjects(prev => prev.map(p => (p.id || p._id) === selectedProjectId ? finalProject : p));
+
+        // Reconcile into PouchDB projects cache
+        try {
+          const projectsUrl = `${apiUrl}/projects`;
+          const cached = await getCachedData(projectsUrl);
+          if (cached) {
+            const currentList = getProjectsArrayFromCache(cached);
+            const updatedList = currentList.map(p => (p.id || p._id) === selectedProjectId ? finalProject : p);
+            await cacheData(getScopedCacheKey(projectsUrl), createUpdatedProjectsCachePayload(cached, updatedList));
+          }
+          const singleUrl = `${apiUrl}/projects/${selectedProjectId}`;
+          const singleCached = await getCachedData(singleUrl);
+          if (singleCached) {
+            const singleMerged = { ...(singleCached.data?.project || singleCached.project || singleCached), ...finalProject };
+            const newPayload = (singleCached.data && singleCached.data.project)
+              ? { ...singleCached, data: { ...singleCached.data, project: singleMerged } }
+              : (singleCached.project)
+                ? { ...singleCached, project: singleMerged }
+                : singleMerged;
+            await cacheData(getScopedCacheKey(singleUrl), newPayload);
+          }
+        } catch (cErr) {
+          console.warn('Failed to update local cache after online tag add:', cErr);
+        }
+
         setIsAddTagModalOpen(false);
         setNewTag('');
       } else {
-        const errData = await res.json();
-        alert(errData.message || 'Failed to add tag');
+        // Server returned an error response (e.g. 401, 403, 400).
+        // 403 must NOT be treated as a successful offline operation.
+        const errData = await res.json().catch(() => ({}));
+        alert(errData.message || `Failed to add tag (HTTP ${res.status})`);
       }
     } catch (err) {
-      console.error(err);
-      alert('Error adding tag');
+      // Network failure (fetch threw error, e.g. offline / connection dropped)
+      console.warn('Network request failed, falling back to offline tag addition:', err);
+      try {
+        await handleOfflineAddProjectTag(selectedProjectId, trimmedTag);
+        setProjects(prev => prev.map(p => 
+          (p.id || p._id) === selectedProjectId 
+            ? { ...p, tags: updatedTags, _isPending: true } 
+            : p
+        ));
+        setIsAddTagModalOpen(false);
+        setNewTag('');
+      } catch (offlineErr) {
+        console.error('Failed to queue offline tag mutation:', offlineErr);
+        alert('Error adding tag');
+      }
     } finally {
       setIsSubmitting(false);
     }
