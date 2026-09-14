@@ -168,7 +168,8 @@ export const updateTask = async (req, res) => {
         const updatedTask = await taskRepository.save(task);
 
         try {
-            getIO().to(`board-${task.projectId}`).emit('task_updated', updatedTask);
+            const roomId = task.projectId._id ? task.projectId._id.toString() : task.projectId.toString();
+            getIO().to(`board-${roomId}`).emit('task_updated', updatedTask);
         } catch (e) {
             console.error('Socket emit error:', e);
         }
@@ -201,7 +202,8 @@ export const deleteTask = async (req, res) => {
         await attachmentRepository.deleteMany({ taskId: req.params.taskId });
 
         try {
-            getIO().to(`board-${task.projectId}`).emit('task_deleted', req.params.taskId);
+            const roomId = task.projectId._id ? task.projectId._id.toString() : task.projectId.toString();
+            getIO().to(`board-${roomId}`).emit('task_deleted', req.params.taskId);
         } catch (e) {
             console.error('Socket emit error:', e);
         }
@@ -243,7 +245,8 @@ export const updateTaskStatus = async (req, res) => {
         await taskRepository.save(task);
 
         try {
-            getIO().to(`board-${task.projectId}`).emit('task_moved', task);
+            const roomId = task.projectId._id ? task.projectId._id.toString() : task.projectId.toString();
+            getIO().to(`board-${roomId}`).emit('task_moved', task);
         } catch (e) {
             console.error('Socket emit error:', e);
         }

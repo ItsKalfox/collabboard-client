@@ -10,8 +10,9 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const socketUrl = apiUrl.replace(/\/api\/?$/, ''); // Remove /api suffix for Socket.io
     const token = localStorage.getItem('token');
-    const newSocket = io(apiUrl, {
+    const newSocket = io(socketUrl, {
       autoConnect: false,
       auth: { token }
     });

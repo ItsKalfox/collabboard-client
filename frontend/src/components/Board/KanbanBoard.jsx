@@ -100,6 +100,15 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
       
       const handleTaskMoved = (movedTask) => {
         setColumns(prev => {
+          let existingTask = null;
+          // Find the existing task to preserve UI properties (tagColor, members, etc.)
+          prev.forEach(c => {
+            const found = c.tasks.find(t => t.id === movedTask.id);
+            if (found) existingTask = found;
+          });
+
+          const taskToInsert = existingTask ? { ...existingTask, ...movedTask } : movedTask;
+
           let updatedPrev = prev.map(c => ({
             ...c,
             tasks: c.tasks.filter(t => t.id !== movedTask.id)
@@ -107,7 +116,7 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
           
           return updatedPrev.map(c => {
             if (c.id === movedTask.status) {
-              return { ...c, tasks: [...c.tasks, movedTask] };
+              return { ...c, tasks: [...c.tasks, taskToInsert] };
             }
             return c;
           });
