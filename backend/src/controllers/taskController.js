@@ -380,6 +380,18 @@ export const createSubtask = async (req, res) => {
         task.subtasks.push({ title, completed: completed || false });
         await taskRepository.save(task);
 
+        const newSubtask = task.subtasks[task.subtasks.length - 1];
+
+        try {
+            const projectId = task.projectId?._id ? task.projectId._id.toString() : task.projectId.toString();
+            getIO().to(`board-${projectId}`).emit('subtask_created', {
+                taskId: task._id.toString(),
+                subtask: newSubtask
+            });
+        } catch (socketError) {
+            console.error('Socket emit error (subtask_created):', socketError);
+        }
+
         res.status(201).json({ status: 'success', message: 'Subtask created', data: { subtasks: task.subtasks } });
     } catch (error) {
         if (error.name === 'CastError' && error.kind === 'ObjectId') {
