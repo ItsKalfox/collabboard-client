@@ -1101,6 +1101,31 @@ Current development stages include:
 
 This checklist should be updated as project milestones are completed.
 
+## Continuous Integration (CI) & Testing
+
+This project uses a GitHub Actions CI pipeline that runs automatically whenever code is pushed to, or a pull request is opened against, the main or dev branches. The pipeline checks out the code, sets up Node.js, installs dependencies, and runs test coverage for both the frontend and backend.
+
+### Running Test Coverage Locally
+
+You can run the test coverage commands locally for both the frontend and backend.
+Frontend: The frontend uses [Vitest](https://vitest.dev/).
+Backend: The backend uses [Jest](https://jestjs.io/).
+Both environments are configured to pass successfully even if there are no test files present yet.
+
+To run coverage for the frontend:
+```bash
+cd frontend
+npm run coverage
+# This executes: vitest run --coverage --passWithNoTests
+```
+
+To run coverage for the backend:
+```bash
+cd backend
+npm run coverage
+# This executes: jest --coverage --passWithNoTests
+```
+
 ---
 
 # License
