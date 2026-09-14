@@ -56,6 +56,21 @@ const getFileIcon = (ext) => {
   return <File {...props} color="#64748b" />;
 };
 
+const areSubtasksEqual = (subsA = [], subsB = []) => {
+  if (subsA.length !== subsB.length) return false;
+  for (let i = 0; i < subsA.length; i++) {
+    const a = subsA[i];
+    const b = subsB[i];
+    const aId = String(a.id || a._id || '');
+    const bId = String(b.id || b._id || '');
+    if (aId !== bId) return false;
+    if (a.title !== b.title) return false;
+    if ((a.description || '') !== (b.description || '')) return false;
+    if (Boolean(a.completed) !== Boolean(b.completed)) return false;
+  }
+  return true;
+};
+
 /* ─── Main component ────────────────────────────────────────── */
 export default function TaskPopup({ task: prop, project, currentUser, onClose, onUpdate }) {
   const currentUserId = typeof currentUser === 'object' ? (currentUser?.id || currentUser?._id) : null;
@@ -90,6 +105,66 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
       { text: `Task "${prop.title}" was created`, timestamp: prop.createdDate },
     ],
   }));
+
+  /* Synchronize local task state when external subtasks or task prop changes */
+  useEffect(() => {
+    if (!prop) return;
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTask(prev => {
+      const prevTaskId = prev.id || prev._id;
+      const propTaskId = prop.id || prop._id;
+
+      if (prevTaskId && propTaskId && String(prevTaskId) !== String(propTaskId)) {
+        return {
+          ...prop,
+          subtasks: (prop.subtasks || []).map(s => ({
+            ...s,
+            id: s.id || s._id,
+            comments: s.comments || [],
+          })),
+          attachments: prop.attachments || [
+            { id: 'a1', name: 'Design Brief', ext: 'PDF', size: '2.45 MB', url: null },
+            { id: 'a2', name: 'Company Info', ext: 'PDF', size: '5.25 MB', url: null },
+          ],
+          generalComments: prop.generalComments || [],
+          activities: prop.activities || [
+            { text: `Task "${prop.title}" was created`, timestamp: prop.createdDate },
+          ],
+        };
+      }
+
+      const subtasksChanged = !areSubtasksEqual(prop.subtasks, prev.subtasks);
+      const statusChanged = prop.status && prop.status !== prev.status;
+      const progressChanged =
+        (prop.progressCurrent !== undefined && prop.progressCurrent !== prev.progressCurrent) ||
+        (prop.progressTotal !== undefined && prop.progressTotal !== prev.progressTotal) ||
+        (prop.progress !== undefined && prop.progress !== prev.progress);
+
+      if (!subtasksChanged && !statusChanged && !progressChanged) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        ...(subtasksChanged ? {
+          subtasks: (prop.subtasks || []).map(s => {
+            const subId = String(s.id || s._id || '');
+            const prevSub = (prev.subtasks || []).find(ps => String(ps.id || ps._id || '') === subId);
+            return {
+              ...s,
+              id: s.id || s._id,
+              comments: s.comments || prevSub?.comments || [],
+            };
+          }),
+        } : {}),
+        ...(statusChanged ? { status: prop.status } : {}),
+        ...(prop.progressCurrent !== undefined ? { progressCurrent: prop.progressCurrent } : {}),
+        ...(prop.progressTotal !== undefined ? { progressTotal: prop.progressTotal } : {}),
+        ...(prop.progress !== undefined ? { progress: prop.progress } : {}),
+      };
+    });
+  }, [prop]);
 
   /* ── Edit mode ── */
   const [isEditing, setIsEditing] = useState(false);
