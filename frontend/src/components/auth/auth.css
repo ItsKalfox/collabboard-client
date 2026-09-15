@@ -555,11 +555,58 @@
   animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.auth-mobile-logo {
+  display: none;
+}
+
 /* Responsive adjustments */
+@media (max-width: 850px) {
+  .auth-page-container {
+    padding: 0;
+  }
+
+  .auth-split-window {
+    border-radius: 0;
+    min-height: 100vh;
+  }
+
+  .auth-left-pane {
+    display: none !important;
+  }
+
+  .auth-right-pane {
+    flex: 1 1 100%;
+    border: none;
+    border-radius: 0;
+    transform: none !important;
+  }
+
+  .auth-split-window.is-signup .auth-right-pane {
+    transform: none !important;
+  }
+
+  .auth-mobile-logo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 24px;
+  }
+
+  .auth-card {
+    padding: 40px 24px;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  
+  .otp-input {
+    width: 48px;
+    height: 54px;
+    font-size: 22px;
+  }
+}
+
 @media (max-width: 480px) {
   .auth-card {
-    padding: 28px 20px;
-    border-radius: 20px;
+    padding: 32px 20px;
   }
   
   .otp-input {

@@ -70,6 +70,14 @@ export default function AuthContainer({
 
         {/* Right Side: Glassmorphism Login Form */}
         <div className={`auth-right-pane auth-card ${theme === 'light' ? 'light' : ''} auth-fade-in`}>
+          <div className="auth-mobile-logo">
+            <img 
+              src={theme === 'dark' ? logoWH : logoBL} 
+              alt="CollabBoard Logo" 
+              style={{ height: '42px', objectFit: 'contain' }}
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+          </div>
           <div className="auth-right-content">
             {/* Page Content Container */}
             {displayState.children}
