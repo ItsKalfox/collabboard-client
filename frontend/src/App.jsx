@@ -10,6 +10,7 @@ import Board from './pages/Board';
 import Settings from './pages/Settings';
 import AuthModule from './components/auth/AuthModule';
 import ConfirmModal from './components/Board/ConfirmModal';
+import { useSocket } from './context/SocketContext';
 import './App.css';
 
 function App() {
@@ -45,10 +46,12 @@ function App() {
 
   const [currentUser, setCurrentUser] = useState(null);
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
+  const { connectSocket, disconnectSocket } = useSocket() || {};
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     setCurrentUser(null);
+    if (disconnectSocket) disconnectSocket();
     handleTabClick('login');
     setIsLogoutConfirmOpen(false);
   };
@@ -69,14 +72,17 @@ function App() {
         if (data.status === 'success' && data.data && data.data.user) {
           setCurrentUser(data.data.user);
           localStorage.setItem('user', JSON.stringify(data.data.user));
+          if (connectSocket) connectSocket(token);
         } else {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
+          if (disconnectSocket) disconnectSocket();
           if (!authRoutes.includes(activeTab)) setSessionExpired(true);
         }
       })
       .catch(err => {
         console.error('Failed to fetch user:', err);
+        if (disconnectSocket) disconnectSocket();
         if (!authRoutes.includes(activeTab)) setSessionExpired(true);
       });
     } else {
@@ -130,6 +136,8 @@ function App() {
   const handleLoginSuccess = (user) => {
     setCurrentUser(user);
     localStorage.setItem('user', JSON.stringify(user));
+    const token = localStorage.getItem('token');
+    if (token && connectSocket) connectSocket(token);
     handleTabClick('Dashboard');
   };
 

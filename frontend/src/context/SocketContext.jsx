@@ -11,15 +11,20 @@ export const SocketProvider = ({ children }) => {
   useEffect(() => {
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
     const socketUrl = apiUrl.replace(/\/api\/?$/, ''); // Remove /api suffix for Socket.io
-    const token = localStorage.getItem('token');
+    
     const newSocket = io(socketUrl, {
       autoConnect: false,
-      auth: { token },
       withCredentials: true,
       transports: ['websocket']
     });
     setSocket(newSocket);
-    newSocket.connect();
+
+    // Initial connection if token exists
+    const token = localStorage.getItem('token');
+    if (token) {
+      newSocket.auth = { token };
+      newSocket.connect();
+    }
 
     newSocket.on('connect', () => {
       setIsConnected(true);
@@ -50,8 +55,21 @@ export const SocketProvider = ({ children }) => {
     };
   }, []);
 
+  const connectSocket = (token) => {
+    if (socket) {
+      socket.auth = { token };
+      socket.connect();
+    }
+  };
+
+  const disconnectSocket = () => {
+    if (socket) {
+      socket.disconnect();
+    }
+  };
+
   return (
-    <SocketContext.Provider value={{ socket, isConnected, connectionState }}>
+    <SocketContext.Provider value={{ socket, isConnected, connectionState, connectSocket, disconnectSocket }}>
       {children}
     </SocketContext.Provider>
   );
