@@ -77,19 +77,27 @@ function App() {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           if (disconnectSocket) disconnectSocket();
-          if (!authRoutes.includes(activeTab)) setSessionExpired(true);
+          if (!authRoutes.includes(activeTab)) handleTabClick('login');
         }
       })
       .catch(err => {
         console.error('Failed to fetch user:', err);
         if (disconnectSocket) disconnectSocket();
-        if (!authRoutes.includes(activeTab)) setSessionExpired(true);
+        if (!authRoutes.includes(activeTab)) handleTabClick('login');
       });
     } else {
       if (!authRoutes.includes(activeTab)) {
-        setSessionExpired(true);
+        handleTabClick('login');
       }
     }
+  }, []);
+
+  useEffect(() => {
+    const handleSessionExpiry = () => {
+      setSessionExpired(true);
+    };
+    window.addEventListener('session-expired', handleSessionExpiry);
+    return () => window.removeEventListener('session-expired', handleSessionExpiry);
   }, []);
 
 
