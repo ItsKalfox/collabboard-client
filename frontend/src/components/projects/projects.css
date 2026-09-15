@@ -26,7 +26,7 @@
   flex-direction: column;
   height: 100%;
   overflow-y: auto;
-  padding: 32px;
+  padding: 16px;
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
@@ -741,4 +741,41 @@
 }
 .member-card-remove:hover {
   background: var(--danger-hi);
+}
+
+/* Hide the mobile owner text by default on desktop */
+.pc-list-owner-mobile-only {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .projects-page {
+    padding: 8px;
+  }
+
+  .projects-header {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .projects-search-bar input {
+    width: 100px;
+  }
+
+  #create-project-btn {
+    white-space: nowrap;
+    padding: 10px 12px;
+  }
+
+  /* Simplify Team Project cards on mobile */
+  .team-project .pc-list-desc,
+  .team-project .pc-list-progress-section,
+  .team-project .pc-list-meta,
+  .team-project .pc-list-members {
+    display: none !important;
+  }
+
+  .team-project .pc-list-owner-mobile-only {
+    display: block;
+  }
 }

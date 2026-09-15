@@ -30,7 +30,13 @@ export function isProjectOwner(project, user) {
   const userName = typeof user === 'string' ? user : user.name;
   const userEmail = typeof user === 'object' ? user.email : (typeof user === 'string' && user.includes('@') ? user : null);
   
-  const projectOwnerId = project.ownerId || (typeof project.owner === 'object' ? project.owner?.id : null);
+  let projectOwnerId = project.ownerId;
+  if (projectOwnerId && typeof projectOwnerId === 'object') {
+    projectOwnerId = projectOwnerId._id || projectOwnerId.id;
+  }
+  if (!projectOwnerId && typeof project.owner === 'object') {
+    projectOwnerId = project.owner?.id || project.owner?._id;
+  }
   if (userId && projectOwnerId && String(userId) === String(projectOwnerId)) return true;
 
   const ownerName = typeof project.owner === 'string' ? project.owner : project.owner?.name;
