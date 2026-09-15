@@ -6,8 +6,9 @@ let io;
 export const initIO = (httpServer) => {
     io = new Server(httpServer, {
         cors: {
-            origin: "*", // allow all or use process.env.FRONTEND_URL
-            methods: ["GET", "POST", "PATCH", "PUT", "DELETE"]
+            origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+            methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
+            credentials: true
         }
     });
 

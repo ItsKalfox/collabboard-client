@@ -17,6 +17,8 @@ const app = express();
 
 // Middleware
 app.use(cors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    credentials: true,
     exposedHeaders: ['Content-Disposition', 'Content-Type']
 }));
 app.use(express.json({ strict: false }));
