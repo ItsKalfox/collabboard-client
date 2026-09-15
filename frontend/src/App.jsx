@@ -241,7 +241,7 @@ function App() {
               <line x1="12" y1="8" x2="12" y2="12"></line>
               <line x1="12" y1="16" x2="12.01" y2="16"></line>
             </svg>
-            <h2 style={{ margin: '0 0 10px 0', fontSize: '22px', fontWeight: '700' }}>Session Expired</h2>
+            <h2 style={{ margin: '0 0 10px 0', fontSize: '22px', fontWeight: '700', color: 'inherit' }}>Session Expired</h2>
             <p style={{ margin: '0 0 24px 0', color: isDark ? '#9ca3af' : '#4b5563', fontSize: '14px', lineHeight: '1.5' }}>Your session is invalid or has expired. Please sign in again to continue.</p>
             <button 
               onClick={() => {
