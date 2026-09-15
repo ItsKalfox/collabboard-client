@@ -12,7 +12,6 @@ import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import KanbanColumn from './KanbanColumn';
 import TaskCard from './TaskCard';
 import TaskPopup from '../TaskPopup/TaskPopup';
-import { formatDate } from '../../utils/dateUtils';
 import { useSocket } from '../../context/SocketContext';
 import './KanbanBoard.css';
 
@@ -132,13 +131,20 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
 
       const handleSubtaskCreated = ({ taskId, subtask }) => {
         if (!taskId || !subtask) return;
-        const subtaskId = subtask.id || subtask._id;
+        const targetTaskId = String(taskId);
+        const incomingSubId = String(subtask.id || subtask._id || '');
+        if (!incomingSubId) return;
+
         setColumns(prev => prev.map(c => ({
           ...c,
           tasks: c.tasks.map(t => {
-            if (String(t.id || t._id) !== String(taskId)) return t;
+            if (String(t.id || t._id) !== targetTaskId) return t;
             const existingSubtasks = t.subtasks || [];
-            if (existingSubtasks.some(s => String(s.id || s._id) === String(subtaskId))) {
+            const alreadyExists = existingSubtasks.some(s => {
+              const sId = String(s?.id || s?._id || '');
+              return sId && sId === incomingSubId;
+            });
+            if (alreadyExists) {
               return t;
             }
             const updatedSubtasks = [...existingSubtasks, subtask];
@@ -156,9 +162,13 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
         })));
 
         setActiveTask(prev => {
-          if (!prev || String(prev.id || prev._id) !== String(taskId)) return prev;
+          if (!prev || String(prev.id || prev._id) !== targetTaskId) return prev;
           const existingSubtasks = prev.subtasks || [];
-          if (existingSubtasks.some(s => String(s.id || s._id) === String(subtaskId))) {
+          const alreadyExists = existingSubtasks.some(s => {
+            const sId = String(s?.id || s?._id || '');
+            return sId && sId === incomingSubId;
+          });
+          if (alreadyExists) {
             return prev;
           }
           const updatedSubtasks = [...existingSubtasks, subtask];
@@ -469,7 +479,6 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
       const newStatus = currentColumn.id;
       
       const completedSubtasks = task.progressCurrent || 0;
-      const totalSubtasks = task.progressTotal || 0;
 
       const revertMove = () => {
         setColumns(prev => prev.map(c => {
