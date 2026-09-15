@@ -88,9 +88,19 @@ export const getTasksByProject = async (req, res) => {
 
 export const createTask = async (req, res) => {
     try {
-        const { title, description, status, priority, assigneeId, dueDate } = req.body;
+        const { title, description, status, priority, assigneeId, dueDate, subtasks } = req.body;
         const projectId = req.params.projectId || req.body.projectId;
         if (!projectId || !title) return res.status(400).json({ status: 'error', message: 'Project ID and title are required' });
+
+        const normalizedSubtasks = Array.isArray(subtasks)
+            ? subtasks
+                .filter(subtask => subtask && subtask.title)
+                .map(subtask => ({
+                    title: subtask.title,
+                    description: subtask.description || '',
+                    completed: subtask.completed ?? false
+                }))
+            : [];
 
         const task = await taskRepository.create({
             projectId,
@@ -100,6 +110,7 @@ export const createTask = async (req, res) => {
             priority: priority || 'medium',
             assigneeId: assigneeId || req.user.id,
             dueDate,
+            subtasks: normalizedSubtasks,
             activities: [{
                 type: 'created',
                 text: `Task "${title}" created`,
