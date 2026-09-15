@@ -88,9 +88,19 @@ export const getTasksByProject = async (req, res) => {
 
 export const createTask = async (req, res) => {
     try {
-        const { title, description, status, priority, assigneeId, dueDate } = req.body;
+        const { title, description, status, priority, assigneeId, dueDate, subtasks } = req.body;
         const projectId = req.params.projectId || req.body.projectId;
         if (!projectId || !title) return res.status(400).json({ status: 'error', message: 'Project ID and title are required' });
+
+        const normalizedSubtasks = Array.isArray(subtasks)
+            ? subtasks
+                .filter(subtask => subtask && subtask.title)
+                .map(subtask => ({
+                    title: subtask.title,
+                    description: subtask.description || '',
+                    completed: subtask.completed ?? false
+                }))
+            : [];
 
         const task = await taskRepository.create({
             projectId,
@@ -100,6 +110,7 @@ export const createTask = async (req, res) => {
             priority: priority || 'medium',
             assigneeId: assigneeId || req.user.id,
             dueDate,
+            subtasks: normalizedSubtasks,
             activities: [{
                 type: 'created',
                 text: `Task "${title}" created`,
@@ -379,6 +390,18 @@ export const createSubtask = async (req, res) => {
 
         task.subtasks.push({ title, completed: completed || false });
         await taskRepository.save(task);
+
+        const newSubtask = task.subtasks[task.subtasks.length - 1];
+
+        try {
+            const projectId = task.projectId?._id ? task.projectId._id.toString() : task.projectId.toString();
+            getIO().to(`board-${projectId}`).emit('subtask_created', {
+                taskId: task._id.toString(),
+                subtask: newSubtask
+            });
+        } catch (socketError) {
+            console.error('Socket emit error (subtask_created):', socketError);
+        }
 
         res.status(201).json({ status: 'success', message: 'Subtask created', data: { subtasks: task.subtasks } });
     } catch (error) {

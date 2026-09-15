@@ -12,7 +12,6 @@ import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import KanbanColumn from './KanbanColumn';
 import TaskCard from './TaskCard';
 import TaskPopup from '../TaskPopup/TaskPopup';
-import { formatDate } from '../../utils/dateUtils';
 import { useSocket } from '../../context/SocketContext';
 import './KanbanBoard.css';
 
@@ -129,6 +128,140 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
           tasks: c.tasks.filter(t => t.id !== taskId)
         })));
       };
+
+      const handleSubtaskCreated = ({ taskId, subtask }) => {
+        if (!taskId || !subtask) return;
+        const targetTaskId = String(taskId);
+        const incomingSubId = String(subtask.id || subtask._id || '');
+        if (!incomingSubId) return;
+
+        setColumns(prev => prev.map(c => ({
+          ...c,
+          tasks: c.tasks.map(t => {
+            if (String(t.id || t._id) !== targetTaskId) return t;
+            const existingSubtasks = t.subtasks || [];
+            const alreadyExists = existingSubtasks.some(s => {
+              const sId = String(s?.id || s?._id || '');
+              return sId && sId === incomingSubId;
+            });
+            if (alreadyExists) {
+              return t;
+            }
+            const updatedSubtasks = [...existingSubtasks, subtask];
+            const progressCurrent = updatedSubtasks.filter(st => st.completed).length;
+            const progressTotal = updatedSubtasks.length;
+            const progress = progressTotal > 0 ? Math.round((progressCurrent / progressTotal) * 100) : 0;
+            return {
+              ...t,
+              subtasks: updatedSubtasks,
+              progressCurrent,
+              progressTotal,
+              progress
+            };
+          })
+        })));
+
+        setActiveTask(prev => {
+          if (!prev || String(prev.id || prev._id) !== targetTaskId) return prev;
+          const existingSubtasks = prev.subtasks || [];
+          const alreadyExists = existingSubtasks.some(s => {
+            const sId = String(s?.id || s?._id || '');
+            return sId && sId === incomingSubId;
+          });
+          if (alreadyExists) {
+            return prev;
+          }
+          const updatedSubtasks = [...existingSubtasks, subtask];
+          const progressCurrent = updatedSubtasks.filter(st => st.completed).length;
+          const progressTotal = updatedSubtasks.length;
+          const progress = progressTotal > 0 ? Math.round((progressCurrent / progressTotal) * 100) : 0;
+          return {
+            ...prev,
+            subtasks: updatedSubtasks,
+            progressCurrent,
+            progressTotal,
+            progress
+          };
+        });
+      };
+
+      const handleSubtaskUpdated = ({ taskId, subtask }) => {
+        if (!taskId || !subtask) return;
+        const targetSubId = String(subtask.id || subtask._id);
+        setColumns(prev => prev.map(c => ({
+          ...c,
+          tasks: c.tasks.map(t => {
+            if (String(t.id || t._id) !== String(taskId)) return t;
+            const updatedSubtasks = (t.subtasks || []).map(s =>
+              String(s.id || s._id) === targetSubId ? { ...s, ...subtask } : s
+            );
+            const progressCurrent = updatedSubtasks.filter(st => st.completed).length;
+            const progressTotal = updatedSubtasks.length;
+            const progress = progressTotal > 0 ? Math.round((progressCurrent / progressTotal) * 100) : 0;
+            return {
+              ...t,
+              subtasks: updatedSubtasks,
+              progressCurrent,
+              progressTotal,
+              progress
+            };
+          })
+        })));
+
+        setActiveTask(prev => {
+          if (!prev || String(prev.id || prev._id) !== String(taskId)) return prev;
+          const updatedSubtasks = (prev.subtasks || []).map(s =>
+            String(s.id || s._id) === targetSubId ? { ...s, ...subtask } : s
+          );
+          const progressCurrent = updatedSubtasks.filter(st => st.completed).length;
+          const progressTotal = updatedSubtasks.length;
+          const progress = progressTotal > 0 ? Math.round((progressCurrent / progressTotal) * 100) : 0;
+          return {
+            ...prev,
+            subtasks: updatedSubtasks,
+            progressCurrent,
+            progressTotal,
+            progress
+          };
+        });
+      };
+
+      const handleSubtaskDeleted = ({ taskId, subtaskId }) => {
+        if (!taskId || !subtaskId) return;
+        const targetSubId = String(subtaskId);
+        setColumns(prev => prev.map(c => ({
+          ...c,
+          tasks: c.tasks.map(t => {
+            if (String(t.id || t._id) !== String(taskId)) return t;
+            const updatedSubtasks = (t.subtasks || []).filter(s => String(s.id || s._id) !== targetSubId);
+            const progressCurrent = updatedSubtasks.filter(st => st.completed).length;
+            const progressTotal = updatedSubtasks.length;
+            const progress = progressTotal > 0 ? Math.round((progressCurrent / progressTotal) * 100) : 0;
+            return {
+              ...t,
+              subtasks: updatedSubtasks,
+              progressCurrent,
+              progressTotal,
+              progress
+            };
+          })
+        })));
+
+        setActiveTask(prev => {
+          if (!prev || String(prev.id || prev._id) !== String(taskId)) return prev;
+          const updatedSubtasks = (prev.subtasks || []).filter(s => String(s.id || s._id) !== targetSubId);
+          const progressCurrent = updatedSubtasks.filter(st => st.completed).length;
+          const progressTotal = updatedSubtasks.length;
+          const progress = progressTotal > 0 ? Math.round((progressCurrent / progressTotal) * 100) : 0;
+          return {
+            ...prev,
+            subtasks: updatedSubtasks,
+            progressCurrent,
+            progressTotal,
+            progress
+          };
+        });
+      };
       
       const handleReconnect = () => {
         setLocalRefresh(r => r + 1);
@@ -138,6 +271,9 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
       socket.on('task_updated', handleTaskUpdated);
       socket.on('task_moved', handleTaskMoved);
       socket.on('task_deleted', handleTaskDeleted);
+      socket.on('subtask_created', handleSubtaskCreated);
+      socket.on('subtask_updated', handleSubtaskUpdated);
+      socket.on('subtask_deleted', handleSubtaskDeleted);
       socket.on('connect', handleReconnect);
       
       return () => {
@@ -145,6 +281,9 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
         socket.off('task_updated', handleTaskUpdated);
         socket.off('task_moved', handleTaskMoved);
         socket.off('task_deleted', handleTaskDeleted);
+        socket.off('subtask_created', handleSubtaskCreated);
+        socket.off('subtask_updated', handleSubtaskUpdated);
+        socket.off('subtask_deleted', handleSubtaskDeleted);
         socket.off('connect', handleReconnect);
         socket.emit('leave_board', projectId);
       };
@@ -340,7 +479,6 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
       const newStatus = currentColumn.id;
       
       const completedSubtasks = task.progressCurrent || 0;
-      const totalSubtasks = task.progressTotal || 0;
 
       const revertMove = () => {
         setColumns(prev => prev.map(c => {
