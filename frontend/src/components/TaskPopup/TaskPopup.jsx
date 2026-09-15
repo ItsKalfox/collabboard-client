@@ -477,7 +477,8 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       const token = localStorage.getItem('token');
-      const res = await fetch(`${apiUrl}/tasks/${task.id}/subtasks`, {
+      const taskId = task.id || task._id;
+      const res = await fetch(`${apiUrl}/tasks/${taskId}/subtasks`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -486,19 +487,32 @@ export default function TaskPopup({ task: prop, project, currentUser, onClose, o
         body: JSON.stringify({ title, description, completed: false })
       });
       const data = await res.json();
-      if (data.status === 'success') {
-        const newApiSubtask = data.data.subtask;
-        subData = { ...subData, id: newApiSubtask.id };
+      if (data.status === 'success' && data.data) {
+        const newApiSubtask = data.data.subtask || (Array.isArray(data.data.subtasks) ? data.data.subtasks[data.data.subtasks.length - 1] : null);
+        if (newApiSubtask) {
+          const actualId = newApiSubtask.id || newApiSubtask._id;
+          subData = { ...subData, id: actualId, _id: actualId };
+        }
       }
     } catch (e) {
       console.error('Failed to add subtask', e);
     }
 
-    setTask(t => ({
-      ...t,
-      subtasks: [...t.subtasks, subData],
-      activities: [{ text: `New subtask added: "${title}"`, timestamp: fmtNow() }, ...(t.activities || [])],
-    }));
+    setTask(t => {
+      const subId = subData.id || subData._id;
+      const existingSubtasks = t.subtasks || [];
+      if (subId && existingSubtasks.some(s => String(s.id || s._id) === String(subId))) {
+        return {
+          ...t,
+          activities: [{ text: `New subtask added: "${title}"`, timestamp: fmtNow() }, ...(t.activities || [])],
+        };
+      }
+      return {
+        ...t,
+        subtasks: [...existingSubtasks, subData],
+        activities: [{ text: `New subtask added: "${title}"`, timestamp: fmtNow() }, ...(t.activities || [])],
+      };
+    });
     setNewSubInput('');
     setNewSubDesc('');
     if (onUpdate) onUpdate();
