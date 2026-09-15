@@ -268,14 +268,15 @@ export default function ProjectTimeline({ project }) {
       </div>
 
       {/* Graph Body */}
-      <div className="timeline-body" style={{ minHeight: '400px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div className="timeline-body" style={{ minHeight: '400px', display: 'flex', flexDirection: 'column', overflowX: 'auto', overflowY: 'hidden' }}>
         {(!project || !project.tasks || project.tasks.length === 0) ? (
           <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             No timeline data available.
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height="100%" minHeight={350}>
-            <LineChart margin={{ top: 30, right: 30, left: 20, bottom: 20 }}>
+          <div style={{ minWidth: '600px', height: '100%', flex: 1 }}>
+            <ResponsiveContainer width="100%" height="100%" minHeight={350}>
+              <LineChart margin={{ top: 30, right: 30, left: 20, bottom: 20 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
               
               <XAxis 
@@ -318,6 +319,7 @@ export default function ProjectTimeline({ project }) {
               ))}
             </LineChart>
           </ResponsiveContainer>
+          </div>
         )}
       </div>
     </div>

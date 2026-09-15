@@ -10,6 +10,7 @@ import Board from './pages/Board';
 import Settings from './pages/Settings';
 import AuthModule from './components/auth/AuthModule';
 import ConfirmModal from './components/Board/ConfirmModal';
+import { useSocket } from './context/SocketContext';
 import './App.css';
 
 function App() {
@@ -33,7 +34,7 @@ function App() {
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('theme');
     if (saved) return saved;
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    return 'light';
   });
   
   const isDark = theme === 'dark';
@@ -45,10 +46,12 @@ function App() {
 
   const [currentUser, setCurrentUser] = useState(null);
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
+  const { connectSocket, disconnectSocket } = useSocket() || {};
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     setCurrentUser(null);
+    if (disconnectSocket) disconnectSocket();
     handleTabClick('login');
     setIsLogoutConfirmOpen(false);
   };
@@ -69,21 +72,32 @@ function App() {
         if (data.status === 'success' && data.data && data.data.user) {
           setCurrentUser(data.data.user);
           localStorage.setItem('user', JSON.stringify(data.data.user));
+          if (connectSocket) connectSocket(token);
         } else {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
-          if (!authRoutes.includes(activeTab)) setSessionExpired(true);
+          if (disconnectSocket) disconnectSocket();
+          if (!authRoutes.includes(activeTab)) handleTabClick('login');
         }
       })
       .catch(err => {
         console.error('Failed to fetch user:', err);
-        if (!authRoutes.includes(activeTab)) setSessionExpired(true);
+        if (disconnectSocket) disconnectSocket();
+        if (!authRoutes.includes(activeTab)) handleTabClick('login');
       });
     } else {
       if (!authRoutes.includes(activeTab)) {
-        setSessionExpired(true);
+        handleTabClick('login');
       }
     }
+  }, []);
+
+  useEffect(() => {
+    const handleSessionExpiry = () => {
+      setSessionExpired(true);
+    };
+    window.addEventListener('session-expired', handleSessionExpiry);
+    return () => window.removeEventListener('session-expired', handleSessionExpiry);
   }, []);
 
 
@@ -130,6 +144,8 @@ function App() {
   const handleLoginSuccess = (user) => {
     setCurrentUser(user);
     localStorage.setItem('user', JSON.stringify(user));
+    const token = localStorage.getItem('token');
+    if (token && connectSocket) connectSocket(token);
     handleTabClick('Dashboard');
   };
 
@@ -233,7 +249,7 @@ function App() {
               <line x1="12" y1="8" x2="12" y2="12"></line>
               <line x1="12" y1="16" x2="12.01" y2="16"></line>
             </svg>
-            <h2 style={{ margin: '0 0 10px 0', fontSize: '22px', fontWeight: '700' }}>Session Expired</h2>
+            <h2 style={{ margin: '0 0 10px 0', fontSize: '22px', fontWeight: '700', color: 'inherit' }}>Session Expired</h2>
             <p style={{ margin: '0 0 24px 0', color: isDark ? '#9ca3af' : '#4b5563', fontSize: '14px', lineHeight: '1.5' }}>Your session is invalid or has expired. Please sign in again to continue.</p>
             <button 
               onClick={() => {
@@ -430,14 +446,6 @@ function App() {
               <button type="button" onClick={toggleTheme} className="theme-toggle-btn cursor-pointer icon-btn">
                 {isDark ? <Sun size={18} /> : <Moon size={18} />}
               </button>
-
-              {/* Email Button */}
-              <div className="icon-btn">
-                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                  <polyline points="22,6 12,13 2,6"></polyline>
-                </svg>
-              </div>
             </div>
           </div>
 

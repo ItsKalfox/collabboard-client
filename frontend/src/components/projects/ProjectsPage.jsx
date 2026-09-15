@@ -34,7 +34,9 @@ export default function ProjectsPage({ theme = 'dark', currentUser, onOpenBoard 
         if (apiProjects && Array.isArray(apiProjects)) {
           const formatted = apiProjects.map(p => ({
             ...p,
-            owner: p.owner || (p.ownerId === activeUser.id ? (activeUser.name || 'Me') : (p.ownerName || 'Unknown Owner')),
+            owner: p.owner || 
+              ((typeof p.ownerId === 'object' && p.ownerId?.name) ? p.ownerId.name : 
+              (((typeof p.ownerId === 'string' && p.ownerId === activeUser.id) || (typeof p.ownerId === 'object' && p.ownerId?._id === activeUser.id)) ? (activeUser.name || 'Me') : (p.ownerName || 'Unknown Owner'))),
             createdDate: p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : (p.createdDate || '—'),
             progress: calculateProjectProgress(p)
           }));
@@ -201,6 +203,7 @@ export default function ProjectsPage({ theme = 'dark', currentUser, onOpenBoard 
                     key={project.id}
                     project={project}
                     theme={theme}
+                    isTeamProject={true}
                     onEdit={(p) => {
                       setSelectedDetailsProject(p);
                       setDetailsInitialEditMode(true);

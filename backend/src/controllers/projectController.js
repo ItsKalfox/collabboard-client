@@ -51,6 +51,7 @@ export const getProjects = async (req, res) => {
             .sort(sort)
             .skip(skip)
             .limit(limit)
+            .populate('ownerId', 'name email avatar')
             .populate('members.userId', 'name email avatar')
             .exec();
 

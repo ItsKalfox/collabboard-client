@@ -11,6 +11,7 @@ const COLOR_HEX = {
 export default function ProjectCard({
   project,
   theme = 'dark',
+  isTeamProject = false,
   onViewDetails,
 }) {
   const isDark = theme !== 'light';
@@ -27,7 +28,7 @@ export default function ProjectCard({
 
   return (
     <div
-      className={`${isDark ? 'glass-card' : 'glass-card-light'} pc-list-card${lightCls}`}
+      className={`${isDark ? 'glass-card' : 'glass-card-light'} pc-list-card${lightCls} ${isTeamProject ? 'team-project' : ''}`}
       onClick={handleCardClick}
     >
       {/* 1. Thumbnail Image */}
@@ -42,6 +43,11 @@ export default function ProjectCard({
       {/* 2. Project Info */}
       <div className="pc-list-info">
         <h3 className={`pc-list-title${lightCls}`}>{project.name}</h3>
+        {isTeamProject && (
+          <p className="pc-list-owner-mobile-only" style={{ fontSize: '12px', color: 'var(--text-dim)', marginBottom: '6px' }}>
+            Owner: {project.owner || 'Me'}
+          </p>
+        )}
         <p className={`pc-list-desc${lightCls}`}>{project.description}</p>
       </div>
 

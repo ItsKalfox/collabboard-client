@@ -138,7 +138,7 @@ export default function TimelineTable() {
         <h2 className="timeline-title">Management</h2>
 
         <div className="timeline-header-controls">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="timeline-arrows" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button onClick={scrollLeft} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '50%', width: '28px', height: '28px', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none"><polyline points="15 18 9 12 15 6"></polyline></svg>
             </button>

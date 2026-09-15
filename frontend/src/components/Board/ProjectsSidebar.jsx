@@ -11,22 +11,35 @@ const ChevronDown = () => (
 export default function ProjectsSidebar({ projects = [], activeProjectId, onSelectProject, currentUser }) {
   const [isMyProjectsOpen, setIsMyProjectsOpen] = useState(true);
   const [isTeamProjectsOpen, setIsTeamProjectsOpen] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   const handleSelect = (id) => {
     if (onSelectProject) {
       onSelectProject(id);
     }
+    setIsMobileMenuOpen(false);
   };
+
+  const activeProject = projects.find(p => p.id === activeProjectId);
+  const activeProjectName = activeProject ? activeProject.name : 'Select Project';
 
   const ownedProjects = projects.filter(p => isProjectOwner(p, currentUser));
   const partOfProjects = projects.filter(p => !isProjectOwner(p, currentUser) && isProjectMember(p, currentUser));
 
   return (
-    <aside className="projects-preview-sidebar">
-      <div className="projects-sidebar-header">
+    <aside className={`projects-preview-sidebar ${isMobileMenuOpen ? 'mobile-menu-open' : ''}`}>
+      <div className="mobile-project-dropdown-trigger" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+        <span className="mobile-selected-project-name">{activeProjectName}</span>
+        <div className={`mobile-dropdown-icon ${isMobileMenuOpen ? 'open' : ''}`}>
+          <ChevronDown />
+        </div>
+      </div>
+
+      <div className="projects-sidebar-header desktop-only">
         <h2 className="projects-sidebar-title">Projects</h2>
       </div>
 
-      <div className="projects-list-container">
+      <div className={`projects-list-container ${isMobileMenuOpen ? 'open' : ''}`}>
         {ownedProjects.length > 0 && (
           <div className="sidebar-project-category">
             <div className="sidebar-category-header" onClick={() => setIsMyProjectsOpen(!isMyProjectsOpen)} style={{ cursor: 'pointer' }}>

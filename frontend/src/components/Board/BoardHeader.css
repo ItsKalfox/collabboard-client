@@ -1,25 +1,17 @@
 .board-header-container {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px 16px;
   width: 100%;
   padding: 8px 4px 0 4px;
 }
 
-/* Main Title Row & Team Avatars */
-.board-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-top: 4px;
-}
-
-.board-title-group {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
+/* Grid assignments for desktop layout */
+.bh-title-group { grid-column: 1 / 2; grid-row: 1; display: flex; align-items: center; gap: 12px; }
+.bh-team-group { grid-column: 2 / 3; grid-row: 1; justify-self: end; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+.bh-description { grid-column: 1 / 3; grid-row: 2; }
+.bh-meta-actions { grid-column: 1 / 2; grid-row: 3; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.board-subtabs-bar { grid-column: 1 / 3; grid-row: 4; }
 
 .board-main-title {
   font-size: 32px;
@@ -27,38 +19,66 @@
   color: var(--text-primary, #111);
   margin: 0;
   letter-spacing: -0.5px;
-  transition: color 0.3s ease;
+  line-height: 1.2;
 }
 
-.info-icon-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-secondary, #888);
-  cursor: pointer;
+.bh-sync-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.bh-description {
+  font-size: 13px;
+  color: var(--text-dim, #6b7280);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.bh-team-group {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 4px;
-  border-radius: 50%;
-  transition: color 0.2s ease;
+  gap: 24px;
+  flex-wrap: wrap;
 }
 
-.info-icon-btn:hover {
+.bh-deadline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary, #6b7280);
+  white-space: nowrap;
+}
+
+.bh-deadline-label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.bh-deadline-value {
+  font-size: 13px;
+  font-weight: 600;
   color: var(--text-primary, #111);
 }
 
-.board-team-group {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.team-avatars-stack {
+.bh-avatars-wrapper {
   display: flex;
   align-items: center;
 }
 
-.avatar-circle {
+.pc-list-members {
+  display: flex;
+  flex-direction: row-reverse;
+  margin-right: 16px;
+}
+
+.pc-list-avatar {
   width: 34px;
   height: 34px;
   border-radius: 50%;
@@ -69,17 +89,25 @@
   font-weight: 700;
   color: #fff;
   border: 2px solid var(--bg-color, #ffffff);
-  margin-left: -8px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  margin-left: -8px;
 }
 
-.avatar-circle:first-child {
+.pc-list-avatar:last-child {
   margin-left: 0;
 }
 
-.av-1 { background: #ef4444; }
-.av-2 { background: #3b82f6; }
-.av-3 { background: #10b981; }
+.bh-active-dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  background-color: #10b981;
+  border: 2px solid white;
+  border-radius: 50%;
+  z-index: 2;
+}
 
 .invite-member-btn {
   width: 34px;
@@ -101,48 +129,36 @@
   background: var(--menu-bg, rgba(255, 255, 255, 0.15));
 }
 
-/* Metadata Row & Singular Add Task Button */
-.board-metadata-row {
+.bh-meta-actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
   flex-wrap: wrap;
-  gap: 16px;
-  font-size: 13px;
-  color: var(--text-secondary, #666);
-  margin-top: 2px;
 }
 
-.metadata-left-items {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 24px;
+.view-project-btn {
+  cursor: pointer;
+  background: rgba(0,0,0,0.06);
+  border: 1px solid var(--border-color, rgba(128,128,128,0.2));
+  color: var(--text-secondary);
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background 0.2s;
 }
 
-.meta-item {
+[data-theme="dark"] .view-project-btn {
+  background: rgba(255,255,255,0.08);
+}
+
+.bh-members-count {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.meta-label {
+  color: var(--text-tertiary, #9ca3af);
+  font-size: 13px;
   font-weight: 500;
-  color: var(--text-secondary, #777);
-}
-
-.meta-value {
-  font-weight: 600;
-  color: var(--text-primary, #111);
-}
-
-.priority-badge {
-  background: rgba(59, 130, 246, 0.15);
-  color: #2563eb;
-  padding: 3px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
 }
 
 .tags-list {
@@ -185,6 +201,10 @@
 
 /* Singular Add Task Button below team chips */
 .add-task-header-btn {
+  grid-column: 2 / 3;
+  grid-row: 3;
+  justify-self: end;
+  align-self: center;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -258,14 +278,40 @@
 }
 
 @media (max-width: 768px) {
-  .board-title-row {
-    flex-direction: column;
-    align-items: flex-start;
+  .board-header-container {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
   }
   
-  .board-metadata-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+  .board-main-title {
+    font-size: 24px;
+  }
+
+  .bh-title-group { grid-column: 1 / -1; grid-row: 1; }
+  .bh-description { grid-column: 1 / -1; grid-row: 2; width: 100%; }
+  .bh-team-group { grid-column: 1 / -1; grid-row: 3; justify-self: start; }
+  
+  .bh-meta-actions { 
+    grid-column: 1 / 2;
+    grid-row: 4; 
+    display: flex; 
+    align-items: center;
+  }
+
+  .add-task-header-btn {
+    grid-column: 2 / 3;
+    grid-row: 4;
+    justify-self: end;
+    margin: 0;
+  }
+  
+  .board-subtabs-bar {
+    grid-column: 1 / -1;
+    grid-row: 5;
+  }
+  
+  .bh-members-count {
+    display: none; 
   }
 }

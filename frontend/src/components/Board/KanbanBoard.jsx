@@ -265,6 +265,7 @@ export default function KanbanBoard({ projectId, refreshKey, currentProject, cur
       
       const handleReconnect = () => {
         setLocalRefresh(r => r + 1);
+        if (projectId) socket.emit('join_board', projectId);
       };
       
       socket.on('task_created', handleTaskCreated);

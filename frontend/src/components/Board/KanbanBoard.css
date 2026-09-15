@@ -345,12 +345,23 @@
 
 @media (max-width: 1024px) {
   .kanban-board-container {
-    grid-template-columns: repeat(2, 1fr);
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 16px;
+  }
+  
+  .kanban-column {
+    min-width: 280px;
+    flex: 0 0 280px;
+    scroll-snap-align: start;
   }
 }
 
 @media (max-width: 640px) {
-  .kanban-board-container {
-    grid-template-columns: 1fr;
+  .kanban-column {
+    min-width: 85vw;
+    flex: 0 0 85vw;
   }
 }
