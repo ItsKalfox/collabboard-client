@@ -14,7 +14,9 @@ export const SocketProvider = ({ children }) => {
     const token = localStorage.getItem('token');
     const newSocket = io(socketUrl, {
       autoConnect: false,
-      auth: { token }
+      auth: { token },
+      withCredentials: true,
+      transports: ['websocket']
     });
     setSocket(newSocket);
     newSocket.connect();
