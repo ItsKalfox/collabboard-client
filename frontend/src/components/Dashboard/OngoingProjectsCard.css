@@ -3,7 +3,7 @@
   height: 100%;
   min-height: 0;
   background: var(--menu-bg, rgba(255, 255, 255, 0.2));
-  -webkit-backdrop-filter: ; backdrop-filter: ;
+  -webkit-backdrop-filter: blur(25px); backdrop-filter: blur(25px);
   border: var(--menu-border, 1px solid rgba(255, 255, 255, 0.3));
   border-radius: 20px;
   padding: 18px 20px;
