@@ -62,8 +62,7 @@
 
 .glass-card, .glass-card-light {
   background: var(--surface);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: ; backdrop-filter: ;
   border: 1px solid var(--border);
   border-radius: 18px;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -77,8 +76,7 @@
 
 .glass-menu, .glass-menu-light, .modal-panel {
   background: var(--surface-strong);
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: ; backdrop-filter: ;
   border: 1px solid var(--border);
   color: var(--text);
 }
@@ -420,7 +418,7 @@
 
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: ; backdrop-filter: ;
   display: flex; align-items: center; justify-content: center;
   padding: 20px; z-index: 100;
 }

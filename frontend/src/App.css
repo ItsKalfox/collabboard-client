@@ -58,8 +58,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: ; backdrop-filter: ;
   background: rgba(0, 0, 0, 0.5); /* fade effect */
   z-index: 0;
 }
@@ -74,8 +73,7 @@
   height: 90vh;
   border-radius: 24px;
   background: var(--window-bg);
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: ; backdrop-filter: ;
   border: var(--window-border);
   box-shadow: var(--window-shadow);
   display: flex;
@@ -287,8 +285,7 @@
     box-shadow: var(--window-shadow);
     background: var(--window-bg);
     border-radius: 0 20px 20px 0;
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: ; backdrop-filter: ;
   }
 
   .menu-bar.open {

@@ -32,8 +32,7 @@
   transform: translateX(-50%);
   background-color: #b2beb5;
   color: #1f2937;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: ; backdrop-filter: ;
   padding: 10px 20px;
   border-radius: 9999px;
   z-index: 9999;
@@ -138,8 +137,7 @@
 /* Individual Task Card */
 .task-card {
   background: var(--menu-bg, rgba(255, 255, 255, 0.2));
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: ; backdrop-filter: ;
   border: var(--menu-border, 1px solid rgba(255, 255, 255, 0.3));
   border-radius: 16px;
   padding: 14px 16px;
