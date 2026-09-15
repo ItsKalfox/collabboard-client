@@ -562,12 +562,15 @@
 /* Responsive adjustments */
 @media (max-width: 850px) {
   .auth-page-container {
-    padding: 0;
+    padding: 24px;
   }
 
   .auth-split-window {
-    border-radius: 0;
-    min-height: 100vh;
+    min-height: auto;
+    width: 100%;
+    max-width: 480px;
+    border-radius: 24px;
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.4);
   }
 
   .auth-left-pane {
@@ -577,7 +580,7 @@
   .auth-right-pane {
     flex: 1 1 100%;
     border: none;
-    border-radius: 0;
+    border-radius: 24px;
     transform: none !important;
   }
 
@@ -593,7 +596,7 @@
 
   .auth-card {
     padding: 40px 24px;
-    border-radius: 0;
+    border-radius: 24px;
     box-shadow: none;
   }
   
@@ -605,6 +608,10 @@
 }
 
 @media (max-width: 480px) {
+  .auth-page-container {
+    padding: 16px;
+  }
+
   .auth-card {
     padding: 32px 20px;
   }
