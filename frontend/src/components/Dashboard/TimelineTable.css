@@ -547,6 +547,21 @@
   .timeline-container {
     padding: 14px;
     border-radius: 16px;
+    height: 450px;
+  }
+
+  .timeline-header {
+    position: relative;
+  }
+
+  .timeline-arrows {
+    position: absolute;
+    right: 0;
+    top: 0;
+  }
+
+  .timeline-body {
+    overflow-y: auto;
   }
 
   .timeline-title {
